@@ -138,6 +138,23 @@ control-panel = { cmd = "yarn dev", cwd = "src/lucy_control_panel" }
 rqt = { cmd = "bash scripts/pixi_gui_launch.sh rqt" }
 lucy-cli = { cmd = "bash scripts/pixi_gui_launch.sh ros2 run lucy_cli tui" }
 
+# --- embedded firmware development (Rust + RP2040) ---
+[feature.firmware.dependencies]
+# NO rust package - using rustup for better embedded toolchain support
+# (rust-std-thumbv6m-none-eabi NOT available in conda-forge, verified 2026-09-09)
+python = ">=3.10"             # for setup/flash scripts
+pyserial = "*"                # serial port detection and communication
+requests = "*"                # for rustup automatic download (if needed)
+boost-cpp = "*"               # for cross-platform SHM in bridge node (Boost.Interprocess)
+
+[feature.firmware.tasks]
+# Universal Python script works on all platforms - no separate bash/powershell needed
+firmware-setup = "python scripts/firmware_setup.py"
+firmware-build = { cmd = "cargo build --release --target thumbv6m-none-eabi --manifest-path src/lucy_embedded_firmware/firmwares/rp2040/Cargo.toml", cwd = ".", depends-on = ["firmware-setup"] }
+firmware-flash = { cmd = "python scripts/firmware_flash.py", depends-on = ["firmware-build"] }
+firmware-clean = "cargo clean --manifest-path src/lucy_embedded_firmware/Cargo.toml"
+firmware-test = { cmd = "cargo test --manifest-path src/lucy_embedded_firmware/Cargo.toml", depends-on = ["firmware-setup"] }
+
 # --- platform-specific host packages ---
 [target.linux.dependencies]
 libgl-devel = "*"
@@ -160,4 +177,4 @@ scripts = ["install/setup.bat"]
 env = { GZ_SIM_SYSTEM_PLUGIN_PATH = "%CONDA_PREFIX%/Library/bin" }
 
 [environments]
-default = { features = ["ros", "build", "panel", "dev", "launcher"] }
+default = { features = ["ros", "build", "panel", "dev", "launcher", "firmware"] }
