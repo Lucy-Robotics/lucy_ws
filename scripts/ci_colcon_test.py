@@ -27,7 +27,6 @@ BASE_SKIP = [
     "lucy_cli",
     "lucy_config_pipeline",
     "lucy_control_supervisor",
-    "camera_ros",
 ]
 
 FAILURE_PATTERN = re.compile(
