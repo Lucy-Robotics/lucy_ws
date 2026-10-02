@@ -6,6 +6,7 @@ import subprocess
 from .constants import LOADING_TIMEOUT, WORKSPACE_ROOT
 from .config import save_state
 from .shell import run_shell_command, _pane_exit_status
+from .tmux import HOST_TMUX
 
 
 def _env_enabled(var_name):
@@ -64,6 +65,7 @@ class Package:
         self.subitem = data.get("subitem", False)
         self.readiness_check = data.get("readiness_check")
         self.exit_check = data.get("exit_check")
+        self.preflight_check = data.get("preflight_check")
         self.readiness_stages = _readiness_stages(data.get("readiness_stages"))
         self.readiness_timeout = data.get("readiness_timeout", LOADING_TIMEOUT)
         self.runs_on_vnc = data.get("runs_on_vnc", False)
@@ -107,7 +109,7 @@ class Package:
                 is_running = self.id in tmux_windows
             else:
                 is_running = run_shell_command(
-                    f"tmux list-windows -F '#{{window_name}}' | grep -q '^{self.id}$'",
+                    f"{HOST_TMUX} list-windows -F '#{{window_name}}' | grep -q '^{self.id}$'",
                     capture_output=True,
                 )
 

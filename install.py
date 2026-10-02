@@ -815,7 +815,6 @@ def build_local_realsense_optional(
 ) -> None:
     """Optional local librealsense build (Linux-targeted shell script)."""
     if not env_flag("LUCY_BUILD_REALSENSE"):
-        log("RealSense: local build when needed: scripts/build_local_realsense.sh")
         return
     if sys.platform == "win32":
         log("RealSense: LUCY_BUILD_REALSENSE set but the local build is Linux-only; skipping.")
@@ -833,6 +832,17 @@ def build_workspace(
     log("Installing control panel dependencies (yarn) ...")
     pixi_run(project_root, ["run", "panel-install"], run_command)
     build_local_realsense_optional(project_root, run_command, log)
+    setup_firmware_toolchain(project_root, run_command, log)
+
+
+def setup_firmware_toolchain(
+    project_root: Path | str, run_command: Callable = default_run_command, log: Log = print
+) -> None:
+    """Install Rust/RP2040 toolchain into the Pixi env (idempotent)."""
+    if env_flag("LUCY_SKIP_FIRMWARE_SETUP"):
+        log("Firmware toolchain: LUCY_SKIP_FIRMWARE_SETUP set — skipping")
+        return
+    pixi_run(project_root, ["run", "firmware-setup"], run_command)
 
 
 # --- flow --------------------------------------------------------------------
@@ -943,10 +953,8 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     if args.skip_build:
         print("Repos ready. Run 'pixi run build' or re-run without --skip-build.")
-    elif sys.platform == "win32":
-        print("Install complete. Run 'pixi run core', then 'pixi run control-panel'.")
     else:
-        print("Install complete. Run 'python3 Lucy.py'")
+        print("Install complete.")
     return 0
 
 

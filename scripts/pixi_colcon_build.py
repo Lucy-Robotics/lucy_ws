@@ -2,9 +2,9 @@
 """
 Windows-native colcon build wrapper.
 
-Removes build/camera_ros before building, then runs colcon build with the Windows
-workspace configuration under the MSVC environment (ROS 2 C++ packages need cl.exe,
-which only exists inside a Visual Studio developer environment).
+Runs colcon build with the Windows workspace configuration under the MSVC
+environment (ROS 2 C++ packages need cl.exe, which only exists inside a Visual
+Studio developer environment).
 """
 
 from __future__ import annotations
@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from install import msvc_available, msvc_environment, safe_rmtree  # noqa: E402
+from install import msvc_available, msvc_environment  # noqa: E402
 
 COLCON_ARGS = [
     "build",
@@ -52,7 +52,6 @@ def build_env() -> dict:
 
 
 def main() -> int:
-    safe_rmtree(ROOT / "build" / "camera_ros")
     # colcon's console-script shim cannot launch an interpreter whose path contains
     # a space, so go through the interpreter directly.
     command = [sys.executable, "-m", "colcon", *COLCON_ARGS, *sys.argv[1:]]

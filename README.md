@@ -84,6 +84,8 @@ Windows is **visualisation only** for now. `pixi run core` starts a `/joint_stat
 
 > **Recommended starting point:** **Core + Control Panel**  (the web 3D viewer is enough for most work without heavy GUI apps)
 
+**Real hardware:** `install.py` installs the RP2040 firmware toolchain (`pixi run firmware-setup`). Launcher **Real Hardware** and LCP hardware ACTIVATE (when SIMULATION ONLY is off) require it; re-run `pixi run firmware-setup` if a check fails.
+
 **tmux windows** (Linux/macOS):
 
 - **`Ctrl+B` then `W`** — window list

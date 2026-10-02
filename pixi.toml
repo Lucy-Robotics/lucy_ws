@@ -89,7 +89,7 @@ colcon-test-result = ">=0.3.8,<0.4"
 
 # --- colcon build tasks (RoboStack Getting Started pattern) ---
 [feature.build.target.unix.tasks]
-build = { cmd = "rm -rf build/camera_ros && colcon build --symlink-install --cmake-args -GNinja -DCMAKE_BUILD_TYPE=Release -Wno-dev && bash scripts/macos_link_workspace_libs.sh", inputs = ["src"] }
+build = { cmd = "colcon build --symlink-install --cmake-args -GNinja -DCMAKE_BUILD_TYPE=Release -Wno-dev && bash scripts/macos_link_workspace_libs.sh", inputs = ["src"] }
 build-release = "colcon build --cmake-args -GNinja -DCMAKE_BUILD_TYPE=Release -Wno-dev && bash scripts/macos_link_workspace_libs.sh"
 clean = "python scripts/clean.py"
 test = { cmd = "bash scripts/ci_colcon_test.sh", depends-on = ["build"] }
@@ -138,6 +138,28 @@ control-panel = { cmd = "yarn dev", cwd = "src/lucy_control_panel" }
 rqt = { cmd = "bash scripts/pixi_gui_launch.sh rqt" }
 lucy-cli = { cmd = "bash scripts/pixi_gui_launch.sh ros2 run lucy_cli tui" }
 
+# --- embedded firmware development (Rust + RP2040) ---
+[feature.firmware.dependencies]
+# NO rust package - using rustup for better embedded toolchain support
+# (rust-std-thumbv6m-none-eabi NOT available in conda-forge, verified 2026-09-09)
+python = ">=3.10"             # for setup/flash scripts
+pyserial = "*"                # serial port detection and communication
+requests = "*"                # for rustup automatic download (if needed)
+libusb = ">=1.0.29,<2"
+# Do not pull boost-cpp here: it conflicts with RoboStack ros-jazzy (libboost)
+# on multi-platform solves (esp. osx-arm64). Windows SHM (Boost.Interprocess)
+# stays a separate follow-up when that code lands.
+
+[feature.firmware.tasks]
+# Zero-touch: installs rustup+elf2uf2 into $CONDA_PREFIX/{cargo,rustup}.
+# Activation (firmware_cargo_env.*) puts them on PATH for every pixi run.
+firmware-setup = "python scripts/firmware_setup.py"
+firmware-check = "python scripts/firmware_setup.py --check"
+firmware-build = { cmd = "cargo build --release --target thumbv6m-none-eabi --manifest-path firmwares/rp2040_servo2040/Cargo.toml", cwd = "src/lucy_embedded_firmware", depends-on = ["firmware-setup"] }
+firmware-flash = { cmd = "python scripts/firmware_flash.py", depends-on = ["firmware-build"] }
+firmware-clean = "cargo clean --manifest-path src/lucy_embedded_firmware/Cargo.toml"
+firmware-test = { cmd = "cargo test --manifest-path src/lucy_embedded_firmware/Cargo.toml", depends-on = ["firmware-setup"] }
+
 # --- platform-specific host packages ---
 [target.linux.dependencies]
 libgl-devel = "*"
@@ -145,19 +167,20 @@ gstreamer = "*"
 
 # tmux is a host tool (see README). Not bundled in Pixi so `pixi run` does not shadow it.
 
-# --- activation: colcon overlay + DDS scope + Gazebo plugin path ---
+# --- activation: colcon overlay + DDS scope + Gazebo plugin path + firmware cargo ---
 [target.unix.activation]
-scripts = ["install/setup.bash", "scripts/dds_env.sh"]
-env = { GZ_SIM_SYSTEM_PLUGIN_PATH = "$CONDA_PREFIX/lib" }
+scripts = ["install/setup.bash", "scripts/dds_env.sh", "scripts/firmware_cargo_env.sh"]
+# PYTEST_DISABLE_PLUGIN_AUTOLOAD: RoboStack launch_testing* entry points break pytest 8+/9.
+env = { GZ_SIM_SYSTEM_PLUGIN_PATH = "$CONDA_PREFIX/lib", PYTEST_DISABLE_PLUGIN_AUTOLOAD = "1" }
 
 # Linux overrides unix activation (does not merge) — repeat setup.bash here.
 [target.linux.activation]
-scripts = ["install/setup.bash", "scripts/dds_env.sh", "scripts/gz_rendering_env.sh"]
-env = { GZ_SIM_SYSTEM_PLUGIN_PATH = "$CONDA_PREFIX/lib" }
+scripts = ["install/setup.bash", "scripts/dds_env.sh", "scripts/gz_rendering_env.sh", "scripts/firmware_cargo_env.sh"]
+env = { GZ_SIM_SYSTEM_PLUGIN_PATH = "$CONDA_PREFIX/lib", PYTEST_DISABLE_PLUGIN_AUTOLOAD = "1" }
 
 [target.win.activation]
-scripts = ["install/setup.bat"]
-env = { GZ_SIM_SYSTEM_PLUGIN_PATH = "%CONDA_PREFIX%/Library/bin" }
+scripts = ["install/setup.bat", "scripts/firmware_cargo_env.bat"]
+env = { GZ_SIM_SYSTEM_PLUGIN_PATH = "%CONDA_PREFIX%/Library/bin", PYTEST_DISABLE_PLUGIN_AUTOLOAD = "1" }
 
 [environments]
-default = { features = ["ros", "build", "panel", "dev", "launcher"] }
+default = { features = ["ros", "build", "panel", "dev", "launcher", "firmware"] }

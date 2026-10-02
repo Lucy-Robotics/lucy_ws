@@ -2,39 +2,33 @@
   "repos": [
     {
       "name": "lucy_ros_packages",
-      "branch": "master",
+      "branch": "cma/rust-modbus-refactor",
       "url_https": "https://github.com/Sentience-Robotics/lucy_ros_packages.git",
       "url_ssh": "git@github.com:Sentience-Robotics/lucy_ros_packages.git"
     },
     {
       "name": "lucy_control_panel",
-      "branch": "master",
+      "branch": "cma/rust-modbus-refactor",
       "url_https": "https://github.com/Sentience-Robotics/lucy_control_panel.git",
       "url_ssh": "git@github.com:Sentience-Robotics/lucy_control_panel.git"
     },
     {
       "name": "lucy_embedded_firmware",
-      "branch": "master",
+      "branch": "cma/rust-modbus-refactor",
       "url_https": "https://github.com/Sentience-Robotics/lucy_embedded_firmware.git",
       "url_ssh": "git@github.com:Sentience-Robotics/lucy_embedded_firmware.git"
     },
     {
       "name": "inmoov_urdf",
-      "branch": "master",
+      "branch": "cma/fix-mimic-joints",
       "url_https": "https://github.com/Sentience-Robotics/inmoov_urdf.git",
       "url_ssh": "git@github.com:Sentience-Robotics/inmoov_urdf.git"
     },
     {
       "name": "so_arm101_urdf",
-      "branch": "master",
+      "branch": "cma/ci-add-colcon-tests",
       "url_https": "https://github.com/Sentience-Robotics/so_arm101_urdf.git",
       "url_ssh": "git@github.com:Sentience-Robotics/so_arm101_urdf.git"
-    },
-    {
-      "name": "thais_urdf",
-      "branch": "dev",
-      "url_https": "https://github.com/Sentience-Robotics/thais_urdf.git",
-      "url_ssh": "git@github.com:Sentience-Robotics/thais_urdf.git"
     }
   ]
 }

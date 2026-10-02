@@ -52,3 +52,29 @@ def test_clone_does_not_force_progress():
 
     assert commands == [["git", "clone", "-b", "dev",
                          "git@example.com:foo.git", "/nonexistent/foo"]]
+
+
+def test_setup_firmware_toolchain_skips_when_env_set(monkeypatch):
+    calls = []
+
+    def fake_pixi_run(project_root, args, run_command):
+        calls.append(args)
+        return 0
+
+    monkeypatch.setenv("LUCY_SKIP_FIRMWARE_SETUP", "1")
+    monkeypatch.setattr(install, "pixi_run", fake_pixi_run)
+    install.setup_firmware_toolchain("/tmp/ws", lambda *a, **k: 0, log=lambda m: None)
+    assert calls == []
+
+
+def test_setup_firmware_toolchain_runs_pixi_task(monkeypatch):
+    calls = []
+
+    def fake_pixi_run(project_root, args, run_command):
+        calls.append(list(args))
+        return 0
+
+    monkeypatch.delenv("LUCY_SKIP_FIRMWARE_SETUP", raising=False)
+    monkeypatch.setattr(install, "pixi_run", fake_pixi_run)
+    install.setup_firmware_toolchain("/tmp/ws", lambda *a, **k: 0, log=lambda m: None)
+    assert calls == [["run", "firmware-setup"]]

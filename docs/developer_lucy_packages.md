@@ -76,10 +76,12 @@ Pixi installs RoboStack Jazzy; `colcon build --symlink-install` builds `src/`; `
 
 | Command | What it does |
 |---------|--------------|
-| `python3 install.py` | Clone missing repos, pull existing ones, `pixi install`, colcon build |
+| `python3 install.py` | Clone missing repos, pull existing ones, `pixi install`, colcon build, firmware toolchain |
 | `python3 install.py --repair` | Wipe each repo under `src/` then re-clone and rebuild |
-| `python3 install.py --build-only` | Skip git; `pixi install` + colcon + panel yarn |
+| `python3 install.py --build-only` | Skip git; `pixi install` + colcon + panel yarn + firmware-setup |
 | `python3 install.py --skip-build` | Clone/pull only (CI) |
+
+After the colcon/panel build, install runs **`pixi run firmware-setup`** (rustup, `thumbv6m-none-eabi`, `elf2uf2-rs`, and Raspberry Pi **`picotool`** into the Pixi env, plus `libusb`). Skip with **`LUCY_SKIP_FIRMWARE_SETUP=1`**. Verify anytime with **`pixi run firmware-check`**. Linux udev for Pico USB is still deferred when the shell is non-interactive. Restart **Core** after a first-time setup so the config pipeline node picks up `picotool` on `PATH`.
 
 **Do not use `rosdep`** — it bypasses Pixi/RoboStack. Add deps via `pixi.toml` or clone into `src/`. See [`docs/pixi_setup.md`](pixi_setup.md).
 
@@ -194,6 +196,8 @@ ros2 launch lucy_bringup lucy.launch.py gazebo:=true
 ### Control panel: SIMULATION ONLY + RELOAD
 
 From **Configuration → ACTIVATE**, enable **SIMULATION ONLY** to run **VALIDATE → ACTIVATE → RELOAD** without BUILD/FLASH. The pipeline writes mock ros2_control artifacts and calls **`/lucy_control/restart`**. Hardware mode runs the same **RELOAD** after BUILD/FLASH.
+
+When **SIMULATION ONLY** is off, the pipeline checks the firmware toolchain before BUILD (`pixi run firmware-check`). If it fails, ACTIVATE aborts with a message to run **`pixi run firmware-setup`** or re-run **`python3 install.py`**. The launcher **Real Hardware** modifier uses the same check as a preflight before applying `real:=true`.
 
 **Gazebo caveat:** joint changes in URDF hardware blocks may require a full Gazebo restart when `use_gazebo_sim:=true`.
 
