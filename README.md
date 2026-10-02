@@ -9,7 +9,7 @@ Workspace bringup for the Lucy / InMoov humanoid. ROS 2 Jazzy, Gazebo, RViz, and
 | [Git](https://git-scm.com/downloads) | ✓ | ✓ | ✓ ([Git for Windows](https://git-scm.com/install/windows)) |
 | [Python 3](https://www.python.org/downloads/) (for `Lucy.py`) | ✓ | ✓ | ✓ |
 | [Pixi](https://pixi.prefix.dev/latest/installation/) **≥ 0.78** | ✓ | ✓ | ✓ |
-| **tmux** (multi-window launcher) | ✓ | ✓ (`brew install tmux`) | — (launcher runs directly) |
+| **tmux** (multi-window launcher) | ✓ | ✓ (`brew install tmux`) | - (launcher runs directly) |
 
 ROS packages are installed by Pixi into `.pixi/`.
 
@@ -77,23 +77,28 @@ Windows is **visualisation only** for now. `pixi run core` starts a `/joint_stat
 
 **Components you can enable:**
 
-- **Core** — base robot stack (`lucy_bringup`)
-- **Modifiers** — Simulator (Gazebo), **… headless** (server-only sim, under Simulator), Visualizer (RViz), Real Hardware
-- **Interfaces** — Control Panel (web UI), Lucy CLI
-- **Tools** — Console, rqt
+- **Core** - base robot stack (`lucy_bringup`)
+- **Modifiers** - Simulator (Gazebo), **… headless** (server-only sim, under Simulator), Visualizer (RViz), Real Hardware
+- **Interfaces** - Control Panel (web UI), Lucy CLI
+- **Tools** - Console, rqt
 
 > **Recommended starting point:** **Core + Control Panel**  (the web 3D viewer is enough for most work without heavy GUI apps)
 
 **tmux windows** (Linux/macOS):
 
-- **`Ctrl+B` then `W`** — window list
-- **`Ctrl+B` then `N`** / **`P`** — next / previous window
+- **`Ctrl+B` then `W`** - window list
+- **`Ctrl+B` then `N`** / **`P`** - next / previous window
 
 On Windows, the Control Center runs without tmux (one process tree). Gazebo, RViz, and rqt still open as native GUI apps when enabled.
 
 ## Developer setup
 
 For developer mode, see the **[developer guide](docs/developer_lucy_packages.md)**.
+
+## Architecture
+
+- **[Architecture index](docs/architecture/README.md)** - schematics and guide
+- **[System overview](docs/architecture/overview.md)** - workspace packages, browser, MCU, peripherals
 
 ## Contributing
 

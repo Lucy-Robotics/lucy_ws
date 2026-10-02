@@ -23,7 +23,7 @@ SSH keys must be configured for GitHub on your host before running `install.py` 
 | [`config/launcher_config.json.local`](../config/launcher_config.json.local) | Custom Control Center package list (e.g. multi-robot) |
 | [`config/install.profile.json`](../config/install.profile.json) | Windows installer choices (written by the installer) |
 
-Example for a fork — same structure as `repos.json`:
+Example for a fork - same structure as `repos.json`:
 
 ```json
 {
@@ -50,7 +50,7 @@ Standard path: `python3 install.py` then `python3 Lucy.py`.
 
 **Jetson (Orin / AGX / Nano / Thor):** Pixi ships conda Mesa/GLVND ahead of the Tegra driver, which breaks Gazebo ogre2 (missing plugin, EGL segfaults). [`scripts/nix_gl_env.sh`](../scripts/nix_gl_env.sh) auto-detects Jetson and prepends `/usr/lib/aarch64-linux-gnu/nvidia` + `tegra`, sets the NVIDIA EGL vendor; [`scripts/gz_rendering_env.sh`](../scripts/gz_rendering_env.sh) discovers ogre2 plugin/resource paths on Linux. Use **`sim-headless`** or Control Center **Simulator → … headless** for camera sim without a display; GUI **`sim`** needs X11/Wayland and keeps your session `XDG_RUNTIME_DIR`. Do not set `LUCY_NIX_GL=0` on Jetson. Override: `LUCY_GPU_MODE=jetson`.
 
-**NixOS:** Pixi/RoboStack needs host GL libraries prepended **and** Mesa EGL — both are applied by [`scripts/nix_gl_env.sh`](../scripts/nix_gl_env.sh) (launcher and `pixi run sim*`). Install **`nixGLIntel`** (or another nixGL wrapper) on PATH, or rely on the `/run/opengl-driver/lib` fallback. **Do not set `LUCY_NIX_GL=0`** — EGL/`GZ_IP` alone is not enough; sim will hang on "requesting world names". Optional overrides: `LUCY_NIX_GL_WRAPPER`, `__EGL_VENDOR_LIBRARY_FILENAMES`, `GZ_IP` — see `.env.example`.
+**NixOS:** Pixi/RoboStack needs host GL libraries prepended **and** Mesa EGL - both are applied by [`scripts/nix_gl_env.sh`](../scripts/nix_gl_env.sh) (launcher and `pixi run sim*`). Install **`nixGLIntel`** (or another nixGL wrapper) on PATH, or rely on the `/run/opengl-driver/lib` fallback. **Do not set `LUCY_NIX_GL=0`** - EGL/`GZ_IP` alone is not enough; sim will hang on "requesting world names". Optional overrides: `LUCY_NIX_GL_WRAPPER`, `__EGL_VENDOR_LIBRARY_FILENAMES`, `GZ_IP` - see `.env.example`.
 
 ### macOS
 
@@ -66,7 +66,7 @@ End users get `Lucy-Setup.exe` from [Lucy-Windows-Installer](https://github.com/
 skips git. `python3 Lucy.py` runs install when the workspace is missing and
 otherwise names the pixi tasks; there is no TUI on Windows (no curses, no tmux).
 
-Pixi resolves `win-64` on Intel/AMD and Windows-on-ARM alike — `pixi.lock` has
+Pixi resolves `win-64` on Intel/AMD and Windows-on-ARM alike - `pixi.lock` has
 no `win-arm64`. Colcon uses `--merge-install` there, see
 [`docs/pixi_setup.md`](pixi_setup.md).
 
@@ -81,7 +81,9 @@ Pixi installs RoboStack Jazzy; `colcon build --symlink-install` builds `src/`; `
 | `python3 install.py --build-only` | Skip git; `pixi install` + colcon + panel yarn |
 | `python3 install.py --skip-build` | Clone/pull only (CI) |
 
-**Do not use `rosdep`** — it bypasses Pixi/RoboStack. Add deps via `pixi.toml` or clone into `src/`. See [`docs/pixi_setup.md`](pixi_setup.md).
+After the colcon/panel build, install runs **`pixi run firmware-setup`** (rustup, `thumbv6m-none-eabi`, `elf2uf2-rs`, and Raspberry Pi **`picotool`** into the Pixi env, plus `libusb`). Skip with **`LUCY_SKIP_FIRMWARE_SETUP=1`**. Verify anytime with **`pixi run firmware-check`**. Linux udev for Pico USB is still deferred when the shell is non-interactive. Restart **Core** after a first-time setup so the config pipeline node picks up `picotool` on `PATH`.
+
+**Do not use `rosdep`** - it bypasses Pixi/RoboStack. Add deps via `pixi.toml` or clone into `src/`. See [`docs/pixi_setup.md`](pixi_setup.md).
 
 **RealSense** (optional, not in Pixi): after a normal build, run `./scripts/build_local_realsense.sh` or `LUCY_BUILD_REALSENSE=1 python3 install.py`. Primary target is Linux; see script for aarch64 notes.
 
@@ -209,7 +211,15 @@ From **Configuration → ACTIVATE**, enable **SIMULATION ONLY** to run **VALIDAT
 | `LUCY_NIX_GL` | `auto` | Set `0` to skip host GL prepend (**breaks NixOS Gazebo sim**) |
 | `LUCY_NIX_GL_WRAPPER` | auto | `nixGLIntel`, `nixGLDefault`, or `nixGL` |
 
-Vite proxies `/rosbridge` to `ws://127.0.0.1:9090`. Launcher sets `LUCY_LCP_*` vars for panel URLs — see [`launch_lucy.sh`](../launch_lucy.sh).
+Vite proxies `/rosbridge` to `ws://127.0.0.1:9090`. Launcher sets `LUCY_LCP_*` vars for panel URLs - see [`launch_lucy.sh`](../launch_lucy.sh).
+
+## Architecture
+
+| Document | Contents |
+|----------|----------|
+| [`docs/architecture/README.md`](architecture/README.md) | Index - schematics + conventions guide |
+| [`docs/architecture/overview.md`](architecture/overview.md) | System context (packages + browser, MCU, peripherals) |
+| [`docs/architecture/GUIDE.md`](architecture/GUIDE.md) | Mermaid + UML conventions (for authors) |
 
 ## More
 
@@ -220,6 +230,6 @@ Vite proxies `/rosbridge` to `ws://127.0.0.1:9090`. Launcher sets `LUCY_LCP_*` v
 | [`docs/pixi_setup.md`](pixi_setup.md) | Pixi/RoboStack deps, lock workflow, component tasks |
 | [`docs/pixi_release.md`](pixi_release.md) | Release packaging (pixi-build-ros) |
 | [`src/lucy_ros_packages/docs/DEVELOPER.md`](../src/lucy_ros_packages/docs/DEVELOPER.md) | bringup, ros2_control, CI |
-| [`src/lucy_ros_packages/doc/ROS2_CONTROL.md`](../src/lucy_ros_packages/doc/ROS2_CONTROL.md) | ros2_control on Lucy |
+| [`src/lucy_ros_packages/docs/ROS2_CONTROL.md`](../src/lucy_ros_packages/docs/ROS2_CONTROL.md) | ros2_control on Lucy |
 | [`src/inmoov_urdf/docs/DEVELOPER.md`](../src/inmoov_urdf/docs/DEVELOPER.md) | URDF, meshes, sim launches |
 | [`src/so_arm101_urdf/docs/DEVELOPER.md`](../src/so_arm101_urdf/docs/DEVELOPER.md) | SO-ARM101 follower arm |
