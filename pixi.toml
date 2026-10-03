@@ -89,7 +89,7 @@ colcon-test-result = ">=0.3.8,<0.4"
 
 # --- colcon build tasks (RoboStack Getting Started pattern) ---
 [feature.build.target.unix.tasks]
-build = { cmd = "rm -rf build/camera_ros && colcon build --symlink-install --cmake-args -GNinja -DCMAKE_BUILD_TYPE=Release -Wno-dev && bash scripts/macos_link_workspace_libs.sh", inputs = ["src"] }
+build = { cmd = "colcon build --symlink-install --packages-skip camera_ros --cmake-args -GNinja -DCMAKE_BUILD_TYPE=Release -Wno-dev && bash scripts/macos_link_workspace_libs.sh", inputs = ["src"] }
 build-release = "colcon build --cmake-args -GNinja -DCMAKE_BUILD_TYPE=Release -Wno-dev && bash scripts/macos_link_workspace_libs.sh"
 clean = "python scripts/clean.py"
 test = { cmd = "bash scripts/ci_colcon_test.sh", depends-on = ["build"] }
