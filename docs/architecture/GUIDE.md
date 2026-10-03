@@ -50,9 +50,17 @@ Replace `Component` / the parenthetical with the matching UML kind and a short s
   - Quote edge labels that contain special characters.
   - No HTML entities in labels.
   - Do **not** color individual nodes with `style` / `classDef` fills.
-  - **Do** set edge visibility for dark/light readers:
-    - Flowcharts: `%%{init}%%` with themeVariables + `linkStyle default stroke:#00FF41`
-    - Sequence/class diagrams: no init directive (renderer default provides visibility)
+  - **Do** use a self-contained dark palette on flowcharts so labels stay
+    readable on both GitHub light and dark page themes:
+    - `theme: base` + `darkMode: true`
+    - Dark node fills (`primaryColor` / `mainBkg` ≈ `#21262d`) with light
+      text (`primaryTextColor` / `nodeTextColor` ≈ `#f0f6fc`)
+    - Edges and accents: `#00FF41` (`lineColor`, `primaryBorderColor`,
+      `clusterBorder`, plus `linkStyle default stroke:#00FF41`)
+    - Never set light text without also setting a dark `primaryColor`
+      (Mermaid’s default cream fill makes light labels unreadable)
+    - Sequence/class diagrams: no init directive (renderer default provides
+      visibility)
 
 ### Edge legend (shared)
 

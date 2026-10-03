@@ -10,7 +10,7 @@ Index: [README.md](./README.md). Conventions for authors: [GUIDE.md](./GUIDE.md)
 **UML Component (system context)** - Lucy workspace boundary and external actors.
 
 ```mermaid
-%%{init: {"theme": "base", "themeVariables": {"lineColor": "#00FF41", "primaryTextColor": "#c9d1d9", "secondaryTextColor": "#c9d1d9", "tertiaryTextColor": "#c9d1d9", "edgeLabelBackground": "#161b22", "clusterBkg": "#0d1117", "clusterBorder": "#00FF41", "titleColor": "#c9d1d9"}}}%%
+%%{init: {"theme": "base", "themeVariables": {"darkMode": true, "background": "#0d1117", "mainBkg": "#21262d", "primaryColor": "#21262d", "primaryTextColor": "#f0f6fc", "primaryBorderColor": "#00FF41", "secondaryColor": "#161b22", "secondaryTextColor": "#f0f6fc", "secondaryBorderColor": "#00FF41", "tertiaryColor": "#161b22", "tertiaryTextColor": "#f0f6fc", "tertiaryBorderColor": "#00FF41", "lineColor": "#00FF41", "textColor": "#f0f6fc", "nodeTextColor": "#f0f6fc", "edgeLabelBackground": "#161b22", "clusterBkg": "#0d1117", "clusterBorder": "#00FF41", "titleColor": "#f0f6fc"}}}%%
 flowchart TB
   subgraph externalUi ["External UI"]
     LCP["lucy_control_panel\nBrowser"]
