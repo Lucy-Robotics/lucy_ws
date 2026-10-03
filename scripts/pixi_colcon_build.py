@@ -4,7 +4,7 @@ Windows-native colcon build wrapper.
 
 Runs colcon build with the Windows workspace configuration under the MSVC
 environment (ROS 2 C++ packages need cl.exe, which only exists inside a Visual
-Studio developer environment). Skips camera_ros (RoboStack typesupport flake).
+Studio developer environment). Retries once on failure (RoboStack typesupport flake).
 """
 
 from __future__ import annotations
@@ -23,8 +23,6 @@ from install import msvc_available, msvc_environment  # noqa: E402
 COLCON_ARGS = [
     "build",
     "--merge-install",
-    "--packages-skip",
-    "camera_ros",
     "--cmake-args",
     "-GNinja",
     "-DCMAKE_BUILD_TYPE=Release",
@@ -57,7 +55,12 @@ def main() -> int:
     # colcon's console-script shim cannot launch an interpreter whose path contains
     # a space, so go through the interpreter directly.
     command = [sys.executable, "-m", "colcon", *COLCON_ARGS, *sys.argv[1:]]
-    return subprocess.call(command, cwd=ROOT, env=build_env())
+    env = build_env()
+    rc = subprocess.call(command, cwd=ROOT, env=env)
+    if rc != 0:
+        print("warning: colcon build failed; retrying once", file=sys.stderr)
+        rc = subprocess.call(command, cwd=ROOT, env=env)
+    return rc
 
 
 if __name__ == "__main__":
