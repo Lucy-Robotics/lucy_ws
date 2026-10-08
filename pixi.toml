@@ -155,7 +155,7 @@ libusb = ">=1.0.29,<2"
 # Activation (firmware_cargo_env.*) puts them on PATH for every pixi run.
 firmware-setup = "python scripts/firmware_setup.py"
 firmware-check = "python scripts/firmware_setup.py --check"
-firmware-build = { cmd = "cargo build --release --target thumbv6m-none-eabi --manifest-path firmwares/rp2040_internal_pwm/Cargo.toml", cwd = "src/lucy_embedded_firmware", depends-on = ["firmware-setup"] }
+firmware-build = { cmd = "cargo build --release --target thumbv6m-none-eabi --manifest-path firmwares/rp2040_servo2040/Cargo.toml", cwd = "src/lucy_embedded_firmware", depends-on = ["firmware-setup"] }
 firmware-flash = { cmd = "python scripts/firmware_flash.py", depends-on = ["firmware-build"] }
 firmware-clean = "cargo clean --manifest-path src/lucy_embedded_firmware/Cargo.toml"
 firmware-test = { cmd = "cargo test --manifest-path src/lucy_embedded_firmware/Cargo.toml", depends-on = ["firmware-setup"] }
