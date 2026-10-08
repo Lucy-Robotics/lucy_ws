@@ -23,6 +23,10 @@
     {
       "name": "so_arm101_urdf",
       "path": "src/so_arm101_urdf"
+    },
+    {
+      "name": "lucy_embedded_firmware",
+      "path": "src/lucy_embedded_firmware"
     }
   ],
   "settings": {
