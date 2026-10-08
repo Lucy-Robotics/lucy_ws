@@ -170,16 +170,17 @@ gstreamer = "*"
 # --- activation: colcon overlay + DDS scope + Gazebo plugin path + firmware cargo ---
 [target.unix.activation]
 scripts = ["install/setup.bash", "scripts/dds_env.sh", "scripts/firmware_cargo_env.sh"]
-env = { GZ_SIM_SYSTEM_PLUGIN_PATH = "$CONDA_PREFIX/lib" }
+# PYTEST_DISABLE_PLUGIN_AUTOLOAD: RoboStack launch_testing* entry points break pytest 8+/9.
+env = { GZ_SIM_SYSTEM_PLUGIN_PATH = "$CONDA_PREFIX/lib", PYTEST_DISABLE_PLUGIN_AUTOLOAD = "1" }
 
 # Linux overrides unix activation (does not merge) — repeat setup.bash here.
 [target.linux.activation]
 scripts = ["install/setup.bash", "scripts/dds_env.sh", "scripts/gz_rendering_env.sh", "scripts/firmware_cargo_env.sh"]
-env = { GZ_SIM_SYSTEM_PLUGIN_PATH = "$CONDA_PREFIX/lib" }
+env = { GZ_SIM_SYSTEM_PLUGIN_PATH = "$CONDA_PREFIX/lib", PYTEST_DISABLE_PLUGIN_AUTOLOAD = "1" }
 
 [target.win.activation]
 scripts = ["install/setup.bat", "scripts/firmware_cargo_env.bat"]
-env = { GZ_SIM_SYSTEM_PLUGIN_PATH = "%CONDA_PREFIX%/Library/bin" }
+env = { GZ_SIM_SYSTEM_PLUGIN_PATH = "%CONDA_PREFIX%/Library/bin", PYTEST_DISABLE_PLUGIN_AUTOLOAD = "1" }
 
 [environments]
 default = { features = ["ros", "build", "panel", "dev", "launcher", "firmware"] }

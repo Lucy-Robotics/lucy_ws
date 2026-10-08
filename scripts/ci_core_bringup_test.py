@@ -120,12 +120,21 @@ def wait_for_bringup(node) -> None:
 
 
 def check_single_robot_description_publisher(node) -> None:
-    """More than one means another machine's robot joined this graph."""
+    """More than one distinct node means another stack joined this graph.
+
+    FastDDS (rmw_fastrtps_cpp) sometimes lists the same endpoint twice in
+    ``get_publishers_info_by_topic``, so count unique (namespace, name) pairs
+    rather than raw info rows.
+    """
     infos = node.get_publishers_info_by_topic("/robot_description")
-    if len(infos) != 1:
-        who = ", ".join(f"{i.node_namespace.rstrip('/')}/{i.node_name}" for i in infos) or "none"
+    unique = {(i.node_namespace, i.node_name) for i in infos}
+    if len(unique) != 1:
+        who = ", ".join(
+            f"{ns.rstrip('/')}/{name}" for ns, name in sorted(unique)
+        ) or "none"
         raise CheckFailed(
-            f"expected exactly 1 publisher of /robot_description, found {len(infos)}: {who}"
+            f"expected exactly 1 publisher of /robot_description, "
+            f"found {len(unique)}: {who}"
         )
     log("exactly one publisher of /robot_description")
 
