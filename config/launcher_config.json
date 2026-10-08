@@ -110,6 +110,7 @@
       "dependencies": ["core"],
       "conflicts": ["gazebo"],
       "command": "real:=true",
+      "preflight_check": "pixi run firmware-check",
       "readiness_check": "test -f /tmp/.lucy_real_hardware_ready && pgrep -f '[l]ucy_embedded_firmware_sim' >/dev/null 2>&1",
       "exit_check": "cat /tmp/.lucy_real_hardware_status 2>/dev/null",
       "readiness_timeout": 30,

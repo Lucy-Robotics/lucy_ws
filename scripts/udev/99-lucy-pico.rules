@@ -1,0 +1,18 @@
+# Lucy / Raspberry Pi Pico USB access (BOOTSEL + application CDC).
+# Allows picotool + ttyACM without root.
+#
+# Installed by: pixi run firmware-setup → scripts/install_pico_usb_access.py
+# NixOS / read-only /etc: same text is copied to /run/udev/rules.d/ (until reboot).
+
+# --- Raspberry Pi Pico native USB (VID 2e8a): BOOTSEL + stock CDC ---
+SUBSYSTEM=="usb", ATTRS{idVendor}=="2e8a", MODE="0666", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="2e8a", ENV{ID_MM_DEVICE_IGNORE}="1"
+KERNEL=="ttyACM*", ATTRS{idVendor}=="2e8a", MODE="0666", TAG+="uaccess"
+KERNEL=="ttyUSB*", ATTRS{idVendor}=="2e8a", MODE="0666", TAG+="uaccess"
+
+# --- Lucy / Custom Servo2040 legacy (VID 16c0, PID 27dd) ---
+# Keep until boards are upgraded to Pico VID 2e8a firmware (one BOOTSEL flash).
+SUBSYSTEM=="usb", ATTRS{idVendor}=="16c0", ATTRS{idProduct}=="27dd", MODE="0666", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="16c0", ATTRS{idProduct}=="27dd", ENV{ID_MM_DEVICE_IGNORE}="1"
+KERNEL=="ttyACM*", ATTRS{idVendor}=="16c0", MODE="0666", TAG+="uaccess"
+KERNEL=="ttyUSB*", ATTRS{idVendor}=="16c0", MODE="0666", TAG+="uaccess"
