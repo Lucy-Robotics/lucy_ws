@@ -3,7 +3,7 @@
 #
 # RoboStack does not publish ros-jazzy-realsense2-camera reliably across platforms
 # (especially linux-aarch64). Use this script when you need RealSense
-# hardware support. camera_ros (MJPEG/GStreamer) does not require this.
+# hardware support.
 #
 # Usage:
 #   ./scripts/build_local_realsense.sh              # default prefix: .local/realsense
