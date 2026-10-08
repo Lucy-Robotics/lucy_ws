@@ -86,7 +86,10 @@ def test_a_stopped_package_reports_no_stage(monkeypatch):
     """A stage next to STOPPED would read as something still on its way."""
     pkg, ran = _package(monkeypatch, passing=set(), running=False)
     assert pkg.stage is None
-    assert ran == ["tmux list-windows -F '#{window_name}' | grep -q '^core$'"]
+    assert ran == [
+        "env -u LD_LIBRARY_PATH -u DYLD_LIBRARY_PATH tmux list-windows "
+        "-F '#{window_name}' | grep -q '^core$'"
+    ]
 
 
 def test_malformed_stage_entries_are_dropped(monkeypatch):

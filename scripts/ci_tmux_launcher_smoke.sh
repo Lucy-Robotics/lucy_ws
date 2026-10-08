@@ -6,6 +6,9 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+# Host tmux must not load Pixi's libtinfo (see launcher.tmux.HOST_TMUX).
+host_tmux() { env -u LD_LIBRARY_PATH -u DYLD_LIBRARY_PATH tmux "$@"; }
+
 if ! command -v tmux >/dev/null 2>&1; then
   echo "ci_tmux_launcher_smoke: tmux not found" >&2
   exit 1
@@ -22,9 +25,9 @@ export LUCY_WS_ROOT="$ROOT"
 TMUX_SESSION="${LUCY_TMUX_SESSION:-lucy_ws}"
 export LUCY_TMUX_SESSION="$TMUX_SESSION"
 
-tmux start-server
-tmux kill-session -t "$TMUX_SESSION" 2>/dev/null || true
-tmux new-session -d -s "$TMUX_SESSION" -n Lucy 'sleep 300'
+host_tmux start-server
+host_tmux kill-session -t "$TMUX_SESSION" 2>/dev/null || true
+host_tmux new-session -d -s "$TMUX_SESSION" -n Lucy 'sleep 300'
 
 pixi run -- python3 <<'PY'
 import os
@@ -58,7 +61,7 @@ wait_for() {
     elapsed=$((elapsed + 2))
     if [ "$elapsed" -ge "$timeout" ]; then
       echo "ci_tmux_launcher_smoke: timeout waiting for ${label}" >&2
-      tmux list-windows -t "$TMUX_SESSION" 2>/dev/null || true
+      host_tmux list-windows -t "$TMUX_SESSION" 2>/dev/null || true
       return 1
     fi
   done
@@ -78,5 +81,5 @@ load_workspace_env()
 stop_all_packages(LauncherState(load_config()))
 PY
 
-tmux kill-session -t "$TMUX_SESSION" 2>/dev/null || true
+host_tmux kill-session -t "$TMUX_SESSION" 2>/dev/null || true
 echo "ci_tmux_launcher_smoke: OK"

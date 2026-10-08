@@ -1,15 +1,111 @@
 """Apply package selection changes and full teardown."""
 
+import subprocess
+import threading
 import time
 
 from .config import load_selection
 from .constants import TMUX_SESSION
 from .shell import run_teardown_async
+from .tmux import HOST_TMUX
 from .state import (
     _intended_running,
     _pkg_start_times,
     _pkg_stop_times,
 )
+
+# Async preflight (e.g. ``pixi run firmware-check``) so the curses loop stays responsive.
+_preflight_lock = threading.Lock()
+_preflight_running = False
+_preflight_ready = False
+_preflight_error: str | None = None
+
+
+def preflight_pending() -> bool:
+    with _preflight_lock:
+        return _preflight_running
+
+
+def take_preflight_result() -> tuple[bool, str | None] | None:
+    """Return ``(ok, error)`` once a background preflight finishes; else ``None``."""
+    global _preflight_running, _preflight_ready, _preflight_error
+    with _preflight_lock:
+        if _preflight_running:
+            return None
+        if _preflight_ready:
+            _preflight_ready = False
+            return (True, None)
+        if _preflight_error is not None:
+            err = _preflight_error
+            _preflight_error = None
+            return (False, err)
+        return None
+
+
+def _selected_preflight_checks(state) -> list[tuple[str, str]]:
+    """``(modifier_name, check_command)`` for selected modifiers with a preflight."""
+    core_pkg = state.get_by_id("core")
+    if not (core_pkg and core_pkg.selected):
+        return []
+    out: list[tuple[str, str]] = []
+    for mod in state.packages:
+        if mod.type != "modifier" or not mod.selected:
+            continue
+        check = getattr(mod, "preflight_check", None)
+        if check:
+            out.append((mod.name, check))
+    return out
+
+
+def _run_preflight_checks(checks: list[tuple[str, str]]) -> str | None:
+    """Run preflight commands; return an error string or ``None`` on success."""
+    for name, check in checks:
+        proc = subprocess.run(check, shell=True, capture_output=True, text=True)
+        if proc.returncode == 0:
+            continue
+        detail = (proc.stdout or proc.stderr or "").strip()
+        if detail:
+            first = detail.splitlines()[0][:100]
+            return f"{name}: {first}"
+        return f"{name}: preflight failed — run pixi run firmware-setup"
+    return None
+
+
+def request_apply(state):
+    """Apply selection, running any preflight off the TUI thread when needed.
+
+    Returns:
+      - ``"pending"`` if a background preflight was started (poll via
+        :func:`take_preflight_result`, then call
+        ``apply_changes(state, skip_preflight=True)``).
+      - ``None`` on immediate success.
+      - error string on immediate failure.
+    """
+    global _preflight_running, _preflight_ready, _preflight_error
+
+    checks = _selected_preflight_checks(state)
+    if not checks:
+        return apply_changes(state, skip_preflight=True)
+
+    with _preflight_lock:
+        if _preflight_running:
+            return "pending"
+        _preflight_running = True
+        _preflight_ready = False
+        _preflight_error = None
+
+    def _worker():
+        global _preflight_running, _preflight_ready, _preflight_error
+        err = _run_preflight_checks(checks)
+        with _preflight_lock:
+            _preflight_running = False
+            if err:
+                _preflight_error = err
+            else:
+                _preflight_ready = True
+
+    threading.Thread(target=_worker, daemon=True).start()
+    return "pending"
 
 
 def _clean_status():
@@ -79,7 +175,7 @@ def stop_all_packages(state):
     launcher._finish_teardown()
 
 
-def apply_changes(state):
+def apply_changes(state, *, skip_preflight: bool = False):
     import launcher
 
     preserve_windows, protect_vite = _orphan_preserve_from_state(state)
@@ -87,6 +183,13 @@ def apply_changes(state):
 
     last_launched_window = None
     core_pkg = state.get_by_id("core")
+
+    # Block core start when a selected modifier's preflight fails (e.g. real HW).
+    # Prefer :func:`request_apply` from the TUI so this does not freeze curses.
+    if not skip_preflight:
+        err = _run_preflight_checks(_selected_preflight_checks(state))
+        if err:
+            return err
 
     modifiers_changed = False
     if core_pkg and core_pkg.selected:
@@ -156,7 +259,7 @@ def apply_changes(state):
         ):
             if pkg.pane_dead:
                 launcher.run_shell_command(
-                    f"tmux kill-window -t {TMUX_SESSION}:{pkg.id} 2>/dev/null"
+                    f"{HOST_TMUX} kill-window -t {TMUX_SESSION}:{pkg.id} 2>/dev/null"
                 )
                 pkg.pane_dead = False
                 pkg.is_running = False
@@ -164,7 +267,8 @@ def apply_changes(state):
                 launcher.run_shell_command(launcher._complex_package_start(pkg))
                 if pkg.readiness_check:
                     launcher.run_shell_command(
-                        f"tmux set-window-option -t {TMUX_SESSION}:{pkg.id} remain-on-exit on 2>/dev/null"
+                        f"{HOST_TMUX} set-window-option -t {TMUX_SESSION}:{pkg.id} "
+                        "remain-on-exit on 2>/dev/null"
                     )
                 _pkg_start_times[pkg.id] = time.time()
                 _intended_running.add(pkg.id)
@@ -210,8 +314,9 @@ def apply_changes(state):
 
     if last_launched_window:
         launcher.run_shell_command(
-            f"tmux select-window -t {TMUX_SESSION}:{last_launched_window}"
+            f"{HOST_TMUX} select-window -t {TMUX_SESSION}:{last_launched_window}"
         )
+    return None
 
 
 def restore_selection(state):

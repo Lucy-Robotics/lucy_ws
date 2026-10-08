@@ -19,6 +19,7 @@ def main():
     print()
     print("⚠️  Flash implementation coming in Phase 6.1")
     print("   For now, manually copy .uf2 files to RP2040 in BOOTSEL mode")
+    print("   Or use the config pipeline FLASH action (picotool).")
     print()
     
     uf2_dir = Path("src/lucy_embedded_firmware/target/thumbv6m-none-eabi/release")
@@ -35,7 +36,8 @@ def main():
     
     print()
     print("=" * 60)
-    return 0
+    # Non-zero so CI / `pixi run firmware-flash` do not treat the stub as success.
+    return 1
 
 if __name__ == "__main__":
     sys.exit(main())

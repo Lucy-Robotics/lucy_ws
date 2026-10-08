@@ -21,6 +21,12 @@ from urllib.parse import unquote, urlparse
 ROOT = Path(__file__).resolve().parent.parent
 TMUX_SESSION = os.environ.get("LUCY_TMUX_SESSION", "lucy_ws")
 
+
+def _host_tmux(*args: str) -> list[str]:
+    """argv for host tmux without Pixi's LD_LIBRARY_PATH (libtinfo ABI clash)."""
+    return ["env", "-u", "LD_LIBRARY_PATH", "-u", "DYLD_LIBRARY_PATH", "tmux", *args]
+
+
 BRINGUP_TIMEOUT_S = float(os.environ.get("LUCY_CI_BRINGUP_TIMEOUT", "300"))
 ROSBRIDGE_PORT = int(os.environ.get("PORT_ROSBRIDGE", "9090"))
 GRAPH_SETTLE_S = 20.0
@@ -48,11 +54,11 @@ def start_core() -> None:
     from launcher import _tmux_new_pixi_window, load_workspace_env, run_shell_command
 
     load_workspace_env()
-    subprocess.run(["tmux", "start-server"], check=False)
-    subprocess.run(["tmux", "kill-session", "-t", TMUX_SESSION], check=False,
+    subprocess.run(_host_tmux("start-server"), check=False)
+    subprocess.run(_host_tmux("kill-session", "-t", TMUX_SESSION), check=False,
                    capture_output=True)
     subprocess.run(
-        ["tmux", "new-session", "-d", "-s", TMUX_SESSION, "-n", "Lucy", "sleep 900"],
+        _host_tmux("new-session", "-d", "-s", TMUX_SESSION, "-n", "Lucy", "sleep 900"),
         check=True,
     )
     run_shell_command(_tmux_new_pixi_window("core", CORE_CMD, remain_on_exit=True))
@@ -68,7 +74,7 @@ def stop_core() -> None:
         stop_all_packages(LauncherState(load_config()))
     except Exception as exc:  # teardown must never mask the real failure
         log(f"warning: launcher teardown raised {exc!r}")
-    subprocess.run(["tmux", "kill-session", "-t", TMUX_SESSION], check=False,
+    subprocess.run(_host_tmux("kill-session", "-t", TMUX_SESSION), check=False,
                    capture_output=True)
 
 
@@ -76,8 +82,10 @@ def dump_diagnostics() -> None:
     """Capture the session before teardown removes it."""
     log("--- diagnostics ---")
     for label, cmd in (
-        ("tmux windows", ["tmux", "list-windows", "-t", TMUX_SESSION]),
-        ("core pane", ["tmux", "capture-pane", "-p", "-t", f"{TMUX_SESSION}:core", "-S", "-80"]),
+        ("tmux windows", _host_tmux("list-windows", "-t", TMUX_SESSION)),
+        ("core pane", _host_tmux(
+            "capture-pane", "-p", "-t", f"{TMUX_SESSION}:core", "-S", "-80"
+        )),
     ):
         out = subprocess.run(cmd, capture_output=True, text=True)
         print(f"[{label}]\n{out.stdout or out.stderr}", flush=True)

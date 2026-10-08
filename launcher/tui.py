@@ -7,7 +7,14 @@ try:
 except ImportError:
     curses = None
 
-from .apply import apply_changes, default_robot_selection, restore_selection
+from .apply import (
+    apply_changes,
+    default_robot_selection,
+    preflight_pending,
+    request_apply,
+    restore_selection,
+    take_preflight_result,
+)
 from .config import get_dev_mode, load_config, save_selection
 from .constants import MIN_TERM_HEIGHT, MIN_TERM_WIDTH, REDRAW_INTERVAL_MS
 from .state import (
@@ -283,6 +290,25 @@ def _event_loop(stdscr, state, poller, status_msg=None, status_msg_until=0.0):
             snapshot = poller.take()
             if snapshot is not None:
                 state.apply_snapshot(snapshot)
+
+            # Finish async firmware (or other) preflight without blocking getch.
+            preflight_done = take_preflight_result()
+            if preflight_done is not None:
+                ok, err = preflight_done
+                if ok:
+                    apply_error = apply_changes(state, skip_preflight=True)
+                    if apply_error:
+                        error_msg = apply_error
+                        status_msg = None
+                    else:
+                        save_selection({p.id for p in state.packages if p.selected})
+                        status_msg = "Configuration Applied!"
+                        status_msg_until = time.time() + 2.0
+                        poller.request_refresh()
+                else:
+                    error_msg = err
+                    status_msg = None
+
             if status_msg and time.time() >= status_msg_until:
                 status_msg = None
             display_list = draw_tui(
@@ -317,7 +343,8 @@ def _event_loop(stdscr, state, poller, status_msg=None, status_msg_until=0.0):
             # Statuses also age on their own (LOADING and STOPPING both expire on
             # a clock), so redraw on a short tick whenever anything is live. The
             # redraw is cheap: erase() leaves curses sending only what changed.
-            if _intended_running or _pkg_stop_times:
+            # Also tick while a preflight thread is running so we can finish apply.
+            if _intended_running or _pkg_stop_times or preflight_pending():
                 stdscr.nodelay(1)
                 stdscr.timeout(REDRAW_INTERVAL_MS)
             else:
@@ -343,11 +370,19 @@ def _event_loop(stdscr, state, poller, status_msg=None, status_msg_until=0.0):
                 pkg_to_toggle = display_list[current_idx]
                 error_msg = state.toggle(pkg_to_toggle.id)
             elif key == ord("\n"):
-                apply_changes(state)
-                save_selection({p.id for p in state.packages if p.selected})
-                status_msg = "Configuration Applied!"
-                status_msg_until = time.time() + 2.0
-                poller.request_refresh()
+                if preflight_pending():
+                    continue
+                apply_result = request_apply(state)
+                if apply_result == "pending":
+                    status_msg = "Checking firmware toolchain…"
+                    status_msg_until = time.time() + 120.0
+                elif apply_result:
+                    error_msg = apply_result
+                else:
+                    save_selection({p.id for p in state.packages if p.selected})
+                    status_msg = "Configuration Applied!"
+                    status_msg_until = time.time() + 2.0
+                    poller.request_refresh()
             elif key in [ord("x"), ord("X"), ord("q"), ord("Q"), 27]:
                 confirm_exit = True
 

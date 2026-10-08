@@ -15,7 +15,7 @@ from .process import prune_ros_logs
 from .shell import run_shell_command
 from .state import LauncherState
 from .preflight import claim_launcher_pidfile, guard_single_stack, release_launcher_pidfile
-from .tmux import is_in_tmux, needs_tmux_session
+from .tmux import HOST_TMUX, is_in_tmux, needs_tmux_session
 from .tui import main
 
 
@@ -83,7 +83,7 @@ def run():
             print(f"Pruned {pruned} ros2 log entries older than a week.")
         if needs_tmux_session():
             print("Terminating tmux session...")
-            run_shell_command(f"tmux kill-session -t {TMUX_SESSION} 2>/dev/null")
+            run_shell_command(f"{HOST_TMUX} kill-session -t {TMUX_SESSION} 2>/dev/null")
 
 
 if __name__ == "__main__":
