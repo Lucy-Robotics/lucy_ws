@@ -10656,7 +10656,6 @@ packages:
   - libgcc >=13
   - libudev1 >=257.4
   license: LGPL-2.1-or-later
-  purls: []
   run_exports:
     weak:
     - libusb >=1.0.29,<2.0a0
@@ -19326,7 +19325,6 @@ packages:
   - libgcc >=13
   - libudev1 >=257.4
   license: LGPL-2.1-or-later
-  purls: []
   run_exports:
     weak:
     - libusb >=1.0.29,<2.0a0
@@ -29146,7 +29144,6 @@ packages:
   depends:
   - __osx >=10.13
   license: LGPL-2.1-or-later
-  purls: []
   run_exports:
     weak:
     - libusb >=1.0.29,<2.0a0
@@ -36635,7 +36632,6 @@ packages:
   depends:
   - __osx >=11.0
   license: LGPL-2.1-or-later
-  purls: []
   run_exports:
     weak:
     - libusb >=1.0.29,<2.0a0
@@ -43731,7 +43727,6 @@ packages:
   - vc14_runtime >=14.29.30139
   - ucrt >=10.0.20348.0
   license: LGPL-2.1-or-later
-  purls: []
   run_exports:
     weak:
     - libusb >=1.0.29,<2.0a0

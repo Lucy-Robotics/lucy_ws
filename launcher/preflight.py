@@ -25,6 +25,7 @@ from .process import (
     _kill_process_tree,
     find_lucy_orphan_pids,
 )
+from .tmux import host_tmux_argv
 
 # Set to 0/false to launch anyway; set FORCE to stop a running stack unattended.
 ALLOW_MULTIPLE_ENV = "LUCY_ALLOW_MULTIPLE_STACKS"
@@ -135,7 +136,7 @@ def running_stack_windows():
     except Exception:
         return []
     out = subprocess.run(
-        ["tmux", "list-windows", "-t", TMUX_SESSION, "-F", "#{window_name}"],
+        host_tmux_argv("list-windows", "-t", TMUX_SESSION, "-F", "#{window_name}"),
         capture_output=True,
         text=True,
         check=False,
@@ -163,7 +164,7 @@ def stop_running_stack(windows=None) -> bool:
     """
     for window in windows or []:
         subprocess.run(
-            ["tmux", "kill-window", "-t", f"{TMUX_SESSION}:{window}"],
+            host_tmux_argv("kill-window", "-t", f"{TMUX_SESSION}:{window}"),
             capture_output=True,
             check=False,
         )

@@ -132,6 +132,7 @@ case "${1:-}" in
 esac
 
 # tmux is a host tool (not in Pixi). Session runs on the host; launcher runs in pixi run.
+# Clear Pixi's LD_LIBRARY_PATH so system tmux does not load conda libtinfo.
 TMUX_SESSION="${LUCY_TMUX_SESSION:-lucy_ws}"
 case "$(uname -s)" in
   Linux|Darwin)
@@ -142,14 +143,15 @@ case "$(uname -s)" in
       # "session exists" does not imply "Lucy window exists".
       exec bash -c "
         set -e
-        tmux start-server
-        if ! tmux has-session -t ${TMUX_SESSION} 2>/dev/null; then
-          tmux new-session -d -s ${TMUX_SESSION} -n Lucy \"${LAUNCH_CMD}\"
-        elif ! tmux list-windows -t ${TMUX_SESSION} -F '#{window_name}' | grep -qx Lucy; then
-          tmux new-window -t ${TMUX_SESSION} -n Lucy \"${LAUNCH_CMD}\"
+        host_tmux() { env -u LD_LIBRARY_PATH -u DYLD_LIBRARY_PATH tmux \"\$@\"; }
+        host_tmux start-server
+        if ! host_tmux has-session -t ${TMUX_SESSION} 2>/dev/null; then
+          host_tmux new-session -d -s ${TMUX_SESSION} -n Lucy \"${LAUNCH_CMD}\"
+        elif ! host_tmux list-windows -t ${TMUX_SESSION} -F '#{window_name}' | grep -qx Lucy; then
+          host_tmux new-window -t ${TMUX_SESSION} -n Lucy \"${LAUNCH_CMD}\"
         fi
-        tmux select-window -t ${TMUX_SESSION}:Lucy 2>/dev/null || true
-        tmux attach-session -t ${TMUX_SESSION}
+        host_tmux select-window -t ${TMUX_SESSION}:Lucy 2>/dev/null || true
+        host_tmux attach-session -t ${TMUX_SESSION}
       "
     fi
     echo "tmux not found — install tmux for the multi-window launcher (see README)." >&2

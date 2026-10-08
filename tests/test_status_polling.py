@@ -129,18 +129,23 @@ def test_controllers_probe_caches_a_result_slower_than_its_ttl(tmp_path):
     /controller_manager, up to LUCY_CONTROLLERS_TIMEOUT when the manager is
     down. Stamping at entry writes an entry that is already expired, so the
     expensive path, the only one worth caching, never produces a hit and every
-    poll pays full price."""
+    poll pays full price.
+
+    TTL and probe duration use whole seconds (`date +%s`). Keep TTL >= 2 so a
+    slow CI runner that crosses a second boundary between cold and warm still
+    hits; keep probe duration > TTL so stamp-at-entry would still miss.
+    """
     home = tmp_path / "home"
     (home / ".pixi" / "bin").mkdir(parents=True)
     fake_pixi = home / ".pixi" / "bin" / "pixi"
-    fake_pixi.write_text("#!/usr/bin/env bash\nsleep 2\n")
+    fake_pixi.write_text("#!/usr/bin/env bash\nsleep 3\n")
     fake_pixi.chmod(0o755)
 
     env = {
         **os.environ,
         "HOME": str(home),
         "TMPDIR": str(tmp_path),
-        "LUCY_CONTROLLERS_CACHE_TTL": "1",
+        "LUCY_CONTROLLERS_CACHE_TTL": "2",
         "LUCY_CONTROLLERS_TIMEOUT": "10",
     }
     script = str(ROOT / "scripts" / "controllers_active.sh")
@@ -148,7 +153,7 @@ def test_controllers_probe_caches_a_result_slower_than_its_ttl(tmp_path):
     started = time.time()
     subprocess.run(["bash", script], cwd=ROOT, env=env, capture_output=True)
     cold = time.time() - started
-    assert cold >= 2.0, "the probe was not actually exercised"
+    assert cold >= 3.0, "the probe was not actually exercised"
 
     started = time.time()
     subprocess.run(["bash", script], cwd=ROOT, env=env, capture_output=True)

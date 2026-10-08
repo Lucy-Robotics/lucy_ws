@@ -6,4 +6,4 @@ if "%CONDA_PREFIX%"=="" goto :eof
 
 set "CARGO_HOME=%CONDA_PREFIX%\cargo"
 set "RUSTUP_HOME=%CONDA_PREFIX%\rustup"
-set "PATH=%CARGO_HOME%\bin;%PATH%"
+set "PATH=%CARGO_HOME%\bin;%CONDA_PREFIX%\Library\bin;%CONDA_PREFIX%\bin;%PATH%"

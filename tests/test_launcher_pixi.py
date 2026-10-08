@@ -66,6 +66,7 @@ def test_gui_env_exports_forwards_display():
 def test_tmux_new_pixi_window_wraps_in_bash_lc():
     cmd = _tmux_new_pixi_window("core", "ros2 launch pkg launch.py", remain_on_exit=True)
     assert "tmux new-window" in cmd
+    assert "env -u LD_LIBRARY_PATH" in cmd
     assert "-n core" in cmd
     assert "bash -lc" in cmd
     assert "remain-on-exit on" in cmd

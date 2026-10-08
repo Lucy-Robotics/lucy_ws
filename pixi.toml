@@ -145,6 +145,7 @@ lucy-cli = { cmd = "bash scripts/pixi_gui_launch.sh ros2 run lucy_cli tui" }
 python = ">=3.10"             # for setup/flash scripts
 pyserial = "*"                # serial port detection and communication
 requests = "*"                # for rustup automatic download (if needed)
+libusb = ">=1.0.29,<2"
 # Do not pull boost-cpp here: it conflicts with RoboStack ros-jazzy (libboost)
 # on multi-platform solves (esp. osx-arm64). Windows SHM (Boost.Interprocess)
 # stays a separate follow-up when that code lands.
@@ -153,7 +154,8 @@ requests = "*"                # for rustup automatic download (if needed)
 # Zero-touch: installs rustup+elf2uf2 into $CONDA_PREFIX/{cargo,rustup}.
 # Activation (firmware_cargo_env.*) puts them on PATH for every pixi run.
 firmware-setup = "python scripts/firmware_setup.py"
-firmware-build = { cmd = "cargo build --release --target thumbv6m-none-eabi --manifest-path src/lucy_embedded_firmware/firmwares/rp2040/Cargo.toml", cwd = ".", depends-on = ["firmware-setup"] }
+firmware-check = "python scripts/firmware_setup.py --check"
+firmware-build = { cmd = "cargo build --release --target thumbv6m-none-eabi --manifest-path firmwares/rp2040_internal_pwm/Cargo.toml", cwd = "src/lucy_embedded_firmware", depends-on = ["firmware-setup"] }
 firmware-flash = { cmd = "python scripts/firmware_flash.py", depends-on = ["firmware-build"] }
 firmware-clean = "cargo clean --manifest-path src/lucy_embedded_firmware/Cargo.toml"
 firmware-test = { cmd = "cargo test --manifest-path src/lucy_embedded_firmware/Cargo.toml", depends-on = ["firmware-setup"] }
