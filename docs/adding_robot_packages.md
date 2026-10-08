@@ -8,9 +8,9 @@ Use **`so_arm101_urdf`** as the newest minimal reference, and **`inmoov_urdf`** 
 
 Related docs:
 
-- [developer_lucy_packages.md](developer_lucy_packages.md) — workspace / Pixi / launch
-- [launcher_packages.md](launcher_packages.md) — Control Center package entries
-- [pixi_setup.md](pixi_setup.md) — dependencies
+- [developer_lucy_packages.md](developer_lucy_packages.md) - workspace / Pixi / launch
+- [launcher_packages.md](launcher_packages.md) - Control Center package entries
+- [pixi_setup.md](pixi_setup.md) - dependencies
 - Package-level: `src/<robot>_urdf/docs/DEVELOPER.md`
 
 ---
@@ -108,7 +108,7 @@ my_robot_urdf/
 3. Resolve meshes with `file://$(arg base_path)/robot_description/meshes/...`
    (launch files pass absolute `base_path`).
 4. Drop ROS 1 `<transmission>` blocks; ros2_control replaces them.
-5. Keep joint names stable — they must match hardware YAML and controllers.
+5. Keep joint names stable - they must match hardware YAML and controllers.
 
 **Bringup / pipeline note:** both `lucy_bringup` and `lucy_config_pipeline`
 read `config/control.launch.yaml` for `urdf_path` / `base_path` /
@@ -252,8 +252,8 @@ If your robot has encoders (e.g. STS3215 magnetic encoders):
 
 ## 7. PR strategy (recommended)
 
-1. **Robot repo PR** — package contents (description, launch, config, docs, tests).
-2. **`lucy_ws` PR** — workspace docs / `repos.json` / launcher defaults when ready
+1. **Robot repo PR** - package contents (description, launch, config, docs, tests).
+2. **`lucy_ws` PR** - workspace docs / `repos.json` / launcher defaults when ready
    for everyone (local overrides can stay in `*.local` during development).
 
 Use Conventional Commits (`feat:`, `docs:`, `build:`, `test:`) with one logical
