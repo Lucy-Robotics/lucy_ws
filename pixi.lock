@@ -346,7 +346,8 @@ environments:
       - conda: https://prefix.dev/conda-forge/linux-64/libtasn1-4.21.0-hb03c661_1.conda
       - conda: https://prefix.dev/conda-forge/linux-64/libtheora-1.1.1-h4ab18f5_1006.conda
       - conda: https://prefix.dev/conda-forge/linux-64/libtiff-4.7.2-hcc2c06a_1.conda
-      - conda: https://prefix.dev/conda-forge/linux-64/libudev1-257.13-h084b8d7_1.conda
+      - conda: https://prefix.dev/conda-forge/linux-64/libudev-262-h26e0ef7_2.conda
+      - conda: https://prefix.dev/conda-forge/linux-64/libudev1-262-h26e0ef7_2.conda
       - conda: https://prefix.dev/conda-forge/linux-64/libunistring-0.9.10-h7f98852_0.tar.bz2
       - conda: https://prefix.dev/conda-forge/linux-64/libunwind-1.8.3-h65a8314_0.conda
       - conda: https://prefix.dev/conda-forge/linux-64/liburcu-0.14.0-hac33072_0.conda
@@ -1341,7 +1342,8 @@ environments:
       - conda: https://prefix.dev/conda-forge/linux-aarch64/libtasn1-4.21.0-he30d5cf_1.conda
       - conda: https://prefix.dev/conda-forge/linux-aarch64/libtheora-1.1.1-h68df207_1006.conda
       - conda: https://prefix.dev/conda-forge/linux-aarch64/libtiff-4.7.2-h45f9f85_1.conda
-      - conda: https://prefix.dev/conda-forge/linux-aarch64/libudev1-257.13-hfcc8634_1.conda
+      - conda: https://prefix.dev/conda-forge/linux-aarch64/libudev-262-hd1ea486_2.conda
+      - conda: https://prefix.dev/conda-forge/linux-aarch64/libudev1-262-hd1ea486_2.conda
       - conda: https://prefix.dev/conda-forge/linux-aarch64/libunistring-0.9.10-hf897c2e_0.tar.bz2
       - conda: https://prefix.dev/conda-forge/linux-aarch64/libunwind-1.8.3-h6470e1d_0.conda
       - conda: https://prefix.dev/conda-forge/linux-aarch64/liburcu-0.14.0-h0a1ffab_0.conda
@@ -10599,18 +10601,28 @@ packages:
     - libtiff >=4.7.2,<4.8.0a0
   size: 459753
   timestamp: 1787755584172
-- conda: https://prefix.dev/conda-forge/linux-64/libudev1-257.13-h084b8d7_1.conda
-  sha256: 287d05680e49eea51b8145fbf34bc213c0618b04f32e450e9da5d715e5134e38
-  md5: 89e5671a076d99516a6acd72a35b1640
+- conda: https://prefix.dev/conda-forge/linux-64/libudev-262-h26e0ef7_2.conda
+  sha256: 0d4a383e663f8bc66227e03a65c8e66c1d696437a7c8cd1f2b2e936de78c606c
+  md5: 3ba80061271ffe8ca5d60b8fee45f5fb
+  depends:
+  - libudev1 262 h26e0ef7_2
+  license: LGPL-2.1-or-later
+  run_exports:
+    weak:
+    - libudev1 >=262
+  size: 35902
+  timestamp: 1790777903500
+- conda: https://prefix.dev/conda-forge/linux-64/libudev1-262-h26e0ef7_2.conda
+  sha256: 81a6318191e56eabb6935c480902a58b79872f1be600d58a3328a01ba6e7dba9
+  md5: 2303b56f6f9d8a5ae81bf5f0c75d31b8
   depends:
   - __glibc >=2.17,<3.0.a0
   - libcap >=2.78,<2.79.0a0
-  - libgcc >=14
+  - libgcc >=15
   license: LGPL-2.1-or-later
-  purls: []
   run_exports: {}
-  size: 145969
-  timestamp: 1780084753104
+  size: 184629
+  timestamp: 1790777902394
 - conda: https://prefix.dev/conda-forge/linux-64/libunistring-0.9.10-h7f98852_0.tar.bz2
   sha256: e88c45505921db29c08df3439ddb7f771bbff35f95e7d3103bf365d5d6ce2a6d
   md5: 7245a044b4a1980ed83196176b78b73a
@@ -19273,17 +19285,27 @@ packages:
     - libtiff >=4.7.2,<4.8.0a0
   size: 529726
   timestamp: 1787755625893
-- conda: https://prefix.dev/conda-forge/linux-aarch64/libudev1-257.13-hfcc8634_1.conda
-  sha256: 1963dbd5a5c08390db2321dd2fa5c9df45c0fe68701fce4f9c36141155b4de13
-  md5: 67728797901490baae52b3ce8d738d34
+- conda: https://prefix.dev/conda-forge/linux-aarch64/libudev-262-hd1ea486_2.conda
+  sha256: 5e39d496b79d0f2362432d104b0ea61a314c34c268f98e06610774a1dfa88b23
+  md5: b1bece6b961b558efdc83c142537af21
+  depends:
+  - libudev1 262 hd1ea486_2
+  license: LGPL-2.1-or-later
+  run_exports:
+    weak:
+    - libudev1 >=262
+  size: 35981
+  timestamp: 1790777813329
+- conda: https://prefix.dev/conda-forge/linux-aarch64/libudev1-262-hd1ea486_2.conda
+  sha256: 0dc50d841a93971569830a47f5a216827126cdfcaa0591ad4dd92091ccaf7968
+  md5: 56840835388ec297ab4fcc4e93152a1e
   depends:
   - libcap >=2.78,<2.79.0a0
-  - libgcc >=14
+  - libgcc >=15
   license: LGPL-2.1-or-later
-  purls: []
   run_exports: {}
-  size: 156922
-  timestamp: 1780084778404
+  size: 195674
+  timestamp: 1790777812289
 - conda: https://prefix.dev/conda-forge/linux-aarch64/libunistring-0.9.10-hf897c2e_0.tar.bz2
   sha256: 03acebd5a01a255fe40d47f941c6cab4dc7829206d86d990b0c88cf0ff66e646
   md5: 7c68521243dc20afba4c4c05eb09586e

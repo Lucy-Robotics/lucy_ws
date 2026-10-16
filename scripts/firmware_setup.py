@@ -8,7 +8,8 @@ Designed to be zero-touch under Pixi:
 
 Installs rustup + thumbv6m-none-eabi + elf2uf2-rs into the **active Pixi env**
 (``$CONDA_PREFIX/cargo`` + ``$CONDA_PREFIX/rustup``). No sudo, no manual
-``. "$HOME/.cargo/env"``, no system libudev (elf2uf2 built without serial).
+``. "$HOME/.cargo/env"``. elf2uf2 is built without serial (avoids a second udev
+link). Host binaries (``pixi run firmware-build-linux``) use Pixi ``libudev``.
 
 Do not run with sudo.
 """
