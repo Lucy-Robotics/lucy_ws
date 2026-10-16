@@ -91,6 +91,24 @@ Windows is **visualisation only** for now. `pixi run core` starts a `/joint_stat
 
 On Windows, the Control Center runs without tmux (one process tree). Gazebo, RViz, and rqt still open as native GUI apps when enabled.
 
+## How to use your own robot?
+
+Lucy selects the robot package with `robot_package:=…` or `LUCY_ROBOT_PACKAGE`.
+
+| Robot | Package | First-time / real hardware |
+|-------|---------|----------------------------|
+| SO-ARM101 | `so_arm101_urdf` | **[Real hardware setup](src/so_arm101_urdf/docs/REAL_HARDWARE_SETUP.md)** — LeRobot calibrate, apply limits, regenerate, then `real:=true` |
+| InMoov | `inmoov_urdf` | Package docs under `src/inmoov_urdf/` |
+| Thais | `thais_urdf` | Package docs under `src/thais_urdf/` |
+
+Example (SO-ARM101 after calibration):
+
+```bash
+LUCY_ROBOT_PACKAGE=so_arm101_urdf pixi run core -- real:=true
+```
+
+Adding a new robot package: [docs/adding_robot_packages.md](docs/adding_robot_packages.md) (when present).
+
 ## Developer setup
 
 For developer mode, see the **[developer guide](docs/developer_lucy_packages.md)**.
