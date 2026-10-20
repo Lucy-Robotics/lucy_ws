@@ -149,12 +149,12 @@ requests = "*"                # for rustup automatic download (if needed)
 
 [feature.firmware.tasks]
 # Zero-touch: installs rustup+elf2uf2 into $CONDA_PREFIX/{cargo,rustup}.
-# Activation (firmware_cargo_env.*) puts them on PATH for every pixi run.
+# firmware_cargo_env.py points cargo/rustc at that layout (multi-platform).
 firmware-setup = "python scripts/firmware_setup.py"
-firmware-build = { cmd = "cargo build --release --target thumbv6m-none-eabi --manifest-path src/lucy_embedded_firmware/firmwares/rp2040/Cargo.toml", cwd = ".", depends-on = ["firmware-setup"] }
+firmware-build = { cmd = "python scripts/firmware_cargo_env.py cargo build --release --target thumbv6m-none-eabi --manifest-path src/lucy_embedded_firmware/firmwares/rp2040/Cargo.toml", cwd = ".", depends-on = ["firmware-setup"] }
 firmware-flash = { cmd = "python scripts/firmware_flash.py", depends-on = ["firmware-build"] }
-firmware-clean = "cargo clean --manifest-path src/lucy_embedded_firmware/Cargo.toml"
-firmware-test = { cmd = "cargo test --manifest-path src/lucy_embedded_firmware/Cargo.toml", depends-on = ["firmware-setup"] }
+firmware-clean = "python scripts/firmware_cargo_env.py cargo clean --manifest-path src/lucy_embedded_firmware/Cargo.toml"
+firmware-test = { cmd = "python scripts/firmware_cargo_env.py cargo test --manifest-path src/lucy_embedded_firmware/Cargo.toml", depends-on = ["firmware-setup"] }
 
 # --- platform-specific host packages ---
 [target.linux.dependencies]
@@ -163,18 +163,18 @@ gstreamer = "*"
 
 # tmux is a host tool (see README). Not bundled in Pixi so `pixi run` does not shadow it.
 
-# --- activation: colcon overlay + DDS scope + Gazebo plugin path + firmware cargo ---
+# --- activation: colcon overlay + DDS scope + Gazebo plugin path ---
 [target.unix.activation]
-scripts = ["install/setup.bash", "scripts/dds_env.sh", "scripts/firmware_cargo_env.sh"]
+scripts = ["install/setup.bash", "scripts/dds_env.sh"]
 env = { GZ_SIM_SYSTEM_PLUGIN_PATH = "$CONDA_PREFIX/lib" }
 
 # Linux overrides unix activation (does not merge) — repeat setup.bash here.
 [target.linux.activation]
-scripts = ["install/setup.bash", "scripts/dds_env.sh", "scripts/gz_rendering_env.sh", "scripts/firmware_cargo_env.sh"]
+scripts = ["install/setup.bash", "scripts/dds_env.sh", "scripts/gz_rendering_env.sh"]
 env = { GZ_SIM_SYSTEM_PLUGIN_PATH = "$CONDA_PREFIX/lib" }
 
 [target.win.activation]
-scripts = ["install/setup.bat", "scripts/firmware_cargo_env.bat"]
+scripts = ["install/setup.bat"]
 env = { GZ_SIM_SYSTEM_PLUGIN_PATH = "%CONDA_PREFIX%/Library/bin" }
 
 [environments]

@@ -23,9 +23,9 @@ import sys
 import urllib.request
 from pathlib import Path
 
-
-def is_windows() -> bool:
-    return platform.system() == "Windows"
+from firmware_cargo_env import configure_cargo_homes
+from firmware_cargo_env import is_windows
+from firmware_cargo_env import require_pixi_env
 
 
 def refuse_if_root() -> None:
@@ -35,37 +35,6 @@ def refuse_if_root() -> None:
         print("❌ Do not run firmware-setup as root / with sudo.")
         print("   Re-run as your user:  pixi run firmware-setup")
         sys.exit(1)
-
-
-def require_pixi_env() -> Path:
-    """Firmware tools install into the Pixi env; refuse bare python runs."""
-    prefix = os.environ.get("CONDA_PREFIX", "").strip()
-    if not prefix:
-        print("❌ CONDA_PREFIX is unset.")
-        print("   Run via Pixi so the toolchain stays inside the workspace env:")
-        print("     pixi run firmware-setup")
-        sys.exit(1)
-    return Path(prefix)
-
-
-def configure_cargo_homes(conda_prefix: Path) -> Path:
-    """Isolate rustup/cargo under the Pixi env and put bins on PATH."""
-    cargo_home = conda_prefix / "cargo"
-    rustup_home = conda_prefix / "rustup"
-    cargo_home.mkdir(parents=True, exist_ok=True)
-    rustup_home.mkdir(parents=True, exist_ok=True)
-
-    os.environ["CARGO_HOME"] = str(cargo_home)
-    os.environ["RUSTUP_HOME"] = str(rustup_home)
-
-    cargo_bin = cargo_home / "bin"
-    cargo_bin.mkdir(parents=True, exist_ok=True)
-    sep = ";" if is_windows() else ":"
-    path = os.environ.get("PATH", "")
-    prefix = str(cargo_bin)
-    if not path.startswith(prefix + sep) and path != prefix:
-        os.environ["PATH"] = f"{prefix}{sep}{path}" if path else prefix
-    return cargo_bin
 
 
 def rustup_init_url() -> str:
