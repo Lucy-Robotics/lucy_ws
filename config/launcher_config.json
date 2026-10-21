@@ -110,8 +110,7 @@
       "dependencies": ["core"],
       "conflicts": ["gazebo"],
       "command": "real:=true",
-      "readiness_check": "test -f /tmp/.lucy_real_hardware_ready && pgrep -f '[l]ucy_embedded_firmware_sim' >/dev/null 2>&1",
-      "exit_check": "cat /tmp/.lucy_real_hardware_status 2>/dev/null",
+      "readiness_check": "pgrep -f '[l]ucy-embedded-firmware-(mcu-bridge|linux)' >/dev/null 2>&1",
       "readiness_timeout": 30,
       "default_on": false
     },
