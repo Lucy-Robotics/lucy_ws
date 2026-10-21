@@ -7,10 +7,15 @@ Designed to be zero-touch under Pixi:
     pixi run firmware-setup
 
 Installs rustup + thumbv6m-none-eabi + elf2uf2-rs into the **active Pixi env**
-(``$CONDA_PREFIX/cargo`` + ``$CONDA_PREFIX/rustup``). No sudo, no manual
-``. "$HOME/.cargo/env"``, no system libudev (elf2uf2 built without serial).
+(``$CONDA_PREFIX/cargo`` + ``$CONDA_PREFIX/rustup``). No sudo for the toolchain.
+``. "$HOME/.cargo/env"`` is not required. elf2uf2 is built without serial.
 
-Do not run with sudo.
+On Linux, also installs USB-serial udev rules (Pico + Feetech) when sudo is
+available, and applies a temporary chmod on already-plugged matching TTYs so
+host firmwares can open the port without dialout. Skip with
+``LUCY_SKIP_USB_ACCESS=1``. Host binaries: ``pixi run firmware-build-linux``.
+
+Do not run the whole script as root; sudo is only used for udev/chmod.
 """
 from __future__ import annotations
 
@@ -201,12 +206,28 @@ def main() -> None:
             log.error(f"{name}: NOT FOUND under {cargo_bin}")
             all_ok = False
 
+    # Permanent udev when sudo works; temporary chmod for already-plugged boards.
+    # Skip with LUCY_SKIP_USB_ACCESS=1. A USB failure must not fail toolchain setup.
+    try:
+        import importlib.util
+
+        usb_path = Path(__file__).resolve().parent / "firmware_usb_access.py"
+        spec = importlib.util.spec_from_file_location("firmware_usb_access", usb_path)
+        if spec is None or spec.loader is None:
+            raise ImportError(f"cannot load {usb_path}")
+        usb_mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(usb_mod)
+        usb_mod.ensure_usb_access()
+    except Exception as exc:  # pragma: no cover - never fail toolchain setup on USB ACL
+        log.warning(f"USB access step failed (toolchain still OK): {exc}")
+
     log.info("\n" + "=" * 60)
     if all_ok:
         log.ok("Firmware toolchain setup complete!")
         log.info("   Tools live inside the Pixi env. No shell config needed.")
         log.info("\nNext:")
-        log.info("  pixi run firmware-build")
+        log.info("  pixi run firmware-build         # RP2040 UF2")
+        log.info("  pixi run firmware-build-linux   # host linux + mcu_bridge")
         log.info("  pixi run firmware-flash")
     else:
         log.error("Setup incomplete")

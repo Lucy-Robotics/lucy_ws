@@ -1,5 +1,0 @@
-# Lucy RP2040 controller board: serial access without dialout membership.
-# VID/PID match firmwares/rp2040/src/main.rs; installed by scripts/setup_udev.sh.
-#
-# MODE="0666" rather than TAG+="uaccess". Any local user can open the port.
-SUBSYSTEM=="tty", ATTRS{idVendor}=="16c0", ATTRS{idProduct}=="27dd", MODE="0666", TAG+="uaccess"

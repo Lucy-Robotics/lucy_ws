@@ -833,6 +833,22 @@ def build_workspace(
     log("Installing control panel dependencies (yarn) ...")
     pixi_run(project_root, ["run", "panel-install"], run_command)
     build_local_realsense_optional(project_root, run_command, log)
+    setup_firmware_toolchain(project_root, run_command, log)
+
+
+def setup_firmware_toolchain(
+    project_root: Path | str, run_command: Callable = default_run_command, log: Log = print
+) -> None:
+    """Install Rust/RP2040 toolchain into the Pixi env (idempotent).
+
+    Runs ``pixi run firmware-setup``. Skip with ``LUCY_SKIP_FIRMWARE_SETUP=1``.
+    Host binaries still need a separate ``pixi run firmware-build-linux`` after this.
+    """
+    if env_flag("LUCY_SKIP_FIRMWARE_SETUP"):
+        log("Firmware toolchain: LUCY_SKIP_FIRMWARE_SETUP set — skipping")
+        return
+    log("Firmware toolchain (pixi run firmware-setup) ...")
+    pixi_run(project_root, ["run", "firmware-setup"], run_command)
 
 
 # --- flow --------------------------------------------------------------------
