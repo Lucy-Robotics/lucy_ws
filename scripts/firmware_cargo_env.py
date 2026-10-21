@@ -18,6 +18,10 @@ import subprocess
 import sys
 from pathlib import Path
 
+from firmware_log import enable_ansi
+from firmware_log import err
+from firmware_log import info
+
 
 def is_windows() -> bool:
     return platform.system() == "Windows"
@@ -27,9 +31,9 @@ def require_pixi_env() -> Path:
     """Firmware tools live in the Pixi env; refuse bare python runs."""
     prefix = os.environ.get("CONDA_PREFIX", "").strip()
     if not prefix:
-        print("❌ CONDA_PREFIX is unset.")
-        print("   Run via Pixi so the toolchain stays inside the workspace env:")
-        print("     pixi run firmware-setup")
+        err("CONDA_PREFIX is unset.")
+        info("   Run via Pixi so the toolchain stays inside the workspace env:")
+        info("     pixi run firmware-setup")
         sys.exit(1)
     return Path(prefix)
 
@@ -55,6 +59,7 @@ def configure_cargo_homes(conda_prefix: Path) -> Path:
 
 
 def main(argv: list[str] | None = None) -> int:
+    enable_ansi()
     args = list(sys.argv[1:] if argv is None else argv)
     if not args:
         print(
@@ -67,8 +72,8 @@ def main(argv: list[str] | None = None) -> int:
     try:
         completed = subprocess.run(args, check=False)
     except FileNotFoundError:
-        print(f"❌ command not found: {args[0]}", file=sys.stderr)
-        print("   Run: pixi run firmware-setup", file=sys.stderr)
+        err(f"command not found: {args[0]}")
+        info("   Run: pixi run firmware-setup")
         return 127
     return int(completed.returncode)
 

@@ -26,14 +26,20 @@ from pathlib import Path
 from firmware_cargo_env import configure_cargo_homes
 from firmware_cargo_env import is_windows
 from firmware_cargo_env import require_pixi_env
+from firmware_log import enable_ansi
+from firmware_log import err
+from firmware_log import info
+from firmware_log import ok
+from firmware_log import step
+from firmware_log import warn
 
 
 def refuse_if_root() -> None:
     if is_windows():
         return
     if hasattr(os, "geteuid") and os.geteuid() == 0:
-        print("❌ Do not run firmware-setup as root / with sudo.")
-        print("   Re-run as your user:  pixi run firmware-setup")
+        err("Do not run firmware-setup as root / with sudo.")
+        info("   Re-run as your user:  pixi run firmware-setup")
         sys.exit(1)
 
 
@@ -61,7 +67,7 @@ def rustup_init_url() -> str:
 
 
 def download(url: str, dest: Path) -> None:
-    print(f"📥 Downloading {url} ...")
+    info(f"Downloading {url} ...")
     req = urllib.request.Request(url, headers={"User-Agent": "lucy-firmware-setup"})
     with urllib.request.urlopen(req, timeout=120) as resp, open(dest, "wb") as out:
         shutil.copyfileobj(resp, out)
@@ -70,12 +76,12 @@ def download(url: str, dest: Path) -> None:
 def install_rustup(cargo_bin: Path) -> None:
     """Install rustup into CARGO_HOME / RUSTUP_HOME (already set)."""
     if shutil.which("rustup"):
-        print("✅ rustup already installed (Pixi env)")
+        ok("rustup already installed (Pixi env)")
         result = subprocess.run(["rustup", "--version"], capture_output=True, text=True)
-        print(f"   {result.stdout.strip()}")
+        info(f"   {result.stdout.strip()}")
         return
 
-    print("⚠️  rustup not found in Pixi env — installing automatically...")
+    warn("rustup not found in Pixi env - installing automatically...")
     url = rustup_init_url()
     if is_windows():
         init_path = Path.home() / "lucy-rustup-init.exe"
@@ -87,7 +93,7 @@ def install_rustup(cargo_bin: Path) -> None:
         if not is_windows():
             init_path.chmod(init_path.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
-        print("🔧 Running rustup installer (this may take a few minutes)...")
+        info("Running rustup installer (this may take a few minutes)...")
         subprocess.run(
             [
                 str(init_path),
@@ -100,17 +106,17 @@ def install_rustup(cargo_bin: Path) -> None:
             ],
             check=True,
         )
-        print("✅ rustup installed into Pixi env")
+        ok("rustup installed into Pixi env")
     except Exception as e:
-        print(f"❌ Failed to install rustup: {e}")
-        print("   Check network access to static.rust-lang.org")
+        err(f"Failed to install rustup: {e}")
+        info("   Check network access to static.rust-lang.org")
         sys.exit(1)
     finally:
         if init_path.exists():
             init_path.unlink()
 
     if not (cargo_bin / ("rustup.exe" if is_windows() else "rustup")).exists():
-        print("❌ rustup binary missing after install")
+        err("rustup binary missing after install")
         sys.exit(1)
 
 
@@ -123,35 +129,36 @@ def install_elf2uf2() -> None:
         check=True,
     )
     if "elf2uf2-rs" in result.stdout:
-        print("✅ elf2uf2-rs already installed")
+        ok("elf2uf2-rs already installed")
         return
 
-    print("   Installing elf2uf2-rs --no-default-features ...")
+    info("   Installing elf2uf2-rs --no-default-features ...")
     subprocess.run(
         ["cargo", "install", "elf2uf2-rs", "--no-default-features"],
         check=True,
     )
-    print("✅ elf2uf2-rs installed")
+    ok("elf2uf2-rs installed")
 
 
 def main() -> None:
-    print("=" * 60)
-    print("Lucy Firmware Toolchain Setup")
-    print("=" * 60)
+    enable_ansi()
+    info("=" * 60)
+    info("Lucy Firmware Toolchain Setup")
+    info("=" * 60)
 
     refuse_if_root()
     conda_prefix = require_pixi_env()
     cargo_bin = configure_cargo_homes(conda_prefix)
-    print(f"📦 Pixi env: {conda_prefix}")
-    print(f"📦 CARGO_HOME={os.environ['CARGO_HOME']}")
-    print(f"📦 RUSTUP_HOME={os.environ['RUSTUP_HOME']}")
+    info(f"Pixi env: {conda_prefix}")
+    info(f"CARGO_HOME={os.environ['CARGO_HOME']}")
+    info(f"RUSTUP_HOME={os.environ['RUSTUP_HOME']}")
 
-    print("\n1️⃣ Checking for rustup...")
+    step(1, 4, "Checking for rustup...")
     install_rustup(cargo_bin)
 
     subprocess.run(["rustup", "default", "stable"], check=False, capture_output=True)
 
-    print("\n2️⃣ Installing thumbv6m-none-eabi target...")
+    step(2, 4, "Installing thumbv6m-none-eabi target...")
     try:
         subprocess.run(
             ["rustup", "target", "add", "thumbv6m-none-eabi"],
@@ -159,19 +166,19 @@ def main() -> None:
             capture_output=True,
             text=True,
         )
-        print("✅ ARM Cortex-M0+ target installed")
+        ok("ARM Cortex-M0+ target installed")
     except subprocess.CalledProcessError as e:
-        print(f"❌ Failed to install target: {e.stderr}")
+        err(f"Failed to install target: {e.stderr}")
         sys.exit(1)
 
-    print("\n3️⃣ Installing elf2uf2-rs...")
+    step(3, 4, "Installing elf2uf2-rs...")
     try:
         install_elf2uf2()
     except subprocess.CalledProcessError as e:
-        print(f"❌ Failed to install elf2uf2-rs: {e}")
+        err(f"Failed to install elf2uf2-rs: {e}")
         sys.exit(1)
 
-    print("\n4️⃣ Verifying installation...")
+    step(4, 4, "Verifying installation...")
     checks: list[tuple[str, list[str] | None]] = [
         ("rustc", ["rustc", "--version"]),
         ("cargo", ["cargo", "--version"]),
@@ -183,30 +190,30 @@ def main() -> None:
         binary = cargo_bin / (f"{name}.exe" if is_windows() else name)
         if cmd is None:
             if binary.is_file() and os.access(binary, os.X_OK):
-                print(f"✅ {name}: {binary}")
+                ok(f"{name}: {binary}")
             else:
-                print(f"❌ {name}: NOT FOUND under {cargo_bin}")
+                err(f"{name}: NOT FOUND under {cargo_bin}")
                 all_ok = False
             continue
         try:
             result = subprocess.run(cmd, capture_output=True, text=True, check=True)
             version = result.stdout.strip().split("\n")[0]
-            print(f"✅ {name}: {version}")
+            ok(f"{name}: {version}")
         except (subprocess.CalledProcessError, FileNotFoundError):
-            print(f"❌ {name}: NOT FOUND under {cargo_bin}")
+            err(f"{name}: NOT FOUND under {cargo_bin}")
             all_ok = False
 
-    print("\n" + "=" * 60)
+    info("\n" + "=" * 60)
     if all_ok:
-        print("✅ Firmware toolchain setup complete!")
-        print("   Tools live inside the Pixi env — no shell config needed.")
-        print("\nNext:")
-        print("  pixi run firmware-build")
-        print("  pixi run firmware-flash")
+        ok("Firmware toolchain setup complete!")
+        info("   Tools live inside the Pixi env. No shell config needed.")
+        info("\nNext:")
+        info("  pixi run firmware-build")
+        info("  pixi run firmware-flash")
     else:
-        print("❌ Setup incomplete")
+        err("Setup incomplete")
         sys.exit(1)
-    print("=" * 60)
+    info("=" * 60)
 
 
 if __name__ == "__main__":
