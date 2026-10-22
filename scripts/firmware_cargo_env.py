@@ -19,8 +19,9 @@ import sys
 from pathlib import Path
 
 from firmware_log import enable_ansi
-from firmware_log import err
-from firmware_log import info
+from firmware_log import get_logger
+
+log = get_logger()
 
 
 def is_windows() -> bool:
@@ -31,9 +32,9 @@ def require_pixi_env() -> Path:
     """Firmware tools live in the Pixi env; refuse bare python runs."""
     prefix = os.environ.get("CONDA_PREFIX", "").strip()
     if not prefix:
-        err("CONDA_PREFIX is unset.")
-        info("   Run via Pixi so the toolchain stays inside the workspace env:")
-        info("     pixi run firmware-setup")
+        log.error("CONDA_PREFIX is unset.")
+        log.info("   Run via Pixi so the toolchain stays inside the workspace env:")
+        log.info("     pixi run firmware-setup")
         sys.exit(1)
     return Path(prefix)
 
@@ -72,8 +73,8 @@ def main(argv: list[str] | None = None) -> int:
     try:
         completed = subprocess.run(args, check=False)
     except FileNotFoundError:
-        err(f"command not found: {args[0]}")
-        info("   Run: pixi run firmware-setup")
+        log.error(f"command not found: {args[0]}")
+        log.info("   Run: pixi run firmware-setup")
         return 127
     return int(completed.returncode)
 
