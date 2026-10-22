@@ -11,8 +11,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from firmware_log import enable_ansi
-from firmware_log import info
-from firmware_log import warn
+from firmware_log import get_logger
+
+log = get_logger()
 
 
 def main():
@@ -22,28 +23,28 @@ def main():
     parser.add_argument("--no-verify", action="store_true", help="Skip Modbus verification after flash")
     args = parser.parse_args()
 
-    info("=" * 60)
-    info("Lucy Firmware Flash Tool")
-    info("=" * 60)
-    info("")
-    warn("Flash implementation coming in Phase 6.1")
-    info("  For now, manually copy .uf2 files to RP2040 in BOOTSEL mode")
-    info("")
+    log.info("=" * 60)
+    log.info("Lucy Firmware Flash Tool")
+    log.info("=" * 60)
+    log.info("")
+    log.warning("Flash implementation coming in Phase 6.1")
+    log.info("  For now, manually copy .uf2 files to RP2040 in BOOTSEL mode")
+    log.info("")
 
     uf2_dir = Path("src/lucy_embedded_firmware/target/thumbv6m-none-eabi/release")
     if uf2_dir.exists():
         uf2_files = list(uf2_dir.glob("*.uf2"))
         if uf2_files:
-            info("Built firmware files:")
+            log.info("Built firmware files:")
             for uf2 in uf2_files:
-                info(f"  - {uf2}")
+                log.info(f"  - {uf2}")
         else:
-            warn("No .uf2 files found. Run 'pixi run firmware-build' first.")
+            log.warning("No .uf2 files found. Run 'pixi run firmware-build' first.")
     else:
-        warn("Build directory not found. Run 'pixi run firmware-build' first.")
+        log.warning("Build directory not found. Run 'pixi run firmware-build' first.")
 
-    info("")
-    info("=" * 60)
+    log.info("")
+    log.info("=" * 60)
     return 0
 
 

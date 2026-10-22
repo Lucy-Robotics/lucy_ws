@@ -133,8 +133,6 @@ def test_controllers_probe_caches_a_result_slower_than_its_ttl(tmp_path):
     home = tmp_path / "home"
     (home / ".pixi" / "bin").mkdir(parents=True)
     fake_pixi = home / ".pixi" / "bin" / "pixi"
-    # Probe longer than TTL so an entry-time stamp is already expired when written;
-    # TTL > 1s so a completion stamp survives a second-boundary between calls.
     fake_pixi.write_text("#!/usr/bin/env bash\nsleep 3\n")
     fake_pixi.chmod(0o755)
 

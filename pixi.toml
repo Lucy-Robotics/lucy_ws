@@ -140,8 +140,7 @@ lucy-cli = { cmd = "bash scripts/pixi_gui_launch.sh ros2 run lucy_cli tui" }
 
 # --- embedded firmware development (Rust + RP2040) ---
 [feature.firmware.dependencies]
-# NO rust package - using rustup for better embedded toolchain support
-# (rust-std-thumbv6m-none-eabi NOT available in conda-forge, verified 2026-09-09)
+# rustup supplies the toolchain; conda-forge has no thumbv6m-none-eabi rust-std (checked 2026-09-09).
 python = ">=3.10"             # for setup/flash scripts
 pyserial = "*"                # serial port detection and communication
 requests = "*"                # for rustup automatic download (if needed)
