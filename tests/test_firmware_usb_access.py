@@ -70,3 +70,37 @@ def test_apply_temporary_access_chmods_when_needed(monkeypatch, tmp_path):
     fixed = usb.apply_temporary_access(allow_prompt=False)
     assert fixed == [node]
     chmod.assert_called_once_with(node, 0o666)
+
+
+def _udev_dirs(monkeypatch, tmp_path, installed: str | None):
+    src = tmp_path / "src"
+    dest = tmp_path / "etc"
+    src.mkdir()
+    dest.mkdir()
+    (src / "99-lucy.rules").write_text("RULE\n")
+    if installed is not None:
+        (dest / "99-lucy.rules").write_text(installed)
+    monkeypatch.setattr(usb, "UDEV_SOURCE_DIR", src)
+    monkeypatch.setattr(usb, "UDEV_TARGET_DIR", dest)
+    monkeypatch.setattr(usb, "OBSOLETE_RULE", dest / "99-lucy-rp2040.rules")
+
+
+def test_udev_rules_installed_only_when_identical(monkeypatch, tmp_path):
+    _udev_dirs(monkeypatch, tmp_path, installed="RULE\n")
+    assert usb.udev_rules_installed()
+    (tmp_path / "etc" / "99-lucy.rules").write_text("OLD RULE\n")
+    assert not usb.udev_rules_installed()
+    (tmp_path / "etc" / "99-lucy.rules").unlink()
+    assert not usb.udev_rules_installed()
+
+
+def test_ensure_usb_access_skips_sudo_when_rules_installed(monkeypatch, tmp_path):
+    _udev_dirs(monkeypatch, tmp_path, installed="RULE\n")
+    monkeypatch.delenv("LUCY_SKIP_USB_ACCESS", raising=False)
+    monkeypatch.setattr(usb.platform, "system", lambda: "Linux")
+    monkeypatch.setattr(usb, "matching_tty_nodes", lambda: [])
+    sudo = MagicMock()
+    monkeypatch.setattr(usb, "_sudo", sudo)
+    monkeypatch.setattr(usb, "_sudo_available_noninteractive", sudo)
+    usb.ensure_usb_access(allow_prompt=True)
+    sudo.assert_not_called()

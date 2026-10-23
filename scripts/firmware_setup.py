@@ -143,6 +143,25 @@ def install_elf2uf2() -> None:
     log.ok("elf2uf2-rs installed")
 
 
+def load_usb_module():
+    """firmware_usb_access, or None: a USB failure must not fail toolchain setup."""
+    try:
+        import importlib.util
+
+        usb_path = Path(__file__).resolve().parent / "firmware_usb_access.py"
+        spec = importlib.util.spec_from_file_location("firmware_usb_access", usb_path)
+        if spec is None or spec.loader is None:
+            raise ImportError(f"cannot load {usb_path}")
+        usb_mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(usb_mod)
+        # Ask for sudo now rather than minutes later at the USB step.
+        usb_mod.prime_sudo()
+        return usb_mod
+    except Exception as exc:  # pragma: no cover - never fail toolchain setup on USB ACL
+        log.warning(f"USB access step failed (toolchain still OK): {exc}")
+        return None
+
+
 def main() -> None:
     enable_ansi()
     log.info("=" * 60)
@@ -150,6 +169,7 @@ def main() -> None:
     log.info("=" * 60)
 
     refuse_if_root()
+    usb_mod = load_usb_module()
     conda_prefix = require_pixi_env()
     cargo_bin = configure_cargo_homes(conda_prefix)
     log.info(f"Pixi env: {conda_prefix}")
@@ -208,18 +228,11 @@ def main() -> None:
 
     # Permanent udev when sudo works; temporary chmod for already-plugged boards.
     # Skip with LUCY_SKIP_USB_ACCESS=1. A USB failure must not fail toolchain setup.
-    try:
-        import importlib.util
-
-        usb_path = Path(__file__).resolve().parent / "firmware_usb_access.py"
-        spec = importlib.util.spec_from_file_location("firmware_usb_access", usb_path)
-        if spec is None or spec.loader is None:
-            raise ImportError(f"cannot load {usb_path}")
-        usb_mod = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(usb_mod)
-        usb_mod.ensure_usb_access()
-    except Exception as exc:  # pragma: no cover - never fail toolchain setup on USB ACL
-        log.warning(f"USB access step failed (toolchain still OK): {exc}")
+    if usb_mod is not None:
+        try:
+            usb_mod.ensure_usb_access()
+        except Exception as exc:  # pragma: no cover - never fail toolchain setup on USB ACL
+            log.warning(f"USB access step failed (toolchain still OK): {exc}")
 
     log.info("\n" + "=" * 60)
     if all_ok:
