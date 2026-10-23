@@ -35,6 +35,12 @@
       "branch": "master",
       "url_https": "https://github.com/Lucy-Robotics/marty_urdf.git",
       "url_ssh": "git@github.com:Lucy-Robotics/marty_urdf.git"
+    },
+    {
+      "name": "inmoov_i2_urdf",
+      "branch": "master",
+      "url_https": "https://github.com/Lucy-Robotics/inmoov_i2_urdf.git",
+      "url_ssh": "git@github.com:Lucy-Robotics/inmoov_i2_urdf.git"
     }
   ]
 }
