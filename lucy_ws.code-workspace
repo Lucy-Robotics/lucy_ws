@@ -25,6 +25,10 @@
       "path": "src/so_arm101_urdf"
     },
     {
+      "name": "marty_urdf",
+      "path": "src/marty_urdf"
+    },
+    {
       "name": "inmoov_i2_urdf",
       "path": "src/inmoov_i2_urdf"
     },
