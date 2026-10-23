@@ -99,6 +99,7 @@ Lucy selects the robot package with `robot_package:=…` or `LUCY_ROBOT_PACKAGE`
 |-------|---------|----------------------------|
 | SO-ARM101 | `so_arm101_urdf` | **[Hardware setup](src/so_arm101_urdf/docs/HARDWARE_SETUP.md)** - LeRobot calibrate, apply limits, regenerate, then `real:=true` |
 | InMoov | `inmoov_urdf` | Package docs under `src/inmoov_urdf/` |
+| InMoov i2 | `inmoov_i2_urdf` | Package docs under `src/inmoov_i2_urdf/` |
 | Thais | `thais_urdf` | Package docs under `src/thais_urdf/` |
 | Marty v2 | `marty_urdf` | Mock only for now - [developer guide](src/marty_urdf/docs/DEVELOPER.md) |
 
