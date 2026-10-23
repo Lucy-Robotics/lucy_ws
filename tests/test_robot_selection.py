@@ -1,5 +1,9 @@
 """Robot modifiers must stay a required exclusive group in the launcher TUI."""
 
+import sys
+
+import pytest
+
 from launcher.state import LauncherState
 
 
@@ -81,3 +85,18 @@ def test_non_robot_modifiers_still_toggle_off(monkeypatch):
     assert state.get_by_id("gazebo").selected
     assert state.toggle("gazebo") is None
     assert not state.get_by_id("gazebo").selected
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="read-only blocks os.replace on Windows")
+def test_save_selection_replaces_unwritable_file(monkeypatch, tmp_path):
+    from launcher import config
+
+    # Stands in for the root-owned .lucy_launcher_state.json the Docker setup left behind.
+    stale = tmp_path / ".lucy_launcher_state.json"
+    stale.write_text('{"selected": ["robot_a"]}')
+    stale.chmod(0o444)
+    monkeypatch.setattr(config, "SELECTION_FILE", stale)
+
+    config.save_selection({"core", "robot_b"})
+
+    assert config.load_selection() == {"core", "robot_b"}
