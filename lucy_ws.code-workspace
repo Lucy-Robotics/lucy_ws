@@ -25,6 +25,10 @@
       "path": "src/so_arm101_urdf"
     },
     {
+      "name": "inmoov_i2_urdf",
+      "path": "src/inmoov_i2_urdf"
+    },
+    {
       "name": "lucy_embedded_firmware",
       "path": "src/lucy_embedded_firmware"
     }
