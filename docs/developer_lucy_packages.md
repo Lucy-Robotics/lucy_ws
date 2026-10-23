@@ -234,3 +234,4 @@ Vite proxies `/rosbridge` to `ws://127.0.0.1:9090`. Launcher sets `LUCY_LCP_*` v
 | [`src/inmoov_urdf/docs/DEVELOPER.md`](../src/inmoov_urdf/docs/DEVELOPER.md) | URDF, meshes, sim launches |
 | [`src/inmoov_i2_urdf/docs/DEVELOPER.md`](../src/inmoov_i2_urdf/docs/DEVELOPER.md) | InMoov i2 model (fork of `inmoov_urdf`) |
 | [`src/so_arm101_urdf/docs/DEVELOPER.md`](../src/so_arm101_urdf/docs/DEVELOPER.md) | SO-ARM101 follower arm |
+| [`src/marty_urdf/docs/DEVELOPER.md`](../src/marty_urdf/docs/DEVELOPER.md) | Robotical Marty v2 (mock only) |

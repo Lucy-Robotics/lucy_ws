@@ -183,7 +183,7 @@ Add a modifier (usually in `config/launcher_config.json.local` while iterating):
   "description": "(robot_package:=my_robot_urdf)",
   "type": "modifier",
   "dependencies": ["core"],
-  "conflicts": ["robot_inmoov", "robot_thais", "robot_so_arm101", "robot_inmoov_i2"],
+  "conflicts": ["robot_inmoov", "robot_thais", "robot_so_arm101", "robot_inmoov_i2", "robot_marty"],
   "command": "robot_package:=my_robot_urdf",
   "requires_pkg": "my_robot_urdf",
   "default_on": false
@@ -232,6 +232,7 @@ If your robot has encoders (e.g. STS3215 magnetic encoders):
 | `inmoov_i2_urdf` | Full humanoid (i2) | Fork of `inmoov_urdf` with the InMoov i2 model and expression joints |
 | `thais_urdf` | Humanoid fork | Same contract as InMoov with renamed package |
 | `so_arm101_urdf` | 6-DOF arm | STL meshes, single board/controller, encoder placeholders |
+| `marty_urdf` | Small biped | STL meshes, many mimic joints, disabled placeholder board |
 
 ---
 
