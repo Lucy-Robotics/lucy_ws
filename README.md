@@ -105,4 +105,4 @@ Read **[CONTRIBUTING.md](CONTRIBUTING.md)**, and the **[Code of Conduct](CODE_OF
 
 This project is licensed under the **GNU General Public License v3.0**. See [LICENSE](LICENSE) for the full text.
 
-[Lucy](https://lucy-robotics.fr) builds on the [InMoov](https://inmoov.fr/) open-source humanoid project and the [SO101](https://huggingface.co/docs/lerobot/en/so101).
+[Lucy](https://lucy-robotics.com) builds on the [InMoov](https://inmoov.fr/) open-source humanoid project and the [SO101](https://huggingface.co/docs/lerobot/en/so101).
