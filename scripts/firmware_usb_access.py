@@ -29,10 +29,11 @@ from firmware_log import get_logger
 
 log = get_logger()
 
-# Must match firmwares/linux board.rs and firmwares/mcu_bridge / rp2040 USB IDs.
+# Must match firmwares/linux board.rs and firmwares/mcu_bridge / rp2040 / arduino_mega USB IDs.
 LUCY_USB_IDS: tuple[tuple[str, str, str], ...] = (
     ("2e8a", "0003", "Raspberry Pi Pico CDC"),
     ("1a86", "55d3", "Feetech USB Single Serial"),
+    ("2341", "0042", "Arduino Mega 2560"),
 )
 
 WORKSPACE_ROOT = Path(__file__).resolve().parents[1]
