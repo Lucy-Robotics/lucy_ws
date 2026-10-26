@@ -82,7 +82,8 @@ def find_port(serial_id: str) -> str:
 def flash_lock(serial_id: str):
     """Keep the board's mcu_bridge (if the stack runs) off the port while avrdude owns it.
 
-    Same lock file as the config pipeline; launch respawns the bridge once it is gone.
+    Same lock file as the config pipeline: the bridge closes the port within a tick and
+    reconnects once the lock is gone.
     """
     if not serial_id:
         yield
@@ -90,8 +91,7 @@ def flash_lock(serial_id: str):
     lock = Path(f"/tmp/.lucy_mcu_flashing_{serial_id}")
     lock.touch()
     try:
-        subprocess.run(["pkill", "-f", f"lucy-embedded-firmware-mcu-bridge .*{serial_id}"], check=False)
-        time.sleep(0.5)
+        time.sleep(1.0)
         yield
     finally:
         lock.unlink(missing_ok=True)
