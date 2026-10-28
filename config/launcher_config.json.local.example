@@ -1,5 +1,4 @@
 {
-  "_comment": "Copy to launcher_config.json.local (gitignored). Overrides config/launcher_config.json.",
   "packages": [
     {
       "id": "core",
@@ -9,8 +8,41 @@
       "dependencies": [],
       "conflicts": [],
       "command": "ros2 launch lucy_bringup lucy.launch.py",
-      "readiness_check": "pgrep -f '[r]osbridge_websocket' >/dev/null 2>&1",
-      "readiness_timeout": 60,
+      "readiness_stages": [
+        {
+          "label": "Activating environment",
+          "check": "pgrep -f 'bin/[r]os2 launch lucy_bringup' >/dev/null 2>&1"
+        },
+        {
+          "label": "Starting Rosbridge",
+          "check": "pgrep -f '[r]osbridge_websocket' >/dev/null 2>&1"
+        },
+        {
+          "label": "Opening Rosbridge port",
+          "check": "bash scripts/port_open.sh ${PORT_ROSBRIDGE:-9090}"
+        },
+        {
+          "label": "Starting config services",
+          "check": "pgrep -f '[c]onfig_pipeline_node' >/dev/null 2>&1"
+        },
+        {
+          "label": "Starting control supervisor",
+          "check": "pgrep -f '[c]ontrol_supervisor_node' >/dev/null 2>&1"
+        },
+        {
+          "label": "Building robot model",
+          "check": "pgrep -f '[r]obot_state_publisher' >/dev/null 2>&1"
+        },
+        {
+          "label": "Starting controller manager",
+          "check": "bash scripts/controllers_active.sh 0"
+        },
+        {
+          "label": "Activating controllers",
+          "check": "bash scripts/controllers_active.sh 1"
+        }
+      ],
+      "readiness_timeout": 150,
       "default_on": false
     },
     {
@@ -23,17 +55,6 @@
       "command": "robot_package:=inmoov_urdf",
       "requires_pkg": "inmoov_urdf",
       "default_on": true
-    },
-    {
-      "id": "robot_thais",
-      "name": "Robot: Thais",
-      "description": "(robot_package:=thais_urdf)",
-      "type": "modifier",
-      "dependencies": ["core"],
-      "conflicts": ["robot_inmoov", "robot_so_arm101"],
-      "command": "robot_package:=thais_urdf",
-      "requires_pkg": "thais_urdf",
-      "default_on": false
     },
     {
       "id": "robot_so_arm101",
@@ -89,6 +110,11 @@
       "dependencies": ["core"],
       "conflicts": ["gazebo"],
       "command": "real:=true",
+      "readiness_check": "bash scripts/real_hardware_ready.sh",
+      "exit_check": "cat /tmp/.lucy_real_hardware_status 2>/dev/null",
+      "error_check": "cat /tmp/.lucy_real_hardware_error 2>/dev/null",
+      "crash_log_window": "core",
+      "readiness_timeout": 180,
       "default_on": false
     },
     {
@@ -100,7 +126,7 @@
       "dependencies": [],
       "conflicts": [],
       "command": "pixi run panel-dev",
-      "readiness_check": "pgrep -f '[v]ite' >/dev/null 2>&1",
+      "readiness_check": "bash scripts/port_open.sh ${LUCY_LCP_PUBLISHED_HOST_PORT:-4004}",
       "readiness_timeout": 120,
       "default_on": false
     },
