@@ -214,6 +214,14 @@ def _nav_hint(pkg):
     return f"({pkg.nav_hint})"
 
 
+def _crash_hint(pkg, status):
+    """The failure next to CRASHED. Anything else is still in progress or done."""
+    if status != "crashed":
+        return ""
+    message = getattr(pkg, "crash_message", "") or ""
+    return " ".join(message.split())
+
+
 def _stage_hint(pkg, status):
     """Readiness progress for a package, e.g. "6/8 Building robot model...".
 
