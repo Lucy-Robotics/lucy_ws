@@ -77,4 +77,4 @@ def test_setup_firmware_toolchain_runs_pixi_task(monkeypatch):
     monkeypatch.delenv("LUCY_SKIP_FIRMWARE_SETUP", raising=False)
     monkeypatch.setattr(install, "pixi_run", record)
     install.setup_firmware_toolchain("/tmp/ws", lambda *a, **k: 0, log=lambda m: None)
-    assert calls == [["run", "firmware-setup"]]
+    assert calls == [["run", "firmware-setup"], ["run", "firmware-build-linux"]]
