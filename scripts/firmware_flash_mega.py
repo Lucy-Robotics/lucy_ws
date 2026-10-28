@@ -82,8 +82,9 @@ def find_port(serial_id: str) -> str:
 def flash_lock(serial_id: str):
     """Keep the board's mcu_bridge (if the stack runs) off the port while avrdude owns it.
 
-    Same lock file as the config pipeline: the bridge closes the port within a tick and
-    reconnects once the lock is gone.
+    Same lock file as the config pipeline: the bridge closes the port once it sees the lock
+    and reconnects once it is gone. It can hold the port for 2 s after opening it (the Mega
+    resets), so wait longer than that before avrdude opens it.
     """
     if not serial_id:
         yield
@@ -91,7 +92,7 @@ def flash_lock(serial_id: str):
     lock = Path(f"/tmp/.lucy_mcu_flashing_{serial_id}")
     lock.touch()
     try:
-        time.sleep(1.0)
+        time.sleep(3.0)
         yield
     finally:
         lock.unlink(missing_ok=True)
