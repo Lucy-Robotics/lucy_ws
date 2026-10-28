@@ -23,7 +23,7 @@ Mermaid does not implement full UML. We use **UML conventions** via Mermaid type
 |-------------|--------------|----------|
 | **Component / Context** | `flowchart` | System overview; package black boxes; actors outside the boundary |
 | **Deployment** | `flowchart` with host subgraphs | Workstation, Robot SBC, MCU |
-| **Sequence** | `sequenceDiagram` | Joint cmd → SHM → Modbus → actuator; timed interactions |
+| **Sequence** | `sequenceDiagram` | Joint cmd → SHM → USB CDC → actuator; timed interactions |
 | **Activity / pipeline** | `flowchart LR` or `stateDiagram-v2` | VALIDATE → GENERATE → BUILD → FLASH → RELOAD |
 | **Class / structure** | `classDiagram` | Firmware crates / banks when structure matters |
 | **Not used** | ER, timing, full UML profiles | Prefer Markdown tables for YAML schema |
@@ -42,7 +42,7 @@ Replace `Component` / the parenthetical with the matching UML kind and a short s
 
 - **Actors / external systems:** Outside the system (or package) boundary subgraph; capital noun names (`Browser`, `MCU`).
 - **Components:** Package id or PascalCase (`lucy_ros_packages`); no implementation detail on system diagrams.
-- **Connectors:** Labeled edges with protocol or artifact (`"USB CDC Modbus RTU"`, `"active.yaml"`). Solid `-->` for runtime; dotted `-.->` for generate / build / config.
+- **Connectors:** Labeled edges with protocol or artifact (`"USB CDC f64 table"`, `"active.yaml"`). Solid `-->` for runtime; dotted `-.->` for generate / build / config.
 - **Boundary:** One subgraph = one UML component (or system) boundary.
 - **Stereotypes:** Optional rare text tags in labels (`«firmware»`, `«robot»`).
 - **Mermaid hygiene:**
@@ -76,7 +76,7 @@ Replace `Component` / the parenthetical with the matching UML kind and a short s
 |-------|------|
 | Robot hardware YAML | radians |
 | Control panel editors | degrees (UI only) |
-| SHM + Modbus registers | milliradians |
+| Host SHM and the USB CDC table | `f64` radians |
 
 ## Document layout
 
@@ -92,7 +92,7 @@ Replace `Component` / the parenthetical with the matching UML kind and a short s
 
 ## Keep-updated rules
 
-1. System connectivity change (browser ↔ ROS, SHM/Modbus, board flash, sim vs real) → update [`overview.md`](overview.md).
+1. System connectivity change (browser ↔ ROS, SHM / USB CDC, board flash, sim vs real) → update [`overview.md`](overview.md).
 2. Package-internal flow or package-local gap → that package’s `docs/architecture/`.
 3. Prefer editing an existing chart over adding a new file; one concern per diagram.
 4. GitHub renders Mermaid; no diagram CI for now.
