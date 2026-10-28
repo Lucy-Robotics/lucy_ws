@@ -8,7 +8,7 @@ conventions for authors live beside them in the [guide](GUIDE.md).
 | Doc | Content |
 |-----|---------|
 | [overview.md](overview.md) | **System** - Lucy workspace packages + external UI (`lucy_control_panel` / browser), MCU, peripherals |
-| [`lucy_ros_packages/docs/architecture/`](../../src/lucy_ros_packages/docs/architecture/) | Package-level charts (pipeline, SHM/Modbus) |
+| [`lucy_ros_packages/docs/architecture/`](../../src/lucy_ros_packages/docs/architecture/) | Package-level charts (pipeline, f64 SHM, USB CDC) |
 | [`lucy_embedded_firmware/docs/architecture/`](../../src/lucy_embedded_firmware/docs/architecture/) | Package-level charts (board crates, banks) |
 | [`lucy_control_panel/docs/architecture/overview.md`](../../src/lucy_control_panel/docs/architecture/overview.md) | Package-level charts (UI container) |
 
