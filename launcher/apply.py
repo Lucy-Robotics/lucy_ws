@@ -17,7 +17,9 @@ def _clean_status():
         from pathlib import Path
 
         Path("/tmp/.lucy_real_hardware_status").unlink(missing_ok=True)
+        Path("/tmp/.lucy_real_hardware_error").unlink(missing_ok=True)
         Path("/tmp/.lucy_real_hardware_ready").unlink(missing_ok=True)
+        Path("/tmp/.lucy_real_hardware_expected").unlink(missing_ok=True)
     except OSError:
         pass
 
