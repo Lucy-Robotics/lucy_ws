@@ -886,16 +886,20 @@ def build_workspace(
 def setup_firmware_toolchain(
     project_root: Path | str, run_command: Callable = default_run_command, log: Log = print
 ) -> None:
-    """Install Rust/RP2040 toolchain into the Pixi env (idempotent).
+    """Install Rust/RP2040 toolchain into the Pixi env (idempotent), then build the host
+    firmware binaries (linux, mcu_bridge) so an update never leaves a stale bridge talking an
+    old protocol to freshly flashed boards.
 
-    Runs ``pixi run firmware-setup``. Skip with ``LUCY_SKIP_FIRMWARE_SETUP=1``.
-    Host binaries still need a separate ``pixi run firmware-build-linux`` after this.
+    Runs ``pixi run firmware-setup`` and ``pixi run firmware-build-linux``.
+    Skip with ``LUCY_SKIP_FIRMWARE_SETUP=1``.
     """
     if env_flag("LUCY_SKIP_FIRMWARE_SETUP"):
         log("Firmware toolchain: LUCY_SKIP_FIRMWARE_SETUP set — skipping")
         return
     log("Firmware toolchain (pixi run firmware-setup) ...")
     pixi_run(project_root, ["run", "firmware-setup"], run_command)
+    log("Host firmware binaries (pixi run firmware-build-linux) ...")
+    pixi_run(project_root, ["run", "firmware-build-linux"], run_command)
 
 
 # --- flow --------------------------------------------------------------------
