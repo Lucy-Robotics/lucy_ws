@@ -50,7 +50,7 @@ Standard path: `python3 install.py` then `python3 Lucy.py`.
 
 **Jetson (Orin / AGX / Nano / Thor):** Pixi ships conda Mesa/GLVND ahead of the Tegra driver, which breaks Gazebo ogre2 (missing plugin, EGL segfaults). [`scripts/nix_gl_env.sh`](../scripts/nix_gl_env.sh) auto-detects Jetson and prepends `/usr/lib/aarch64-linux-gnu/nvidia` + `tegra`, sets the NVIDIA EGL vendor; [`scripts/gz_rendering_env.sh`](../scripts/gz_rendering_env.sh) discovers ogre2 plugin/resource paths on Linux. Use **`sim-headless`** or Control Center **Simulator → … headless** for camera sim without a display; GUI **`sim`** needs X11/Wayland and keeps your session `XDG_RUNTIME_DIR`. Do not set `LUCY_NIX_GL=0` on Jetson. Override: `LUCY_GPU_MODE=jetson`.
 
-**NixOS:** Pixi/RoboStack needs host GL libraries prepended **and** Mesa EGL - both are applied by [`scripts/nix_gl_env.sh`](../scripts/nix_gl_env.sh) (launcher and `pixi run sim*`). Install **`nixGLIntel`** (or another nixGL wrapper) on PATH, or rely on the `/run/opengl-driver/lib` fallback. **Do not set `LUCY_NIX_GL=0`** - EGL/`GZ_IP` alone is not enough; sim will hang on "requesting world names". Optional overrides: `LUCY_NIX_GL_WRAPPER`, `__EGL_VENDOR_LIBRARY_FILENAMES`, `GZ_IP` - see `.env.example`.
+**NixOS:** see the foldable **NixOS** note under [Quickstart](../README.md#quickstart) in the workspace README (nix-ld, udev, dialout, GL).
 
 ### macOS
 
