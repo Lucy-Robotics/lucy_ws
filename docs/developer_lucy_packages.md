@@ -60,7 +60,7 @@ Standard path: `python3 install.py` then `python3 Lucy.py`.
 
 ### Windows
 
-End users get `Lucy-Setup.exe` from [Lucy-Windows-Installer](https://github.com/Sentience-Robotics/Lucy-Windows-Installer).
+End users get `Lucy-Setup.exe` from [Lucy-Windows-Installer](https://github.com/Lucy-Robotics/Lucy-Windows-Installer).
 
 `python3 install.py` installs, `--repair` re-clones and rebuilds, `--build-only`
 skips git. `python3 Lucy.py` runs install when the workspace is missing and
