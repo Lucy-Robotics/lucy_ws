@@ -40,8 +40,12 @@ def _core_teardown_shell() -> str:
         # to stop the dialog without patching rviz2 itself.
         "pkill -9 -x rviz2 2>/dev/null; "
         f"tmux send-keys -t {TMUX_SESSION}:core C-c 2>/dev/null; "
-        "for _ in $(seq 1 20); do "
-        "pgrep -f '[g]z sim' >/dev/null 2>&1 || pgrep -x rviz2 >/dev/null 2>&1 || break; "
+        # Wait for ros2 launch itself too: kill-window SIGHUPs it mid-shutdown, which
+        # orphans its children before the firmware can release torque.
+        "for _ in $(seq 1 40); do "
+        "pgrep -f '[g]z sim' >/dev/null 2>&1 || pgrep -x rviz2 >/dev/null 2>&1 || "
+        f"tmux list-panes -t {TMUX_SESSION}:core -F '#{{pane_dead}}' 2>/dev/null "
+        "| grep -qx 0 || break; "
         "sleep 0.25; done; "
         f"tmux kill-window -t {TMUX_SESSION}:core 2>/dev/null"
     )
