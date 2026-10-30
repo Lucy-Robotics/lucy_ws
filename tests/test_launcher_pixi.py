@@ -99,6 +99,8 @@ def test_core_teardown_waits_before_kill_window():
     assert "C-c" in cmd
     assert "kill-window" in cmd
     assert "pgrep" in cmd
+    assert "list-panes" in cmd
+    assert cmd.index("C-c") < cmd.index("list-panes") < cmd.index("kill-window")
     assert cmd == CORE_TEARDOWN
 
 
