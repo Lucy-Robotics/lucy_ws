@@ -90,8 +90,8 @@ my_robot_urdf/
 {
   "name": "my_robot_urdf",
   "branch": "dev",
-  "url_https": "https://github.com/Sentience-Robotics/my_robot_urdf.git",
-  "url_ssh": "git@github.com:Sentience-Robotics/my_robot_urdf.git"
+  "url_https": "https://github.com/Lucy-Robotics/my_robot_urdf.git",
+  "url_ssh": "git@github.com:Lucy-Robotics/my_robot_urdf.git"
 }
 ```
 
