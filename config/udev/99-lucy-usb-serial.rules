@@ -1,7 +1,13 @@
-# Lucy USB serial access without dialout membership (MODE 0666 + uaccess).
+# Lucy USB access without dialout / without sudo for flash + serial.
 # Installed by scripts/setup_udev.sh and pixi run firmware-setup.
 #
-# Raspberry Pi Pico CDC — firmwares/rp2040 + mcu_bridge (VID 2e8a / PID 0003)
+# Raspberry Pi Pico / Servo2040 (VID 2e8a / PID 0003):
+#   - application CDC serial (tty)
+#   - BOOTSEL / picotool raw USB (usb)
+#   - RPI-RP2 mass-storage volume (block) so the user can copy a .uf2
 SUBSYSTEM=="tty", ATTRS{idVendor}=="2e8a", ATTRS{idProduct}=="0003", MODE="0666", TAG+="uaccess"
-# Feetech / Waveshare USB Single Serial (CH343) — firmwares/linux so101 (VID 1a86 / PID 55d3)
+SUBSYSTEM=="usb", ATTR{idVendor}=="2e8a", ATTR{idProduct}=="0003", MODE="0666", TAG+="uaccess"
+SUBSYSTEM=="block", ATTRS{idVendor}=="2e8a", ATTRS{idProduct}=="0003", MODE="0666", TAG+="uaccess"
+# Feetech / Waveshare USB Single Serial (CH343) — firmwares/linux so101
 SUBSYSTEM=="tty", ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="55d3", MODE="0666", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTR{idVendor}=="1a86", ATTR{idProduct}=="55d3", MODE="0666", TAG+="uaccess"

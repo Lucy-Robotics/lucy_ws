@@ -34,18 +34,25 @@ cd lucy_ws
 python3 Lucy.py
 ```
 
-**NixOS:** enable [nix-ld](https://github.com/nix-community/nix-ld) so Pixi/RoboStack conda binaries can load the host dynamic linker:
-
-```nix
-programs.nix-ld.enable = true;
-```
-
 If you choose to install pixi beforehand, you will need to source it:
 ```
 export PATH="$HOME/.pixi/bin:$PATH"
 ```
 
-For Gazebo/RViz GL, also see the [NixOS notes](docs/developer_lucy_packages.md#platform-setup) in the developer guide.
+<details>
+<summary>NixOS</summary>
+
+Run `pixi run firmware-setup` or `pixi run setup-udev` — on NixOS it prints a **host-specific** snippet (absolute path to `config/udev/99-lucy-usb-serial.rules` + your username) to paste into `configuration.nix` / a flake module, then:
+
+```bash
+sudo nixos-rebuild switch
+```
+
+Re-login and unplug/replug USB boards. Until then, hold BOOTSEL while plugging for a one-shot UF2 flash.
+
+Also enable [nix-ld](https://github.com/nix-community/nix-ld) (`programs.nix-ld.enable = true;` — included in the printed snippet). Gazebo/RViz: nixGL (e.g. `nixGLIntel`) on `PATH`, or `/run/opengl-driver/lib`. Do not set `LUCY_NIX_GL=0`. See `.env.example` / `scripts/nix_gl_env.sh` for optional GL overrides.
+
+</details>
 
 ### Windows
 
