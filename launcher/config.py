@@ -84,8 +84,12 @@ def load_selection():
 
 def save_selection(selected_ids):
     """Persist the applied tick selection so it is restored on the next launch."""
+    tmp = f"{SELECTION_FILE}.tmp"
     try:
-        with open(SELECTION_FILE, "w") as f:
+        with open(tmp, "w") as f:
             json.dump({"selected": sorted(selected_ids)}, f)
+        # Replace, don't rewrite in place: a root-owned file left by the Docker setup
+        # can't be opened for writing, but the user-owned directory lets us swap it.
+        os.replace(tmp, SELECTION_FILE)
     except OSError:
         pass
