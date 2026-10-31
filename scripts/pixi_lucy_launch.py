@@ -223,21 +223,27 @@ def refuse_gazebo_on_windows() -> None:
     )
 
 
-def apply_dds_scope() -> None:
+def apply_dds_scope(windows: bool = os.name == "nt") -> None:
     """Scope discovery to this host, as scripts/dds_env.sh does for the shell path.
 
     Only that shell script set it, so Windows ran with Jazzy's SUBNET default and
     merged anyone else's Lucy into this graph. ROS_LOCALHOST_ONLY stays unset: it
     is deprecated and takes precedence, which would make rcl ignore the range.
-    The CycloneDDS URI dds_env.sh also exports is left out, being inert under
-    rmw_fastrtps_cpp, which is what Windows runs.
+
+    Windows runs Cyclone DDS pinned to loopback by the CYCLONEDDS_URI pixi.toml
+    sets for every process, so the range stays SUBNET there: rmw_cyclonedds's
+    LOCALHOST mode probes a port per participant index, and Windows UDP sockets
+    fail on the ICMP replies from the unused ones, so nothing is discovered.
     """
+    localhost = os.environ.get("LUCY_DDS_LOCALHOST", "1").strip().lower() not in DDS_LOCALHOST_OFF
+    if windows and not localhost:
+        os.environ.pop("CYCLONEDDS_URI", None)
     if os.environ.get("LUCY_DDS_RANGE"):
         os.environ["ROS_AUTOMATIC_DISCOVERY_RANGE"] = os.environ["LUCY_DDS_RANGE"]
-    elif os.environ.get("LUCY_DDS_LOCALHOST", "1").strip().lower() in DDS_LOCALHOST_OFF:
-        os.environ["ROS_AUTOMATIC_DISCOVERY_RANGE"] = "SUBNET"
-    else:
+    elif localhost and not windows:
         os.environ["ROS_AUTOMATIC_DISCOVERY_RANGE"] = "LOCALHOST"
+    else:
+        os.environ["ROS_AUTOMATIC_DISCOVERY_RANGE"] = "SUBNET"
 
     peers = os.environ.get("LUCY_DDS_PEERS", "")
     if peers:
