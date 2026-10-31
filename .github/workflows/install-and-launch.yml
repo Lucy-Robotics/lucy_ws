@@ -134,16 +134,19 @@ jobs:
       - name: Control panel E2E, Windows launcher commands (SO101, mock hardware)
         id: e2e_so101
         if: runner.os == 'Windows'
+        timeout-minutes: 15
         shell: bash
         run: pixi run panel-e2e-test so_arm101_urdf
 
       - name: Control panel E2E, Windows launcher commands (InMoov, mock hardware)
         if: runner.os == 'Windows' && (success() || steps.e2e_so101.outcome == 'failure')
+        timeout-minutes: 15
         shell: bash
         run: pixi run panel-e2e-test inmoov_urdf
 
       - name: Lucy.py TUI, InMoov then SO101, panel E2E on each (mock hardware)
         if: runner.os != 'Windows'
+        timeout-minutes: 25
         shell: bash
         run: |
           rm -f .env .lucy_launcher_state.json
