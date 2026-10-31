@@ -69,6 +69,9 @@ class Ros:
         self.active_client: str | None = None
         self.node.create_subscription(String, "/robot_description", self._on_description, latched)
         self.node.create_subscription(String, "/lucy/active_client", self._on_active_client, latched)
+        self.beat_last: dict[str, float] = {}
+        self.beat_max: dict[str, float] = {}
+        self.node.create_subscription(String, "/lucy/client_heartbeat", self._on_beat, 10)
         self.executor = SingleThreadedExecutor()
         self.executor.add_node(self.node)
         self.stopping = threading.Event()
@@ -89,6 +92,21 @@ class Ros:
         if msg.data != self.active_client:
             log(f"control lease: {msg.data or 'released'}")
         self.active_client = msg.data
+
+    def _on_beat(self, msg) -> None:
+        now = time.time()
+        last = self.beat_last.get(msg.data)
+        self.beat_last[msg.data] = now
+        if last is None:
+            return
+        gap = now - last
+        self.beat_max[msg.data] = max(gap, self.beat_max.get(msg.data, 0.0))
+        if gap > 2.0:
+            log(f"heartbeat gap {gap:.1f}s from {msg.data}")
+
+    def beat_report(self) -> None:
+        for cid, gap in self.beat_max.items():
+            log(f"heartbeat max gap {gap:.1f}s from {cid}")
 
     def reset(self) -> None:
         self.latest = {}
@@ -295,6 +313,7 @@ def exercise_panel(ros: Ros, robot: str) -> None:
         try:
             drive_panel(page, ros)
         finally:
+            ros.beat_report()
             shot.parent.mkdir(exist_ok=True)
             page.mouse.move(0, 0)
             page.screenshot(path=str(shot), full_page=True)

@@ -164,17 +164,6 @@ jobs:
           rm -f .env .lucy_launcher_state.json
           pixi run tui-launch-test inmoov_urdf so_arm101_urdf
 
-      - name: Probe mesh latency
-        if: always() && runner.os != 'Windows'
-        shell: bash
-        run: |
-          pixi run core robot_package:=inmoov_urdf > core_probe.log 2>&1 &
-          for i in $(seq 1 150); do (echo > /dev/tcp/127.0.0.1/9090) 2>/dev/null && break; sleep 2; done
-          sleep 10
-          time pixi run ros2 service call /mesh/get lucy_msgs/srv/GetMesh "{path: 'file://$PWD/src/inmoov_urdf/description/robot_description/meshes/dae/Texture.012.dae'}" | tail -c 200
-          pixi run ros2 param get --hide-type /robot_state_publisher robot_description | pixi run node scripts/probe_mesh_latency.cjs "$PWD/src/lucy_control_panel"
-          kill %1 || true
-
       - name: Name the E2E screenshots after their platform
         if: always()
         shell: bash
