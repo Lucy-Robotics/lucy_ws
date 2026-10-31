@@ -22,6 +22,7 @@ MODEL_TIMEOUT_S = 600.0
 MODEL_STALL_S = 30.0
 FOLLOW_TIMEOUT_S = 15.0
 CLEANUP_TIMEOUT_S = 60.0
+STACK_NODES = {"robot_state_publisher", "rosbridge_websocket"}
 URDF_HINT_S = 25.0
 WEBGL_RENDERER = """() => {
     const gl = document.createElement('canvas').getContext('webgl');
@@ -70,16 +71,13 @@ class Ros:
         self.node.create_subscription(String, "/lucy/active_client", self._on_active_client, latched)
         self.executor = SingleThreadedExecutor()
         self.executor.add_node(self.node)
+        self.stopping = threading.Event()
         self.spinner = threading.Thread(target=self._spin, daemon=True)
         self.spinner.start()
 
     def _spin(self) -> None:
-        from rclpy.executors import ExternalShutdownException
-
-        try:
-            self.executor.spin()
-        except ExternalShutdownException:
-            pass
+        while not self.stopping.is_set():
+            self.executor.spin_once(timeout_sec=0.1)
 
     def _on_joints(self, msg) -> None:
         self.latest = {**self.latest, **dict(zip(msg.name, msg.position))}
@@ -95,6 +93,9 @@ class Ros:
     def reset(self) -> None:
         self.latest = {}
         self.description = None
+
+    def stack_nodes(self) -> set[str]:
+        return set(self.node.get_node_names()) & STACK_NODES
 
     def joint_states_publishers(self) -> int:
         return self.node.count_publishers("/joint_states")
@@ -125,8 +126,9 @@ class Ros:
     def close(self) -> None:
         import rclpy
 
-        rclpy.try_shutdown()
+        self.stopping.set()
         self.spinner.join(timeout=5)
+        rclpy.try_shutdown()
 
 
 def check_robot_identity(ros: Ros, robot: str) -> None:
