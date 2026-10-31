@@ -49,6 +49,9 @@ def run(command: list[str], *, check: bool = False) -> subprocess.CompletedProce
     )
 
 
+WINDOWS_IGNORE = ["--packages-ignore", "lucy_ros2_control"] if sys.platform == "win32" else []
+
+
 def get_skipped_packages() -> list[str]:
     """Return packages that should be excluded from testing."""
     skip = list(BASE_SKIP)
@@ -65,6 +68,7 @@ def get_tested_packages(skip: list[str]) -> list[str]:
         "colcon",
         "list",
         "--names-only",
+        *WINDOWS_IGNORE,
         "--packages-skip",
         *skip,
     ]
@@ -197,6 +201,7 @@ def main() -> int:
         "colcon",
         "test",
         "--return-code-on-test-failure",
+        *WINDOWS_IGNORE,
         "--packages-skip",
         *skip,
         *sys.argv[1:],
