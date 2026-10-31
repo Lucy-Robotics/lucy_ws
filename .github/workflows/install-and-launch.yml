@@ -141,12 +141,16 @@ jobs:
         id: e2e_so101
         if: runner.os == 'Windows'
         timeout-minutes: 15
+        env:
+          PYTHONFAULTHANDLER: "1"
         shell: bash
         run: pixi run panel-e2e-test so_arm101_urdf
 
       - name: Control panel E2E, Windows launcher commands (InMoov, mock hardware)
         if: runner.os == 'Windows' && (success() || steps.e2e_so101.outcome == 'failure')
         timeout-minutes: 15
+        env:
+          PYTHONFAULTHANDLER: "1"
         shell: bash
         run: pixi run panel-e2e-test inmoov_urdf
 
