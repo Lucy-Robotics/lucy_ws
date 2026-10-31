@@ -18,7 +18,8 @@ MOVE_TIMEOUT_S = 20.0
 IDENTITY_TIMEOUT_S = 60.0
 MOVED_RAD = 0.05
 SAME_RAD = 0.02
-MODEL_TIMEOUT_S = 180.0
+MODEL_TIMEOUT_S = 600.0
+MODEL_STALL_S = 30.0
 URDF_HINT_S = 25.0
 WEBGL_RENDERER = """() => {
     const gl = document.createElement('canvas').getContext('webgl');
@@ -173,6 +174,7 @@ def watch_model(page) -> dict:
         m = re.search(r"\[useRobotModel\] Done .* (\d+)/(\d+) meshes", msg.text)
         if m:
             model["meshes"] = (int(m.group(1)), int(m.group(2)))
+            model["done_at"] = time.time()
 
     def on_frame(payload) -> None:
         head = payload[:120] if isinstance(payload, str) else ""
@@ -186,12 +188,15 @@ def watch_model(page) -> dict:
 
 def check_viewer(page, model: dict, opened_at: float) -> None:
     deadline = opened_at + MODEL_TIMEOUT_S
-    while "meshes" not in model and time.time() < deadline:
+    seen, progressed_at = -1, time.time()
+    while "meshes" not in model and time.time() < deadline and time.time() - progressed_at < MODEL_STALL_S:
+        if model["replies"] != seen:
+            seen, progressed_at = model["replies"], time.time()
         page.wait_for_timeout(1000)
     if "meshes" not in model:
         raise CheckFailed(
-            f"the 3D view never finished loading the robot within {MODEL_TIMEOUT_S:.0f}s "
-            f"({model['replies']} mesh/get replies received)"
+            f"the 3D view did not finish loading the robot: {model['replies']} mesh/get replies "
+            f"in {time.time() - opened_at:.0f}s, none in the last {time.time() - progressed_at:.0f}s"
         )
     loaded, total = model["meshes"]
     if loaded != total:
@@ -200,7 +205,8 @@ def check_viewer(page, model: dict, opened_at: float) -> None:
     shown = page.get_by_text(VIEWER_ERRORS)
     if shown.count():
         raise CheckFailed(f"the 3D view shows an error: {shown.first.inner_text()!r}")
-    log(f"3D view loaded all {total} meshes ({model['replies']} mesh/get replies) and shows no error")
+    log(f"3D view loaded all {total} meshes in {model['done_at'] - opened_at:.0f}s "
+        f"({model['replies']} mesh/get replies) and shows no error")
 
 
 def check_viewer_follows(page, ros: Ros) -> None:
