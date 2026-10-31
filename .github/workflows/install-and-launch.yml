@@ -103,8 +103,13 @@ jobs:
         shell: bash
         run: ./launch_lucy.sh --headless python scripts/ros_doctor.py
 
-      - name: Launcher tmux smoke (Linux)
-        if: matrix.pixi_platform == 'linux-64'
+      - name: Install tmux
+        if: runner.os != 'Windows'
+        shell: bash
+        run: command -v tmux || { [ "$RUNNER_OS" = macOS ] && brew install tmux || sudo apt-get install -y tmux; }
+
+      - name: Launcher tmux smoke
+        if: runner.os != 'Windows'
         shell: bash
         run: |
           chmod +x scripts/ci_tmux_launcher_smoke.sh
@@ -112,8 +117,8 @@ jobs:
 
       # The smoke above answers "did the processes start". This asks whether the
       # graph they formed is one the control panel and RViz can actually use.
-      - name: Core bringup graph checks (Linux)
-        if: matrix.pixi_platform == 'linux-64'
+      - name: Core bringup graph checks
+        if: runner.os != 'Windows'
         shell: bash
         run: pixi run core-bringup-test
 
@@ -135,7 +140,6 @@ jobs:
         if: runner.os != 'Windows' && (success() || steps.e2e_so101.outcome == 'failure')
         shell: bash
         run: |
-          command -v tmux || { [ "$RUNNER_OS" = macOS ] && brew install tmux || sudo apt-get install -y tmux; }
           rm -f .env .lucy_launcher_state.json
           pixi run tui-launch-test
 
