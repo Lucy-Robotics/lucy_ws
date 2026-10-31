@@ -91,6 +91,11 @@ jobs:
         shell: bash
         run: pixi run panel-install
 
+      - name: Host firmware binaries (as Lucy.py Update builds them)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: pixi run firmware-build-linux
+
       - name: Run colcon tests
         shell: bash
         run: pixi run test-only
