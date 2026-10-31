@@ -25,6 +25,8 @@ pytest = "*"
 pytest-cov = "*"
 pytest-mock = "*"
 ros-jazzy-rclpy = ">=7.1.11,<8"
+playwright-python = "1.61.*"
+playwright = "1.61.*"
 
 
 # --- ROS Jazzy stack (RoboStack channel) ---
@@ -112,6 +114,7 @@ doctor = "python scripts/ros_doctor.py"
 setup-udev = "bash scripts/setup_udev.sh"
 workspace-test = { cmd = "PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 pytest tests -q -p pytester -p python -p terminal" }
 core-bringup-test = "bash -c 'source scripts/dds_env.sh 2>/dev/null; python scripts/ci_core_bringup_test.py'"
+panel-e2e-test = "python scripts/ci_panel_e2e_test.py"
 shell = "bash scripts/pixi_dev_shell.sh"
 
 [feature.launcher.target.unix.tasks]
