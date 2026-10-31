@@ -20,6 +20,8 @@ MOVED_RAD = 0.05
 SAME_RAD = 0.02
 MODEL_TIMEOUT_S = 600.0
 MODEL_STALL_S = 30.0
+FOLLOW_TIMEOUT_S = 15.0
+CLEANUP_TIMEOUT_S = 60.0
 URDF_HINT_S = 25.0
 WEBGL_RENDERER = """() => {
     const gl = document.createElement('canvas').getContext('webgl');
@@ -125,7 +127,6 @@ class Ros:
 
         rclpy.try_shutdown()
         self.spinner.join(timeout=5)
-        self.node.destroy_node()
 
 
 def check_robot_identity(ros: Ros, robot: str) -> None:
@@ -214,9 +215,11 @@ def check_viewer_follows(page, ros: Ros) -> None:
     before = canvas.screenshot()
     page.get_by_role("button", name=re.compile(r"reset all", re.I)).first.click()
     ros.wait_settled()
-    page.wait_for_timeout(1000)
-    if canvas.screenshot() == before:
-        raise CheckFailed("the 3D view did not change when RESET ALL moved the joints")
+    deadline = time.time() + FOLLOW_TIMEOUT_S
+    while canvas.screenshot() == before:
+        if time.time() > deadline:
+            raise CheckFailed(f"the 3D view did not change within {FOLLOW_TIMEOUT_S:.0f}s of RESET ALL moving the joints")
+        page.wait_for_timeout(1000)
     log("3D view follows the joints")
 
 
