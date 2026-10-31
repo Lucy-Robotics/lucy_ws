@@ -177,6 +177,14 @@ jobs:
           archive: false
           if-no-files-found: ignore
 
+      - name: Upload the ROS logs of a failed run
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ros-logs-${{ matrix.pixi_platform }}
+          path: ~/.ros/log
+          if-no-files-found: ignore
+
       - name: Verify Pixi platform
         shell: bash
         run: |
