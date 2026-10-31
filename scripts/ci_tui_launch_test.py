@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import faulthandler
 import json
 import os
 import re
@@ -12,6 +13,7 @@ import time
 import urllib.request
 
 from ci_panel_checks import (
+    CLEANUP_TIMEOUT_S,
     PANEL_PORT,
     ROOT,
     ROSBRIDGE_PORT,
@@ -205,6 +207,7 @@ def main() -> int:
         print(f"[launcher]\n{screen()}\n[Lucy.py]\n{tmux('capture-pane', '-p', outer=True)}", flush=True)
         return 1
     finally:
+        faulthandler.dump_traceback_later(CLEANUP_TIMEOUT_S, exit=True)
         ros.close()
         tmux("kill-session", "-t", SESSION)
         tmux("kill-server", outer=True)

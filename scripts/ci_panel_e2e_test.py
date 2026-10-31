@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import faulthandler
 import os
 import shutil
 import signal
@@ -10,6 +11,7 @@ import sys
 import time
 
 from ci_panel_checks import (
+    CLEANUP_TIMEOUT_S,
     PANEL_PORT,
     ROOT,
     ROSBRIDGE_PORT,
@@ -75,6 +77,7 @@ def main() -> int:
         log(f"FAIL: {exc}")
         return 1
     finally:
+        faulthandler.dump_traceback_later(CLEANUP_TIMEOUT_S, exit=True)
         ros.close()
         for proc in procs.values():
             stop(proc)
