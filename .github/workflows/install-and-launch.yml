@@ -10,7 +10,6 @@ on:
     tags:
       - 'v*'
   pull_request:
-    branches: [master, dev]
 
 permissions:
   contents: read
@@ -54,6 +53,19 @@ jobs:
       - name: Drop workspace .env if present
         shell: bash
         run: rm -f .env .env.local || true
+
+      - name: Test the sub-repos' dev branches outside master
+        if: github.base_ref != 'master' && github.ref_name != 'master' && !startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          python3 -c "
+          import json, pathlib
+          p = pathlib.Path('config/repos.json')
+          c = json.loads(p.read_text())
+          for r in c['repos']:
+              r['branch'] = 'dev'
+          p.write_text(json.dumps(c, indent=2))
+          "
 
       - name: Clone sub-repositories (skip colcon)
         shell: bash
