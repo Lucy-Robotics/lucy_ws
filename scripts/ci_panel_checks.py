@@ -20,6 +20,11 @@ MOVED_RAD = 0.05
 SAME_RAD = 0.02
 MODEL_TIMEOUT_S = 180.0
 URDF_HINT_S = 25.0
+WEBGL_RENDERER = """() => {
+    const gl = document.createElement('canvas').getContext('webgl');
+    const info = gl && gl.getExtension('WEBGL_debug_renderer_info');
+    return info ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL) : gl ? 'unknown' : 'none';
+}"""
 VIEWER_ERRORS = re.compile(r"No URDF received|Could not load any meshes|WebGL is not supported|Failed to load robot model")
 
 
@@ -109,10 +114,9 @@ class Ros:
     def close(self) -> None:
         import rclpy
 
-        self.executor.shutdown()
+        rclpy.try_shutdown()
         self.spinner.join(timeout=5)
         self.node.destroy_node()
-        rclpy.try_shutdown()
 
 
 def check_robot_identity(ros: Ros, robot: str) -> None:
@@ -155,14 +159,20 @@ def save_pose(page, name: str) -> None:
 
 
 def watch_model(page) -> dict:
-    model: dict = {}
+    model: dict = {"replies": 0}
 
     def on_console(msg) -> None:
         m = re.search(r"\[useRobotModel\] Done .* (\d+)/(\d+) meshes", msg.text)
         if m:
             model["meshes"] = (int(m.group(1)), int(m.group(2)))
 
+    def on_frame(payload) -> None:
+        head = payload[:120] if isinstance(payload, str) else ""
+        if '"service_response"' in head and '"/mesh/get"' in head:
+            model["replies"] += 1
+
     page.on("console", on_console)
+    page.on("websocket", lambda ws: ws.on("framereceived", on_frame))
     return model
 
 
@@ -171,7 +181,10 @@ def check_viewer(page, model: dict, opened_at: float) -> None:
     while "meshes" not in model and time.time() < deadline:
         page.wait_for_timeout(1000)
     if "meshes" not in model:
-        raise CheckFailed(f"the 3D view never finished loading the robot within {MODEL_TIMEOUT_S:.0f}s")
+        raise CheckFailed(
+            f"the 3D view never finished loading the robot within {MODEL_TIMEOUT_S:.0f}s "
+            f"({model['replies']} mesh/get replies received)"
+        )
     loaded, total = model["meshes"]
     if loaded != total:
         raise CheckFailed(f"the 3D view loaded only {loaded}/{total} meshes")
@@ -179,7 +192,7 @@ def check_viewer(page, model: dict, opened_at: float) -> None:
     shown = page.get_by_text(VIEWER_ERRORS)
     if shown.count():
         raise CheckFailed(f"the 3D view shows an error: {shown.first.inner_text()!r}")
-    log(f"3D view loaded all {total} meshes and shows no error")
+    log(f"3D view loaded all {total} meshes ({model['replies']} mesh/get replies) and shows no error")
 
 
 def check_viewer_follows(page, ros: Ros) -> None:
@@ -201,7 +214,7 @@ def drive_panel(page, ros: Ros) -> None:
     opened_at = time.time()
     page.goto(f"http://127.0.0.1:{PANEL_PORT}/")
     page.locator(".ant-slider").first.wait_for(timeout=120_000)
-    log("panel shows joint sliders")
+    log(f"panel shows joint sliders (WebGL: {page.evaluate(WEBGL_RENDERER)})")
 
     page.get_by_role("button", name=re.compile(r"^Control Robot(: ON)?$")).first.click()
     page.locator(".ant-slider:not(.ant-slider-disabled)").first.wait_for(timeout=30_000)
