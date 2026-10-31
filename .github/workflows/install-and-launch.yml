@@ -48,7 +48,13 @@ jobs:
         with:
           pixi-version: latest
           cache: ${{ matrix.pixi_platform != 'win-64' }}
+          run-install: ${{ matrix.pixi_platform != 'win-64' }}
           post-cleanup: false
+
+      - name: Install the Pixi environment, retrying dropped downloads
+        if: matrix.pixi_platform == 'win-64'
+        shell: bash
+        run: for i in 1 2 3; do pixi install --locked && exit 0; sleep 30; done; exit 1
 
       - name: Workspace unit tests
         shell: bash
