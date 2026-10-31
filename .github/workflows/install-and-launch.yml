@@ -10,7 +10,7 @@ on:
     tags:
       - 'v*'
   pull_request:
-    branches: [master, dev]
+  workflow_call:
 
 permissions:
   contents: read
@@ -40,12 +40,21 @@ jobs:
       CI: "true"
     steps:
       - uses: actions/checkout@v5
+        with:
+          repository: Lucy-Robotics/lucy_ws
+          ref: ${{ github.event.repository.name != 'lucy_ws' && (github.base_ref == 'master' && 'master' || 'dev') || '' }}
 
       - uses: prefix-dev/setup-pixi@v0.10.0
         with:
           pixi-version: latest
           cache: ${{ matrix.pixi_platform != 'win-64' }}
+          run-install: ${{ matrix.pixi_platform != 'win-64' }}
           post-cleanup: false
+
+      - name: Install the Pixi environment, retrying dropped downloads
+        if: matrix.pixi_platform == 'win-64'
+        shell: bash
+        run: for i in 1 2 3; do pixi install --locked && exit 0; sleep 30; done; exit 1
 
       - name: Workspace unit tests
         shell: bash
@@ -54,6 +63,25 @@ jobs:
       - name: Drop workspace .env if present
         shell: bash
         run: rm -f .env .env.local || true
+
+      - name: Pick the sub-repo branches
+        shell: bash
+        env:
+          CALLER: ${{ github.event.repository.name }}
+          CALLER_REF: ${{ github.head_ref || github.ref_name }}
+          MASTER_SIDE: ${{ github.base_ref == 'master' || github.ref_name == 'master' || startsWith(github.ref, 'refs/tags/') }}
+        run: |
+          python3 -c "
+          import json, os, pathlib
+          p = pathlib.Path('config/repos.json')
+          c = json.loads(p.read_text())
+          for r in c['repos']:
+              r['branch'] = 'master' if os.environ['MASTER_SIDE'] == 'true' else 'dev'
+              if r['name'] == os.environ['CALLER']:
+                  r['branch'] = os.environ['CALLER_REF']
+              print(r['name'], r['branch'])
+          p.write_text(json.dumps(c, indent=2))
+          "
 
       - name: Clone sub-repositories (skip colcon)
         shell: bash
@@ -69,6 +97,11 @@ jobs:
         shell: bash
         run: pixi run panel-install
 
+      - name: Host firmware binaries (as Lucy.py Update builds them)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: pixi run firmware-build-linux
+
       - name: Run colcon tests
         shell: bash
         run: pixi run test-only
@@ -81,8 +114,13 @@ jobs:
         shell: bash
         run: ./launch_lucy.sh --headless python scripts/ros_doctor.py
 
-      - name: Launcher tmux smoke (Linux)
-        if: matrix.pixi_platform == 'linux-64'
+      - name: Install tmux
+        if: runner.os != 'Windows'
+        shell: bash
+        run: command -v tmux || { [ "$RUNNER_OS" = macOS ] && brew install tmux || sudo apt-get install -y tmux; }
+
+      - name: Launcher tmux smoke
+        if: runner.os != 'Windows'
         shell: bash
         run: |
           chmod +x scripts/ci_tmux_launcher_smoke.sh
@@ -90,10 +128,72 @@ jobs:
 
       # The smoke above answers "did the processes start". This asks whether the
       # graph they formed is one the control panel and RViz can actually use.
-      - name: Core bringup graph checks (Linux)
-        if: matrix.pixi_platform == 'linux-64'
+      - name: Core bringup graph checks
+        if: runner.os != 'Windows'
         shell: bash
         run: pixi run core-bringup-test
+
+      - name: Install the E2E browser
+        shell: bash
+        run: for i in 1 2 3; do pixi run python -m playwright install ${{ runner.os == 'Linux' && '--with-deps' || '' }} chromium && exit 0; sleep 30; done; exit 1
+
+      - name: Control panel E2E, Windows launcher commands (SO101, mock hardware)
+        id: e2e_so101
+        if: runner.os == 'Windows'
+        timeout-minutes: 15
+        env:
+          PYTHONFAULTHANDLER: "1"
+        shell: bash
+        run: pixi run panel-e2e-test so_arm101_urdf
+
+      - name: Control panel E2E, Windows launcher commands (InMoov, mock hardware)
+        if: runner.os == 'Windows' && (success() || steps.e2e_so101.outcome == 'failure')
+        timeout-minutes: 15
+        env:
+          PYTHONFAULTHANDLER: "1"
+        shell: bash
+        run: pixi run panel-e2e-test inmoov_urdf
+
+      - name: Lucy.py TUI, InMoov then SO101, panel E2E on each (mock hardware)
+        if: runner.os != 'Windows'
+        timeout-minutes: 25
+        shell: bash
+        run: |
+          rm -f .env .lucy_launcher_state.json
+          pixi run tui-launch-test inmoov_urdf so_arm101_urdf
+
+      - name: Name the E2E screenshots after their platform
+        if: always()
+        shell: bash
+        run: |
+          for robot in inmoov_urdf so_arm101_urdf; do
+            [ -f "log/panel_e2e_${robot}.png" ] && mv "log/panel_e2e_${robot}.png" "log/${robot}-${{ matrix.pixi_platform }}.png"
+          done
+          true
+
+      - name: Upload the InMoov screenshot
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          path: log/inmoov_urdf-${{ matrix.pixi_platform }}.png
+          archive: false
+          if-no-files-found: ignore
+
+      - name: Upload the SO101 screenshot
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          path: log/so_arm101_urdf-${{ matrix.pixi_platform }}.png
+          archive: false
+          if-no-files-found: ignore
+
+      - name: Upload the ROS logs of a failed run
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ros-logs-${{ matrix.pixi_platform }}
+          path: ~/.ros/log
+          if-no-files-found: ignore
 
       - name: Verify Pixi platform
         shell: bash

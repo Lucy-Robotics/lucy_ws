@@ -30,17 +30,18 @@ def _launcher_module():
     return module
 
 
-def _scope(monkeypatch, **overrides):
+def _scope(monkeypatch, windows=False, **overrides):
     """Run apply_dds_scope() with a clean slate plus overrides; return its exports."""
     for name in CLEARED:
         monkeypatch.delenv(name, raising=False)
     for key, value in overrides.items():
         monkeypatch.setenv(key, value)
-    _launcher_module().apply_dds_scope()
+    _launcher_module().apply_dds_scope(windows=windows)
     return {
         "range": os.environ.get("ROS_AUTOMATIC_DISCOVERY_RANGE", ""),
         "peers": os.environ.get("ROS_STATIC_PEERS", ""),
         "localhost_only": os.environ.get("ROS_LOCALHOST_ONLY", ""),
+        "cyclone": os.environ.get("CYCLONEDDS_URI", ""),
     }
 
 PROBE = (
@@ -96,8 +97,27 @@ def test_localhost_only_is_never_set():
 
 
 def test_python_entry_scopes_to_localhost_by_default(monkeypatch):
-    # Runs everywhere, and is the only coverage on Windows.
     assert _scope(monkeypatch)["range"] == "LOCALHOST"
+
+
+def test_windows_keeps_the_loopback_pin_instead_of_the_localhost_range(monkeypatch):
+    got = _scope(monkeypatch, windows=True, CYCLONEDDS_URI="<loopback/>")
+    assert got["range"] == "SUBNET", "rmw_cyclonedds's LOCALHOST mode discovers nothing on Windows"
+    assert got["cyclone"] == "<loopback/>"
+
+
+def test_windows_subnet_drops_the_loopback_pin(monkeypatch):
+    got = _scope(monkeypatch, windows=True, CYCLONEDDS_URI="<loopback/>", LUCY_DDS_LOCALHOST="0")
+    assert got["range"] == "SUBNET"
+    assert got["cyclone"] == ""
+
+
+def test_windows_pins_cyclone_to_loopback_for_every_pixi_process():
+    pixi = (ROOT / "pixi.toml").read_text()
+    windows = pixi[pixi.index("[target.win.activation]"):]
+    windows = windows[:windows.index("\n[", 1)]
+    assert 'RMW_IMPLEMENTATION = "rmw_cyclonedds_cpp"' in windows
+    assert '<NetworkInterface address="127.0.0.1" multicast="true"/>' in windows
 
 
 def test_python_entry_keeps_peers_additive(monkeypatch):

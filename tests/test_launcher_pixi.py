@@ -14,6 +14,7 @@ from launcher import (
     _tmux_new_pixi_window,
     _window_teardown_shell,
     apply_changes,
+    get_pkg_status,
     is_lucy_orphan,
     is_lucy_orphan_cmdline,
     load_workspace_env,
@@ -342,6 +343,7 @@ def test_apply_changes_modifier_restart_calls_finish_teardown(monkeypatch):
             self.type = ptype
             self.selected = selected
             self.is_running = running
+            self.ready = running
             self.command = command
             self.lifecycle_hooks = {}
             self.pane_dead = False
@@ -381,6 +383,7 @@ def test_apply_changes_modifier_restart_calls_finish_teardown(monkeypatch):
     assert calls[0] == "core_stop"
     assert "save" in calls
     assert finish_args == [(frozenset(), False)]
+    assert get_pkg_status(core) != "running"
 
 
 def test_apply_changes_modifier_restart_preserves_control_panel(monkeypatch):
