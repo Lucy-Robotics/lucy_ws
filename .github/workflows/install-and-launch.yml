@@ -107,6 +107,28 @@ jobs:
         shell: bash
         run: pixi run core-bringup-test
 
+      - name: Install the E2E browser
+        shell: bash
+        run: pixi run python -m playwright install ${{ runner.os == 'Linux' && '--with-deps' || '' }} chromium
+
+      - name: Control panel E2E (SO101, mock hardware)
+        id: e2e_so101
+        shell: bash
+        run: pixi run panel-e2e-test so_arm101_urdf
+
+      - name: Control panel E2E (InMoov, mock hardware)
+        if: success() || steps.e2e_so101.outcome == 'failure'
+        shell: bash
+        run: pixi run panel-e2e-test inmoov_urdf
+
+      - name: Upload E2E screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: panel-e2e-${{ matrix.pixi_platform }}
+          path: log/panel_e2e_*.png
+          if-no-files-found: ignore
+
       - name: Verify Pixi platform
         shell: bash
         run: |
