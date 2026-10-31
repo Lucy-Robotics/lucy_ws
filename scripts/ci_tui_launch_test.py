@@ -21,6 +21,7 @@ from ci_panel_checks import (
     Ros,
     check_robot_identity,
     exercise_panel,
+    exit_skipping_ros_teardown,
     log,
     port_open,
 )
@@ -216,4 +217,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    exit_skipping_ros_teardown(main())

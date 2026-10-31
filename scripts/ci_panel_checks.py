@@ -124,11 +124,15 @@ class Ros:
         raise CheckFailed(f"/joint_states never settled (last: {prev})")
 
     def close(self) -> None:
-        import rclpy
-
         self.stopping.set()
         self.spinner.join(timeout=5)
-        rclpy.try_shutdown()
+
+
+def exit_skipping_ros_teardown(code: int) -> None:
+    """Exit with the verdict; rcl's native teardown can hang at interpreter exit."""
+    sys.stdout.flush()
+    sys.stderr.flush()
+    os._exit(code)
 
 
 def check_robot_identity(ros: Ros, robot: str) -> None:
