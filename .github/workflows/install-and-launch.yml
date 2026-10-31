@@ -135,7 +135,7 @@ jobs:
 
       - name: Install the E2E browser
         shell: bash
-        run: pixi run python -m playwright install ${{ runner.os == 'Linux' && '--with-deps' || '' }} chromium
+        run: for i in 1 2 3; do pixi run python -m playwright install ${{ runner.os == 'Linux' && '--with-deps' || '' }} chromium && exit 0; sleep 30; done; exit 1
 
       - name: Control panel E2E, Windows launcher commands (SO101, mock hardware)
         id: e2e_so101
