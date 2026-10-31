@@ -798,6 +798,52 @@ def patch_windows_rosbridge_signals(project_root: Path | str, log: Log = print) 
     return patched
 
 
+RPYUTILS_DLL_ORIGINAL = "@contextmanager\ndef add_dll_directories_from_env(env_name: str):\n"
+RPYUTILS_DLL_UNLOCKED = "@contextmanager\ndef _add_dll_directories_from_env_unlocked(env_name: str):\n"
+RPYUTILS_DLL_LOCKED = """
+
+import threading
+
+_dll_directories_lock = threading.RLock()
+
+
+@contextmanager
+def add_dll_directories_from_env(env_name: str):
+    with _dll_directories_lock, _add_dll_directories_from_env_unlocked(env_name) as handles:
+        yield handles
+"""
+
+
+def patch_windows_rpyutils_dll_lock(project_root: Path | str, log: Log = print) -> list[str]:
+    """Stop concurrent ROS type imports failing with WinError 206 under Windows.
+
+    rosbridge serves calls on threads; each first import of a type adds every
+    PATH directory to the DLL search list, and a few at once overflow it, so
+    the import fails and every later call of that type retries it.
+    """
+    if sys.platform != "win32":
+        return []
+
+    patched = []
+    for env_dir in sorted((Path(project_root) / ".pixi" / "envs").glob("*")):
+        module = env_dir / "Lib" / "site-packages" / "rpyutils" / "add_dll_directories.py"
+        if not module.is_file():
+            continue
+        source = module.read_text(encoding="utf-8")
+        if RPYUTILS_DLL_UNLOCKED in source or RPYUTILS_DLL_ORIGINAL not in source:
+            continue
+        module.write_text(
+            source.replace(RPYUTILS_DLL_ORIGINAL, RPYUTILS_DLL_UNLOCKED) + RPYUTILS_DLL_LOCKED,
+            encoding="utf-8",
+        )
+        patched.append(str(module))
+
+    if patched:
+        log("Windows: serialised rpyutils DLL directory changes "
+            "(concurrent ROS type imports overflow the DLL search path without this)")
+    return patched
+
+
 def pixi_install(
     project_root: Path | str, run_command: Callable = default_run_command, log: Log = print
 ) -> None:
@@ -808,6 +854,7 @@ def pixi_install(
     pixi_run(project_root, ["install"], run_command)
     ensure_windows_libexec_shims(project_root, log)
     patch_windows_rosbridge_signals(project_root, log)
+    patch_windows_rpyutils_dll_lock(project_root, log)
 
 
 def build_local_realsense_optional(
