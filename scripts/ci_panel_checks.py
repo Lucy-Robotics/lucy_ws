@@ -67,8 +67,16 @@ class Ros:
         self.node.create_subscription(String, "/lucy/active_client", self._on_active_client, latched)
         self.executor = SingleThreadedExecutor()
         self.executor.add_node(self.node)
-        self.spinner = threading.Thread(target=self.executor.spin, daemon=True)
+        self.spinner = threading.Thread(target=self._spin, daemon=True)
         self.spinner.start()
+
+    def _spin(self) -> None:
+        from rclpy.executors import ExternalShutdownException
+
+        try:
+            self.executor.spin()
+        except ExternalShutdownException:
+            pass
 
     def _on_joints(self, msg) -> None:
         self.latest = {**self.latest, **dict(zip(msg.name, msg.position))}

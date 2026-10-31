@@ -71,7 +71,7 @@ def main() -> int:
         wait_for_stack(ros, procs)
         check_robot_identity(ros, robot)
         exercise_panel(ros, robot)
-    except CheckFailed as exc:
+    except Exception as exc:
         log(f"FAIL: {exc}")
         return 1
     finally:
