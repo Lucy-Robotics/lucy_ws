@@ -2,35 +2,35 @@
 
 from __future__ import annotations
 
+import json
 import os
 import re
 import signal
-import socket
 import subprocess
 import sys
 import time
 import urllib.request
-from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+from ci_panel_checks import (
+    PANEL_PORT,
+    ROOT,
+    ROSBRIDGE_PORT,
+    CheckFailed,
+    Ros,
+    check_robot_identity,
+    exercise_panel,
+    log,
+    port_open,
+)
+
 OUTER_SOCKET = "lucy_ci_outer"
 SESSION = os.environ.get("LUCY_TMUX_SESSION", "lucy_ws")
-ROSBRIDGE_PORT = int(os.environ.get("PORT_ROSBRIDGE", "9090"))
-PANEL_PORT = int(os.environ.get("VITE_PORT", "4004"))
 UP_TIMEOUT_S = float(os.environ.get("LUCY_CI_BRINGUP_TIMEOUT", "300"))
 FEEDBACK_LAG_S = 30.0
 STEADY_S = 20.0
 MAX_LAUNCHER_CPU_S = 5.0
 CORE_PATTERN = "bin/[r]os2 launch lucy_bringup"
 STACK_PATTERNS = (CORE_PATTERN, "[r]osbridge_websocket", "[r]obot_state_publisher", "[r]os2_control_node", "[v]ite/bin/vite")
-
-
-class CheckFailed(Exception):
-    pass
-
-
-def log(msg: str) -> None:
-    print(f"ci_tui_launch: {msg}", flush=True)
 
 
 def tmux(*args: str, outer: bool = False) -> str:
@@ -52,14 +52,6 @@ def cpu_seconds(pid: int) -> float:
     return secs + (int(days) * 86400 if days else 0)
 
 
-def port_open(port: int) -> bool:
-    try:
-        socket.create_connection(("127.0.0.1", port), timeout=1).close()
-        return True
-    except OSError:
-        return False
-
-
 def panel_serves() -> bool:
     try:
         with urllib.request.urlopen(f"http://127.0.0.1:{PANEL_PORT}/", timeout=3) as r:
@@ -77,23 +69,9 @@ def status(name: str) -> str | None:
     return m.group(1) if m else None
 
 
-class Reality:
-    def __init__(self) -> None:
-        import rclpy
-
-        rclpy.init(args=[])
-        self.node = rclpy.create_node("lucy_ci_tui_probe")
-
-    def core_up(self) -> bool:
-        return bool(pids(CORE_PATTERN)) and port_open(ROSBRIDGE_PORT) and (
-            self.node.count_publishers("/joint_states") > 0
-        )
-
-    def close(self) -> None:
-        import rclpy
-
-        self.node.destroy_node()
-        rclpy.try_shutdown()
+def robot_label(robot: str) -> str:
+    packages = json.loads((ROOT / "config" / "launcher_config.json").read_text())["packages"]
+    return next(p["name"] for p in packages if p.get("command") == f"robot_package:={robot}")
 
 
 def wait_for(what: str, ok, timeout_s: float) -> None:
@@ -105,25 +83,62 @@ def wait_for(what: str, ok, timeout_s: float) -> None:
     raise CheckFailed(f"timed out waiting for {what}")
 
 
-def check_feedback_matches(reality: Reality) -> None:
+def core_up(ros: Ros) -> bool:
+    return bool(pids(CORE_PATTERN)) and port_open(ROSBRIDGE_PORT) and ros.joint_states_publishers() > 0
+
+
+def select_robot(robot: str) -> bool:
+    label = re.escape(robot_label(robot))
+    for _ in range(40):
+        lines = screen().splitlines()
+        row = next((i for i, line in enumerate(lines) if re.search(rf"\] {label} \[", line)), None)
+        cursor = next((i for i, line in enumerate(lines) if re.match(r"\s*> ", line)), None)
+        if row is None or cursor is None:
+            raise CheckFailed(f"no {robot_label(robot)} row or cursor in the TUI:\n{screen()}")
+        if row == cursor:
+            if re.search(rf"\[x\] {label} \[", lines[row]):
+                return False
+            tmux("send-keys", "-t", f"{SESSION}:Lucy", "Space")
+            time.sleep(0.5)
+            tmux("send-keys", "-t", f"{SESSION}:Lucy", "Enter")
+            log(f"TUI: selected {robot_label(robot)} and applied")
+            return True
+        tmux("send-keys", "-t", f"{SESSION}:Lucy", "Down" if row > cursor else "Up")
+        time.sleep(0.3)
+    raise CheckFailed(f"could not move the TUI cursor to {robot_label(robot)}")
+
+
+def check_feedback_matches(ros: Ros) -> None:
     up_since: float | None = None
     deadline = time.time() + UP_TIMEOUT_S
     while time.time() < deadline:
         core, panel = status("Core"), status("Control Panel")
-        core_up, panel_up = reality.core_up(), panel_serves()
-        if core == "RUNNING" and not core_up:
+        is_core_up, is_panel_up = core_up(ros), panel_serves()
+        if core == "RUNNING" and not is_core_up:
             raise CheckFailed("TUI says Core RUNNING but rosbridge or /joint_states is down")
-        if panel == "RUNNING" and not panel_up:
+        if panel == "RUNNING" and not is_panel_up:
             raise CheckFailed("TUI says Control Panel RUNNING but the panel does not answer")
         if core == "RUNNING" and panel == "RUNNING":
             log("Core and Control Panel RUNNING, and they are")
             return
-        if core_up and panel_up:
+        if is_core_up and is_panel_up:
             up_since = up_since or time.time()
             if time.time() - up_since > FEEDBACK_LAG_S:
                 raise CheckFailed(f"stack up for {FEEDBACK_LAG_S:.0f}s but TUI shows Core={core} Panel={panel}")
         time.sleep(2.0)
     raise CheckFailed(f"not up within {UP_TIMEOUT_S:.0f}s; TUI shows:\n{screen()}")
+
+
+def run_robot(ros: Ros, robot: str) -> None:
+    old_core = pids(CORE_PATTERN)
+    if select_robot(robot) and old_core:
+        wait_for("the previous core to stop after the robot change",
+                 lambda: not (pids(CORE_PATTERN) & old_core), 60.0)
+        log("previous core stopped")
+    ros.reset()
+    check_feedback_matches(ros)
+    check_robot_identity(ros, robot)
+    exercise_panel(ros, robot)
 
 
 def check_steady() -> None:
@@ -165,6 +180,7 @@ def check_exit_cleans_up() -> None:
 
 
 def main() -> int:
+    robots = sys.argv[1:] or ["inmoov_urdf", "so_arm101_urdf"]
     env = {k: v for k, v in os.environ.items() if k != "TMUX"}
     tmux("kill-server", outer=True)
     subprocess.run(
@@ -176,22 +192,23 @@ def main() -> int:
     tmux("send-keys", "Enter", outer=True)
     log("Lucy.py: Launch")
 
-    reality = Reality()
+    ros = Ros()
     try:
         wait_for("the launcher window", lambda: status("Core") is not None, 120.0)
-        check_feedback_matches(reality)
+        for robot in robots:
+            run_robot(ros, robot)
         check_steady()
         check_crash_reported()
         check_exit_cleans_up()
-    except CheckFailed as exc:
+    except Exception as exc:
         log(f"FAIL: {exc}")
         print(f"[launcher]\n{screen()}\n[Lucy.py]\n{tmux('capture-pane', '-p', outer=True)}", flush=True)
         return 1
     finally:
-        reality.close()
+        ros.close()
         tmux("kill-session", "-t", SESSION)
         tmux("kill-server", outer=True)
-    log("PASS")
+    log(f"PASS ({', '.join(robots)})")
     return 0
 
 
