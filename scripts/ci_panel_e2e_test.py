@@ -24,6 +24,8 @@ from ci_panel_checks import (
 )
 
 BRINGUP_TIMEOUT_S = float(os.environ.get("LUCY_CI_BRINGUP_TIMEOUT", "300"))
+DISCOVERY_S = 3.0
+PREVIOUS_STACK_TIMEOUT_S = 30.0
 
 
 def start(pixi_args: str) -> subprocess.Popen:
@@ -39,6 +41,11 @@ def stop(proc: subprocess.Popen) -> None:
     if proc.poll() is not None:
         return
     if os.name == "nt":
+        proc.send_signal(signal.CTRL_BREAK_EVENT)
+        try:
+            proc.wait(timeout=15)
+        except subprocess.TimeoutExpired:
+            pass
         subprocess.run(["taskkill", "/T", "/F", "/PID", str(proc.pid)], capture_output=True)
         return
     os.killpg(proc.pid, signal.SIGINT)
@@ -64,12 +71,23 @@ def wait_for_stack(ros: Ros, procs: dict[str, subprocess.Popen]) -> None:
     )
 
 
+def wait_for_previous_stack(ros: Ros) -> None:
+    time.sleep(DISCOVERY_S)
+    deadline = time.time() + PREVIOUS_STACK_TIMEOUT_S
+    while (left := ros.stack_nodes()) and time.time() < deadline:
+        time.sleep(1.0)
+    if left:
+        raise CheckFailed(f"a previous stack is still running: {sorted(left)}")
+
+
 def main() -> int:
     robot = sys.argv[1] if len(sys.argv) > 1 else "inmoov_urdf"
-    procs = {"core": start(f"core robot_package:={robot}"), "control-panel": start("control-panel")}
-    log(f"started pixi run core robot_package:={robot} and pixi run control-panel")
     ros = Ros()
+    procs: dict[str, subprocess.Popen] = {}
     try:
+        wait_for_previous_stack(ros)
+        procs = {"core": start(f"core robot_package:={robot}"), "control-panel": start("control-panel")}
+        log(f"started pixi run core robot_package:={robot} and pixi run control-panel")
         wait_for_stack(ros, procs)
         check_robot_identity(ros, robot)
         exercise_panel(ros, robot)
