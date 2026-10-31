@@ -149,12 +149,29 @@ jobs:
           rm -f .env .lucy_launcher_state.json
           pixi run tui-launch-test inmoov_urdf so_arm101_urdf
 
-      - name: Upload E2E screenshots
+      - name: Name the E2E screenshots after their platform
         if: always()
-        uses: actions/upload-artifact@v4
+        shell: bash
+        run: |
+          for robot in inmoov_urdf so_arm101_urdf; do
+            [ -f "log/panel_e2e_${robot}.png" ] && mv "log/panel_e2e_${robot}.png" "log/${robot}-${{ matrix.pixi_platform }}.png"
+          done
+          true
+
+      - name: Upload the InMoov screenshot
+        if: always()
+        uses: actions/upload-artifact@v7
         with:
-          name: panel-e2e-${{ matrix.pixi_platform }}
-          path: log/panel_e2e_*.png
+          path: log/inmoov_urdf-${{ matrix.pixi_platform }}.png
+          archive: false
+          if-no-files-found: ignore
+
+      - name: Upload the SO101 screenshot
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          path: log/so_arm101_urdf-${{ matrix.pixi_platform }}.png
+          archive: false
           if-no-files-found: ignore
 
       - name: Verify Pixi platform
