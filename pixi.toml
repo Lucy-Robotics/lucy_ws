@@ -154,10 +154,13 @@ requests = "*"                # for rustup automatic download (if needed)
 # Zero-touch: installs rustup+elf2uf2 into $CONDA_PREFIX/{cargo,rustup}.
 # firmware_cargo_env.py points cargo/rustc at that layout (multi-platform).
 firmware-setup = "python scripts/firmware_setup.py"
-firmware-build = { cmd = "python scripts/firmware_cargo_env.py cargo build --release --target thumbv6m-none-eabi --manifest-path src/lucy_embedded_firmware/firmwares/rp2040/Cargo.toml", cwd = ".", depends-on = ["firmware-setup"] }
+firmware-build = { cmd = "python $PIXI_PROJECT_ROOT/scripts/firmware_cargo_env.py cargo build --release --target thumbv6m-none-eabi", cwd = "src/lucy_embedded_firmware/firmwares/rp2040", depends-on = ["firmware-setup"] }
 # Host Feetech SHM consumer (so101) and mcu_bridge need serialport → libudev on Linux.
 firmware-build-linux = { cmd = "python scripts/firmware_cargo_env.py cargo build --release -p lucy-embedded-firmware-linux -p lucy-embedded-firmware-mcu-bridge --manifest-path src/lucy_embedded_firmware/Cargo.toml", cwd = ".", depends-on = ["firmware-setup"] }
 firmware-flash = { cmd = "python scripts/firmware_flash.py", depends-on = ["firmware-build"] }
+# Arduino Mega boards: `pixi run firmware-flash-mega mega_right [--robot pkg] [--port dev] [--build-only]`.
+# Needs host avr-gcc + avrdude (not on conda-forge).
+firmware-flash-mega = { cmd = "python scripts/firmware_flash_mega.py", depends-on = ["firmware-setup"] }
 firmware-clean = "python scripts/firmware_cargo_env.py cargo clean --manifest-path src/lucy_embedded_firmware/Cargo.toml"
 firmware-test = { cmd = "python scripts/firmware_cargo_env.py cargo test --manifest-path src/lucy_embedded_firmware/Cargo.toml", depends-on = ["firmware-setup"] }
 
