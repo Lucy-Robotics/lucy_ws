@@ -121,6 +121,14 @@ jobs:
         shell: bash
         run: pixi run panel-e2e-test inmoov_urdf
 
+      - name: Launcher TUI through Lucy.py (Linux, macOS)
+        if: runner.os != 'Windows' && (success() || steps.e2e_so101.outcome == 'failure')
+        shell: bash
+        run: |
+          command -v tmux || { [ "$RUNNER_OS" = macOS ] && brew install tmux || sudo apt-get install -y tmux; }
+          rm -f .env .lucy_launcher_state.json
+          pixi run tui-launch-test
+
       - name: Upload E2E screenshots
         if: failure()
         uses: actions/upload-artifact@v4
