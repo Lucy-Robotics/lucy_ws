@@ -18,6 +18,9 @@ MOVE_TIMEOUT_S = 20.0
 IDENTITY_TIMEOUT_S = 60.0
 MOVED_RAD = 0.05
 SAME_RAD = 0.02
+MODEL_TIMEOUT_S = 180.0
+URDF_HINT_S = 25.0
+VIEWER_ERRORS = re.compile(r"No URDF received|Could not load any meshes|WebGL is not supported|Failed to load robot model")
 
 
 class CheckFailed(Exception):
@@ -59,7 +62,8 @@ class Ros:
         self.node.create_subscription(String, "/lucy/active_client", self._on_active_client, latched)
         self.executor = SingleThreadedExecutor()
         self.executor.add_node(self.node)
-        threading.Thread(target=self.executor.spin, daemon=True).start()
+        self.spinner = threading.Thread(target=self.executor.spin, daemon=True)
+        self.spinner.start()
 
     def _on_joints(self, msg) -> None:
         self.latest = {**self.latest, **dict(zip(msg.name, msg.position))}
@@ -106,6 +110,7 @@ class Ros:
         import rclpy
 
         self.executor.shutdown()
+        self.spinner.join(timeout=5)
         self.node.destroy_node()
         rclpy.try_shutdown()
 
@@ -149,10 +154,51 @@ def save_pose(page, name: str) -> None:
     log(f"saved pose {name}")
 
 
+def watch_model(page) -> dict:
+    model: dict = {}
+
+    def on_console(msg) -> None:
+        m = re.search(r"\[useRobotModel\] Done .* (\d+)/(\d+) meshes", msg.text)
+        if m:
+            model["meshes"] = (int(m.group(1)), int(m.group(2)))
+
+    page.on("console", on_console)
+    return model
+
+
+def check_viewer(page, model: dict, opened_at: float) -> None:
+    deadline = opened_at + MODEL_TIMEOUT_S
+    while "meshes" not in model and time.time() < deadline:
+        page.wait_for_timeout(1000)
+    if "meshes" not in model:
+        raise CheckFailed(f"the 3D view never finished loading the robot within {MODEL_TIMEOUT_S:.0f}s")
+    loaded, total = model["meshes"]
+    if loaded != total:
+        raise CheckFailed(f"the 3D view loaded only {loaded}/{total} meshes")
+    page.wait_for_timeout(max(0.0, opened_at + URDF_HINT_S - time.time()) * 1000)
+    shown = page.get_by_text(VIEWER_ERRORS)
+    if shown.count():
+        raise CheckFailed(f"the 3D view shows an error: {shown.first.inner_text()!r}")
+    log(f"3D view loaded all {total} meshes and shows no error")
+
+
+def check_viewer_follows(page, ros: Ros) -> None:
+    canvas = max(page.locator("canvas").all(), key=lambda c: (lambda b: b["width"] * b["height"] if b else 0)(c.bounding_box()))
+    before = canvas.screenshot()
+    page.get_by_role("button", name=re.compile(r"reset all", re.I)).first.click()
+    ros.wait_settled()
+    page.wait_for_timeout(1000)
+    if canvas.screenshot() == before:
+        raise CheckFailed("the 3D view did not change when RESET ALL moved the joints")
+    log("3D view follows the joints")
+
+
 def drive_panel(page, ros: Ros) -> None:
     from playwright.sync_api import expect
 
+    model = watch_model(page)
     page.add_init_script("localStorage.setItem('gettingStartedCompleted', 'true')")
+    opened_at = time.time()
     page.goto(f"http://127.0.0.1:{PANEL_PORT}/")
     page.locator(".ant-slider").first.wait_for(timeout=120_000)
     log("panel shows joint sliders")
@@ -160,9 +206,10 @@ def drive_panel(page, ros: Ros) -> None:
     page.get_by_role("button", name=re.compile(r"^Control Robot(: ON)?$")).first.click()
     page.locator(".ant-slider:not(.ant-slider-disabled)").first.wait_for(timeout=30_000)
     log("Control Robot is ON")
-    expect(page.get_by_text("No URDF received")).to_have_count(0, timeout=60_000)
 
+    page.get_by_role("button", name=re.compile(r"reset all", re.I)).first.click()
     start_pos = ros.wait_settled()
+    log("RESET ALL settled the robot")
     drag_slider(page, 0, 0.8)
     ros.wait_for("the first slider's move", lambda s: diff(start_pos, s) > MOVED_RAD)
     pose_a = ros.wait_settled()
@@ -195,6 +242,10 @@ def drive_panel(page, ros: Ros) -> None:
     ros.wait_for("the animation ending on ci_a", lambda s: diff(pose_a, s) < SAME_RAD)
     expect(page.get_by_role("button", name=re.compile(r"^(stop )?stop( animation)?$", re.I))).to_have_count(0)
     log("animation went to ci_b and back to ci_a")
+    modal.get_by_role("button", name="CLOSE", exact=True).click()
+
+    check_viewer(page, model, opened_at)
+    check_viewer_follows(page, ros)
 
 
 def exercise_panel(ros: Ros, robot: str) -> None:
@@ -209,6 +260,7 @@ def exercise_panel(ros: Ros, robot: str) -> None:
             drive_panel(page, ros)
         finally:
             shot.parent.mkdir(exist_ok=True)
+            page.mouse.move(0, 0)
             page.screenshot(path=str(shot), full_page=True)
             log(f"screenshot: {shot}")
             browser.close()
