@@ -182,7 +182,7 @@ env = { GZ_SIM_SYSTEM_PLUGIN_PATH = "$CONDA_PREFIX/lib" }
 
 [target.win.activation]
 scripts = ["install/setup.bat"]
-env = { GZ_SIM_SYSTEM_PLUGIN_PATH = "%CONDA_PREFIX%/Library/bin" }
+env = { GZ_SIM_SYSTEM_PLUGIN_PATH = "%CONDA_PREFIX%/Library/bin", RMW_IMPLEMENTATION = "rmw_cyclonedds_cpp", CYCLONEDDS_URI = '<CycloneDDS><Domain id="any"><General><Interfaces><NetworkInterface address="127.0.0.1" multicast="true"/></Interfaces><AllowMulticast>true</AllowMulticast></General></Domain></CycloneDDS>' }
 
 [environments]
 default = { features = ["ros", "build", "panel", "dev", "launcher", "firmware"] }
