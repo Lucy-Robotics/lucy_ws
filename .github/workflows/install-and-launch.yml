@@ -10,6 +10,7 @@ on:
     tags:
       - 'v*'
   pull_request:
+  workflow_call:
 
 permissions:
   contents: read
@@ -39,6 +40,9 @@ jobs:
       CI: "true"
     steps:
       - uses: actions/checkout@v5
+        with:
+          repository: Lucy-Robotics/lucy_ws
+          ref: ${{ github.event.repository.name != 'lucy_ws' && (github.base_ref == 'master' && 'master' || 'dev') || '' }}
 
       - uses: prefix-dev/setup-pixi@v0.10.0
         with:
@@ -54,16 +58,22 @@ jobs:
         shell: bash
         run: rm -f .env .env.local || true
 
-      - name: Test the sub-repos' dev branches outside master
-        if: github.base_ref != 'master' && github.ref_name != 'master' && !startsWith(github.ref, 'refs/tags/')
+      - name: Pick the sub-repo branches
         shell: bash
+        env:
+          CALLER: ${{ github.event.repository.name }}
+          CALLER_REF: ${{ github.head_ref || github.ref_name }}
+          MASTER_SIDE: ${{ github.base_ref == 'master' || github.ref_name == 'master' || startsWith(github.ref, 'refs/tags/') }}
         run: |
           python3 -c "
-          import json, pathlib
+          import json, os, pathlib
           p = pathlib.Path('config/repos.json')
           c = json.loads(p.read_text())
           for r in c['repos']:
-              r['branch'] = 'dev'
+              r['branch'] = 'master' if os.environ['MASTER_SIDE'] == 'true' else 'dev'
+              if r['name'] == os.environ['CALLER']:
+                  r['branch'] = os.environ['CALLER_REF']
+              print(r['name'], r['branch'])
           p.write_text(json.dumps(c, indent=2))
           "
 
