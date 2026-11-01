@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import time
 
 from ci_stack import CheckFailed, Ros, log
 
@@ -21,6 +22,7 @@ SERVICES = {
 }
 TRAJECTORY_TOPIC = re.compile(r"^/\w+_controller/joint_trajectory$")
 TRAJECTORY_TYPE = "trajectory_msgs/msg/JointTrajectory"
+CONTRACT_TIMEOUT_S = 60.0
 
 
 def contract_breaks(topics: dict[str, list[str]], services: dict[str, list[str]], latched: dict[str, bool]) -> list[str]:
@@ -44,11 +46,17 @@ def latched_publishers(ros: Ros, topic: str) -> bool:
     return bool(infos) and all(i.qos_profile.durability == DurabilityPolicy.TRANSIENT_LOCAL for i in infos)
 
 
-def check_ros_contract(ros: Ros) -> None:
+def graph_breaks(ros: Ros) -> list[str]:
     topics = dict(ros.node.get_topic_names_and_types())
     services = dict(ros.node.get_service_names_and_types())
     latched = {topic: latched_publishers(ros, topic) for topic in LATCHED_TOPICS}
-    breaks = contract_breaks(topics, services, latched)
-    if breaks:
-        raise CheckFailed("ROS interface contract broken: " + "; ".join(breaks))
+    return contract_breaks(topics, services, latched)
+
+
+def check_ros_contract(ros: Ros) -> None:
+    deadline = time.time() + CONTRACT_TIMEOUT_S
+    while breaks := graph_breaks(ros):
+        if time.time() > deadline:
+            raise CheckFailed(f"ROS interface contract broken after {CONTRACT_TIMEOUT_S:.0f}s: " + "; ".join(breaks))
+        time.sleep(1.0)
     log(f"ROS interface contract holds ({len(TOPICS)} topics, {len(SERVICES)} services, trajectory topics typed)")
