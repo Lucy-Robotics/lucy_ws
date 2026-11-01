@@ -51,7 +51,7 @@ jobs:
           run-install: ${{ matrix.pixi_platform != 'win-64' }}
           post-cleanup: false
 
-      - name: Install the Pixi environment, retrying dropped downloads
+      - name: "Windows: install the Pixi environment, retrying dropped downloads"
         if: matrix.pixi_platform == 'win-64'
         shell: bash
         run: for i in 1 2 3; do pixi install --locked && exit 0; sleep 30; done; exit 1
@@ -97,7 +97,7 @@ jobs:
         shell: bash
         run: pixi run panel-install
 
-      - name: Host firmware binaries (as Lucy.py Update builds them)
+      - name: "Linux/macOS: host firmware binaries (as Lucy.py Update builds them)"
         if: runner.os != 'Windows'
         shell: bash
         run: pixi run firmware-build-linux
@@ -114,12 +114,12 @@ jobs:
         shell: bash
         run: ./launch_lucy.sh --headless python scripts/ros_doctor.py
 
-      - name: Install tmux
+      - name: "Linux/macOS: install tmux"
         if: runner.os != 'Windows'
         shell: bash
         run: command -v tmux || { [ "$RUNNER_OS" = macOS ] && brew install tmux || sudo apt-get install -y tmux; }
 
-      - name: Launcher tmux smoke
+      - name: "Linux/macOS: launcher tmux smoke"
         if: runner.os != 'Windows'
         shell: bash
         run: |
@@ -128,7 +128,7 @@ jobs:
 
       # The smoke above answers "did the processes start". This asks whether the
       # graph they formed is one the control panel and RViz can actually use.
-      - name: Core bringup graph checks
+      - name: "Linux/macOS: core bringup graph checks"
         if: runner.os != 'Windows'
         shell: bash
         run: pixi run core-bringup-test
@@ -137,7 +137,7 @@ jobs:
         shell: bash
         run: for i in 1 2 3; do pixi run python -m playwright install ${{ runner.os == 'Linux' && '--with-deps' || '' }} chromium && exit 0; sleep 30; done; exit 1
 
-      - name: Control panel E2E, Windows launcher commands (SO101, mock hardware)
+      - name: "Windows: control panel E2E through the launcher commands (SO101, mock hardware)"
         id: e2e_so101
         if: runner.os == 'Windows'
         timeout-minutes: 15
@@ -146,7 +146,7 @@ jobs:
         shell: bash
         run: pixi run panel-e2e-test so_arm101_urdf
 
-      - name: Control panel E2E, Windows launcher commands (InMoov, mock hardware)
+      - name: "Windows: control panel E2E through the launcher commands (InMoov, mock hardware)"
         if: runner.os == 'Windows' && (success() || steps.e2e_so101.outcome == 'failure')
         timeout-minutes: 15
         env:
@@ -154,7 +154,7 @@ jobs:
         shell: bash
         run: pixi run panel-e2e-test inmoov_urdf
 
-      - name: Lucy.py TUI, InMoov then SO101, panel E2E on each (mock hardware)
+      - name: "Linux/macOS: Lucy.py TUI, InMoov then SO101, panel E2E on each (mock hardware)"
         if: runner.os != 'Windows'
         timeout-minutes: 25
         shell: bash
