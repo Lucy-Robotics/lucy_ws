@@ -10,7 +10,8 @@ import subprocess
 import sys
 import time
 
-from ci_panel_checks import (
+from ci_panel_checks import exercise_panel
+from ci_stack import (
     CLEANUP_TIMEOUT_S,
     PANEL_PORT,
     ROOT,
@@ -18,7 +19,6 @@ from ci_panel_checks import (
     CheckFailed,
     Ros,
     check_robot_identity,
-    exercise_panel,
     exit_skipping_ros_teardown,
     log,
     port_open,
