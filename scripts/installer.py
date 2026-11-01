@@ -12,7 +12,7 @@ from pathlib import Path
 # Configuration
 # ============================================================
 
-REPO_URL = "https://github.com/Sentience-Robotics/lucy_ws.git"
+REPO_URL = "https://github.com/Lucy-Robotics/lucy_ws.git"
 REPO_NAME = "lucy_ws"          # Name of the folder the repo is cloned into.
 INSTALL_SCRIPT = "install.py"
 DEFAULT_BRANCH = "master"
