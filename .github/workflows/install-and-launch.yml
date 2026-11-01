@@ -197,6 +197,7 @@ jobs:
         run: |
           for robot in inmoov_urdf so_arm101_urdf; do
             [ -f "log/panel_e2e_${robot}.png" ] && mv "log/panel_e2e_${robot}.png" "log/${robot}-${{ matrix.pixi_platform }}.png"
+            [ -f "log/panel_e2e_${robot}_mobile.png" ] && mv "log/panel_e2e_${robot}_mobile.png" "log/${robot}-mobile-${{ matrix.pixi_platform }}.png"
           done
           true
 
@@ -213,6 +214,22 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           path: log/so_arm101_urdf-${{ matrix.pixi_platform }}.png
+          archive: false
+          if-no-files-found: ignore
+
+      - name: Upload the InMoov mobile screenshot
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          path: log/inmoov_urdf-mobile-${{ matrix.pixi_platform }}.png
+          archive: false
+          if-no-files-found: ignore
+
+      - name: Upload the SO101 mobile screenshot
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          path: log/so_arm101_urdf-mobile-${{ matrix.pixi_platform }}.png
           archive: false
           if-no-files-found: ignore
 
