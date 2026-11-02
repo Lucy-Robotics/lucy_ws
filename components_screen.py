@@ -22,7 +22,8 @@ def choose_components(stdscr, root) -> dict[str, bool] | None:
             prefix = "> " if i == current else "  "
             box = "[x]" if selection[name] else "[ ]"
             stdscr.addstr(2 + i, 4, f"{prefix}{box} {components.LABELS[name]}")
-        stdscr.addstr(3 + len(names), 4, APPLY_NOTE, curses.A_DIM)
+        note = "; ".join(components.problems(selection)) or APPLY_NOTE
+        stdscr.addstr(3 + len(names), 4, note[: w - 5], curses.A_DIM)
         stdscr.addstr(h - 2, 2, HINT[: w - 3], curses.A_DIM)
         stdscr.refresh()
         key = stdscr.getch()
@@ -32,7 +33,7 @@ def choose_components(stdscr, root) -> dict[str, bool] | None:
             current = (current + 1) % len(names)
         elif key == ord(" "):
             selection[names[current]] = not selection[names[current]]
-        elif key in (ord("\n"), ord("\r")):
+        elif key in (ord("\n"), ord("\r")) and not components.problems(selection):
             components.save(root, selection)
             return selection
         elif key in (ord("q"), ord("Q"), 27):
