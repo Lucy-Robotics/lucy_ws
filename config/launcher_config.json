@@ -79,9 +79,10 @@
       "default_on": false
     },
     {
-      "id": "simulator",
-      "name": "Simulator",
-      "description": "(mock hardware: mode:=mock)",
+      "id": "gazebo",
+      "requires_component": "simulation",
+      "name": "... with Simulator",
+      "description": "(Gazebo)",
       "type": "modifier",
       "dependencies": ["core"],
       "conflicts": [],
@@ -104,7 +105,8 @@
     },
     {
       "id": "headless",
-      "name": "Headless",
+      "requires_component": "simulation",
+      "name": "... headless",
       "description": "(server-only, no GUI)",
       "type": "modifier",
       "dependencies": ["gazebo"],
@@ -114,9 +116,10 @@
       "default_on": false
     },
     {
-      "id": "hardware",
-      "name": "Hardware",
-      "description": "(physical robot: mode:=real)",
+      "id": "rviz",
+      "requires_component": "visualisation",
+      "name": "... with Visualizer",
+      "description": "(RViz — use Control Panel 3D if OpenGL fails)",
       "type": "modifier",
       "dependencies": ["core"],
       "conflicts": [],
@@ -154,6 +157,7 @@
     },
     {
       "id": "control_panel",
+      "requires_component": "control_panel",
       "name": "Control Panel",
       "description": "Web-based UI",
       "url": "${LUCY_LCP_SCHEME}://localhost:${LUCY_LCP_PUBLISHED_HOST_PORT}",
@@ -204,6 +208,7 @@
     },
     {
       "id": "rqt",
+      "requires_component": "visualisation",
       "name": "rqt GUI",
       "description": "Main ROS 2 GUI tool",
       "type": "tool",
