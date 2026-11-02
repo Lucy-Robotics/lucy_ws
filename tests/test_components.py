@@ -28,3 +28,13 @@ def test_pixi_command_targets_the_chosen_environment(tmp_path):
     assert components.pixi_command(tmp_path, ["install"]) == ["pixi", "install", "-e", "sim"]
     assert components.pixi_command(tmp_path, ["lock"]) == ["pixi", "lock"]
 
+
+def test_launcher_hides_packages_of_components_left_out(tmp_path, monkeypatch):
+    from launcher import package
+
+    monkeypatch.setattr(package, "WORKSPACE_ROOT", tmp_path)
+    components.save(tmp_path, {"simulation": False, "visualisation": True, "control_panel": False})
+    assert not package._pkg_visible({"requires_component": "simulation"}, dev_mode=False)
+    assert not package._pkg_visible({"requires_component": "control_panel"}, dev_mode=False)
+    assert package._pkg_visible({"requires_component": "visualisation"}, dev_mode=False)
+    assert package._pkg_visible({}, dev_mode=False)

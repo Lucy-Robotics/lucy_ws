@@ -163,7 +163,7 @@ case "${1:-}" in
     if [ $# -eq 0 ]; then
       set -- ros2 doctor --report
     fi
-    exec pixi run -- "$@"
+    exec pixi run -e ${LUCY_PIXI_ENV:-default} -- "$@"
     ;;
   --shell)
     exec bash "${SCRIPT_DIR}/scripts/pixi_dev_shell.sh"
@@ -174,6 +174,7 @@ esac
 case "$(uname -s)" in
   Linux|Darwin)
     if command -v tmux >/dev/null 2>&1; then
+      LAUNCH_CMD="cd \"${SCRIPT_DIR}\" && pixi run -e ${LUCY_PIXI_ENV:-default} -- python -m launcher"
       export LUCY_TMUX_SESSION="$TMUX_SESSION"
       # Passed on the command line: a session created on a running tmux server
       # starts from the server's environment, i.e. the first instance's.
@@ -202,4 +203,4 @@ case "$(uname -s)" in
 esac
 
 # Git Bash / MSYS on Windows: no tmux — run the Control Center launcher directly.
-exec pixi run -- python -m launcher
+exec pixi run -e ${LUCY_PIXI_ENV:-default} -- python -m launcher
