@@ -25,6 +25,8 @@ pytest = "*"
 pytest-cov = "*"
 pytest-mock = "*"
 ros-jazzy-rclpy = ">=7.1.11,<8"
+playwright-python = "1.61.*"
+playwright = "1.61.*"
 
 
 # --- ROS Jazzy stack (RoboStack channel) ---
@@ -112,6 +114,8 @@ doctor = "python scripts/ros_doctor.py"
 setup-udev = "bash scripts/setup_udev.sh"
 workspace-test = { cmd = "PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 pytest tests -q -p pytester -p python -p terminal" }
 core-bringup-test = "bash -c 'source scripts/dds_env.sh 2>/dev/null; python scripts/ci_core_bringup_test.py'"
+panel-e2e-test = "python scripts/ci_panel_e2e_test.py"
+tui-launch-test = "python scripts/ci_tui_launch_test.py"
 shell = "bash scripts/pixi_dev_shell.sh"
 
 [feature.launcher.target.unix.tasks]
@@ -178,7 +182,7 @@ env = { GZ_SIM_SYSTEM_PLUGIN_PATH = "$CONDA_PREFIX/lib" }
 
 [target.win.activation]
 scripts = ["install/setup.bat"]
-env = { GZ_SIM_SYSTEM_PLUGIN_PATH = "%CONDA_PREFIX%/Library/bin" }
+env = { GZ_SIM_SYSTEM_PLUGIN_PATH = "%CONDA_PREFIX%/Library/bin", RMW_IMPLEMENTATION = "rmw_cyclonedds_cpp", CYCLONEDDS_URI = '<CycloneDDS><Domain id="any"><General><Interfaces><NetworkInterface address="127.0.0.1" multicast="true"/></Interfaces><AllowMulticast>true</AllowMulticast></General></Domain></CycloneDDS>' }
 
 [environments]
 default = { features = ["ros", "build", "panel", "dev", "launcher", "firmware"] }

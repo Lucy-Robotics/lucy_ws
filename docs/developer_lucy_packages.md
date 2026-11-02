@@ -70,6 +70,10 @@ Pixi resolves `win-64` on Intel/AMD and Windows-on-ARM alike - `pixi.lock` has
 no `win-arm64`. Colcon uses `--merge-install` there, see
 [`docs/pixi_setup.md`](pixi_setup.md).
 
+Pixi runs Cyclone DDS on Windows too, pinned to loopback by the `CYCLONEDDS_URI`
+in `pixi.toml`: Fast DDS took down every node at once there, and rmw_cyclonedds's
+own localhost mode discovers nothing on Windows. `LUCY_DDS_LOCALHOST=0` drops the pin.
+
 ### Workspace install (`install.py`)
 
 Pixi installs RoboStack Jazzy; `colcon build --symlink-install` builds `src/`; `yarn install` sets up the control panel.

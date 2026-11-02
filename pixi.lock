@@ -143,6 +143,7 @@ environments:
       - conda: https://prefix.dev/conda-forge/linux-64/gnutls-3.8.13-h18acefa_0.conda
       - conda: https://prefix.dev/conda-forge/linux-64/graphite2-1.3.15-h54a6638_1.conda
       - conda: https://prefix.dev/conda-forge/linux-64/graphviz-14.1.2-h8b86629_0.conda
+      - conda: https://prefix.dev/conda-forge/linux-64/greenlet-3.5.6-py312h80505a6_0.conda
       - conda: https://prefix.dev/conda-forge/linux-64/gst-plugins-base-1.26.11-h6d08254_0.conda
       - conda: https://prefix.dev/conda-forge/linux-64/gstreamer-1.26.11-h29cf534_0.conda
       - conda: https://prefix.dev/conda-forge/linux-64/gtest-1.17.0-h171cf75_2.conda
@@ -419,6 +420,7 @@ environments:
       - conda: https://prefix.dev/conda-forge/linux-64/pillow-12.3.0-py312h50c33e8_0.conda
       - conda: https://prefix.dev/conda-forge/linux-64/pixman-0.46.4-h54a6638_3.conda
       - conda: https://prefix.dev/conda-forge/linux-64/pkg-config-0.29.2-h1114479_1012.conda
+      - conda: https://prefix.dev/conda-forge/linux-64/playwright-1.61.0-hd412ae8_0.conda
       - conda: https://prefix.dev/conda-forge/linux-64/poco-1.15.3-h8ecfa4d_0.conda
       - conda: https://prefix.dev/conda-forge/linux-64/poppler-26.05.0-hfdef1ce_3.conda
       - conda: https://prefix.dev/conda-forge/linux-64/postgresql-18.6-h85d3e3a_0.conda
@@ -596,6 +598,7 @@ environments:
       - conda: https://prefix.dev/conda-forge/noarch/munkres-1.1.4-pyhd8ed1ab_1.conda
       - conda: https://prefix.dev/conda-forge/noarch/packaging-26.3-pyhc364b38_0.conda
       - conda: https://prefix.dev/conda-forge/noarch/pep517-0.13.0-pyhd8ed1ab_0.tar.bz2
+      - conda: https://prefix.dev/conda-forge/noarch/playwright-python-1.61.0-pyhcf101f3_0.conda
       - conda: https://prefix.dev/conda-forge/noarch/pluggy-1.6.0-pyhf9edf01_1.conda
       - conda: https://prefix.dev/conda-forge/noarch/ply-3.11-pyhd8ed1ab_3.conda
       - conda: https://prefix.dev/conda-forge/noarch/poppler-data-0.4.12-hd8ed1ab_0.conda
@@ -606,6 +609,7 @@ environments:
       - conda: https://prefix.dev/conda-forge/noarch/pycparser-3.0-pyhcf101f3_0.conda
       - conda: https://prefix.dev/conda-forge/noarch/pydocstyle-6.3.0-pyhd8ed1ab_1.conda
       - conda: https://prefix.dev/conda-forge/noarch/pydot-4.0.1-pyhcf101f3_2.conda
+      - conda: https://prefix.dev/conda-forge/noarch/pyee-13.0.1-pyhd8ed1ab_0.conda
       - conda: https://prefix.dev/conda-forge/noarch/pyflakes-3.4.0-pyhd8ed1ab_0.conda
       - conda: https://prefix.dev/conda-forge/noarch/pygments-2.21.0-pyhcf101f3_0.conda
       - conda: https://prefix.dev/conda-forge/noarch/pyparsing-3.3.2-pyhcf101f3_0.conda
@@ -1142,6 +1146,7 @@ environments:
       - conda: https://prefix.dev/conda-forge/linux-aarch64/gnutls-3.8.13-hfe111f1_0.conda
       - conda: https://prefix.dev/conda-forge/linux-aarch64/graphite2-1.3.15-h7ac5ae9_1.conda
       - conda: https://prefix.dev/conda-forge/linux-aarch64/graphviz-14.1.2-h45e821f_0.conda
+      - conda: https://prefix.dev/conda-forge/linux-aarch64/greenlet-3.5.6-py312ha0853ce_0.conda
       - conda: https://prefix.dev/conda-forge/linux-aarch64/gst-plugins-base-1.26.11-hd6b5e5b_0.conda
       - conda: https://prefix.dev/conda-forge/linux-aarch64/gstreamer-1.26.11-hf552038_0.conda
       - conda: https://prefix.dev/conda-forge/linux-aarch64/gtest-1.17.0-hdc560ac_2.conda
@@ -1411,6 +1416,7 @@ environments:
       - conda: https://prefix.dev/conda-forge/linux-aarch64/pillow-12.3.0-py312h3b21937_0.conda
       - conda: https://prefix.dev/conda-forge/linux-aarch64/pixman-0.46.4-h7ac5ae9_3.conda
       - conda: https://prefix.dev/conda-forge/linux-aarch64/pkg-config-0.29.2-hfbd14cd_1012.conda
+      - conda: https://prefix.dev/conda-forge/linux-aarch64/playwright-1.61.0-h4337743_0.conda
       - conda: https://prefix.dev/conda-forge/linux-aarch64/poco-1.15.3-hda7ba30_0.conda
       - conda: https://prefix.dev/conda-forge/linux-aarch64/poppler-26.05.0-h8449dc7_3.conda
       - conda: https://prefix.dev/conda-forge/linux-aarch64/postgresql-18.6-hfe6c572_0.conda
@@ -1590,6 +1596,7 @@ environments:
       - conda: https://prefix.dev/conda-forge/noarch/munkres-1.1.4-pyhd8ed1ab_1.conda
       - conda: https://prefix.dev/conda-forge/noarch/packaging-26.3-pyhc364b38_0.conda
       - conda: https://prefix.dev/conda-forge/noarch/pep517-0.13.0-pyhd8ed1ab_0.tar.bz2
+      - conda: https://prefix.dev/conda-forge/noarch/playwright-python-1.61.0-pyhcf101f3_0.conda
       - conda: https://prefix.dev/conda-forge/noarch/pluggy-1.6.0-pyhf9edf01_1.conda
       - conda: https://prefix.dev/conda-forge/noarch/ply-3.11-pyhd8ed1ab_3.conda
       - conda: https://prefix.dev/conda-forge/noarch/poppler-data-0.4.12-hd8ed1ab_0.conda
@@ -1600,6 +1607,7 @@ environments:
       - conda: https://prefix.dev/conda-forge/noarch/pycparser-3.0-pyhcf101f3_0.conda
       - conda: https://prefix.dev/conda-forge/noarch/pydocstyle-6.3.0-pyhd8ed1ab_1.conda
       - conda: https://prefix.dev/conda-forge/noarch/pydot-4.0.1-pyhcf101f3_2.conda
+      - conda: https://prefix.dev/conda-forge/noarch/pyee-13.0.1-pyhd8ed1ab_0.conda
       - conda: https://prefix.dev/conda-forge/noarch/pyflakes-3.4.0-pyhd8ed1ab_0.conda
       - conda: https://prefix.dev/conda-forge/noarch/pygments-2.21.0-pyhcf101f3_0.conda
       - conda: https://prefix.dev/conda-forge/noarch/pyparsing-3.3.2-pyhcf101f3_0.conda
@@ -2100,6 +2108,7 @@ environments:
       - conda: https://prefix.dev/conda-forge/noarch/munkres-1.1.4-pyhd8ed1ab_1.conda
       - conda: https://prefix.dev/conda-forge/noarch/packaging-26.3-pyhc364b38_0.conda
       - conda: https://prefix.dev/conda-forge/noarch/pep517-0.13.0-pyhd8ed1ab_0.tar.bz2
+      - conda: https://prefix.dev/conda-forge/noarch/playwright-python-1.61.0-pyhcf101f3_0.conda
       - conda: https://prefix.dev/conda-forge/noarch/pluggy-1.6.0-pyhf9edf01_1.conda
       - conda: https://prefix.dev/conda-forge/noarch/ply-3.11-pyhd8ed1ab_3.conda
       - conda: https://prefix.dev/conda-forge/noarch/poppler-data-0.4.12-hd8ed1ab_0.conda
@@ -2110,6 +2119,7 @@ environments:
       - conda: https://prefix.dev/conda-forge/noarch/pycparser-3.0-pyhcf101f3_0.conda
       - conda: https://prefix.dev/conda-forge/noarch/pydocstyle-6.3.0-pyhd8ed1ab_1.conda
       - conda: https://prefix.dev/conda-forge/noarch/pydot-4.0.1-pyhcf101f3_2.conda
+      - conda: https://prefix.dev/conda-forge/noarch/pyee-13.0.1-pyhd8ed1ab_0.conda
       - conda: https://prefix.dev/conda-forge/noarch/pyflakes-3.4.0-pyhd8ed1ab_0.conda
       - conda: https://prefix.dev/conda-forge/noarch/pygments-2.21.0-pyhcf101f3_0.conda
       - conda: https://prefix.dev/conda-forge/noarch/pyparsing-3.3.2-pyhcf101f3_0.conda
@@ -2252,6 +2262,7 @@ environments:
       - conda: https://prefix.dev/conda-forge/osx-64/gmp-6.3.0-h65442b7_3.conda
       - conda: https://prefix.dev/conda-forge/osx-64/graphite2-1.3.15-h2fb4741_1.conda
       - conda: https://prefix.dev/conda-forge/osx-64/graphviz-14.1.2-h44fc223_0.conda
+      - conda: https://prefix.dev/conda-forge/osx-64/greenlet-3.5.6-py312haab1465_0.conda
       - conda: https://prefix.dev/conda-forge/osx-64/gst-plugins-base-1.26.11-h79212b8_0.conda
       - conda: https://prefix.dev/conda-forge/osx-64/gstreamer-1.26.11-h5bdcca5_0.conda
       - conda: https://prefix.dev/conda-forge/osx-64/gtest-1.17.0-hebe015c_2.conda
@@ -2484,6 +2495,7 @@ environments:
       - conda: https://prefix.dev/conda-forge/osx-64/pillow-12.3.0-py312he84af14_0.conda
       - conda: https://prefix.dev/conda-forge/osx-64/pixman-0.46.4-h2fb4741_3.conda
       - conda: https://prefix.dev/conda-forge/osx-64/pkg-config-0.29.2-hbd237c1_1012.conda
+      - conda: https://prefix.dev/conda-forge/osx-64/playwright-1.61.0-hfab2e3e_0.conda
       - conda: https://prefix.dev/conda-forge/osx-64/poco-1.15.3-h2769bbe_0.conda
       - conda: https://prefix.dev/conda-forge/osx-64/poppler-26.05.0-h107cf23_3.conda
       - conda: https://prefix.dev/conda-forge/osx-64/postgresql-18.4-he8835e8_0.conda
@@ -3040,6 +3052,7 @@ environments:
       - conda: https://prefix.dev/conda-forge/noarch/munkres-1.1.4-pyhd8ed1ab_1.conda
       - conda: https://prefix.dev/conda-forge/noarch/packaging-26.3-pyhc364b38_0.conda
       - conda: https://prefix.dev/conda-forge/noarch/pep517-0.13.0-pyhd8ed1ab_0.tar.bz2
+      - conda: https://prefix.dev/conda-forge/noarch/playwright-python-1.61.0-pyhcf101f3_0.conda
       - conda: https://prefix.dev/conda-forge/noarch/pluggy-1.6.0-pyhf9edf01_1.conda
       - conda: https://prefix.dev/conda-forge/noarch/ply-3.11-pyhd8ed1ab_3.conda
       - conda: https://prefix.dev/conda-forge/noarch/poppler-data-0.4.12-hd8ed1ab_0.conda
@@ -3050,6 +3063,7 @@ environments:
       - conda: https://prefix.dev/conda-forge/noarch/pycparser-3.0-pyhcf101f3_0.conda
       - conda: https://prefix.dev/conda-forge/noarch/pydocstyle-6.3.0-pyhd8ed1ab_1.conda
       - conda: https://prefix.dev/conda-forge/noarch/pydot-4.0.1-pyhcf101f3_2.conda
+      - conda: https://prefix.dev/conda-forge/noarch/pyee-13.0.1-pyhd8ed1ab_0.conda
       - conda: https://prefix.dev/conda-forge/noarch/pyflakes-3.4.0-pyhd8ed1ab_0.conda
       - conda: https://prefix.dev/conda-forge/noarch/pygments-2.21.0-pyhcf101f3_0.conda
       - conda: https://prefix.dev/conda-forge/noarch/pyparsing-3.3.2-pyhcf101f3_0.conda
@@ -3190,6 +3204,7 @@ environments:
       - conda: https://prefix.dev/conda-forge/osx-arm64/gmp-6.3.0-hf5e55b1_3.conda
       - conda: https://prefix.dev/conda-forge/osx-arm64/graphite2-1.3.15-h784d473_1.conda
       - conda: https://prefix.dev/conda-forge/osx-arm64/graphviz-14.1.2-hec8c438_0.conda
+      - conda: https://prefix.dev/conda-forge/osx-arm64/greenlet-3.5.6-py312hdef455b_0.conda
       - conda: https://prefix.dev/conda-forge/osx-arm64/gst-plugins-base-1.26.11-hda1d4dc_0.conda
       - conda: https://prefix.dev/conda-forge/osx-arm64/gstreamer-1.26.11-h087694b_0.conda
       - conda: https://prefix.dev/conda-forge/osx-arm64/gtest-1.17.0-h3feff0a_2.conda
@@ -3422,6 +3437,7 @@ environments:
       - conda: https://prefix.dev/conda-forge/osx-arm64/pillow-12.3.0-py312h4e908a4_0.conda
       - conda: https://prefix.dev/conda-forge/osx-arm64/pixman-0.46.4-h784d473_3.conda
       - conda: https://prefix.dev/conda-forge/osx-arm64/pkg-config-0.29.2-he0b766d_1012.conda
+      - conda: https://prefix.dev/conda-forge/osx-arm64/playwright-1.61.0-hd1b9f45_0.conda
       - conda: https://prefix.dev/conda-forge/osx-arm64/poco-1.15.3-hfea56ce_0.conda
       - conda: https://prefix.dev/conda-forge/osx-arm64/poppler-26.05.0-hd83632c_3.conda
       - conda: https://prefix.dev/conda-forge/osx-arm64/postgresql-18.4-hfde6fa7_0.conda
@@ -3976,6 +3992,7 @@ environments:
       - conda: https://prefix.dev/conda-forge/noarch/munkres-1.1.4-pyhd8ed1ab_1.conda
       - conda: https://prefix.dev/conda-forge/noarch/packaging-26.3-pyhc364b38_0.conda
       - conda: https://prefix.dev/conda-forge/noarch/pep517-0.13.0-pyhd8ed1ab_0.tar.bz2
+      - conda: https://prefix.dev/conda-forge/noarch/playwright-python-1.61.0-pyhcf101f3_0.conda
       - conda: https://prefix.dev/conda-forge/noarch/pluggy-1.6.0-pyhf9edf01_1.conda
       - conda: https://prefix.dev/conda-forge/noarch/ply-3.11-pyhd8ed1ab_3.conda
       - conda: https://prefix.dev/conda-forge/noarch/poppler-data-0.4.12-hd8ed1ab_0.conda
@@ -3986,6 +4003,7 @@ environments:
       - conda: https://prefix.dev/conda-forge/noarch/pycparser-3.0-pyhcf101f3_0.conda
       - conda: https://prefix.dev/conda-forge/noarch/pydocstyle-6.3.0-pyhd8ed1ab_1.conda
       - conda: https://prefix.dev/conda-forge/noarch/pydot-4.0.1-pyhcf101f3_2.conda
+      - conda: https://prefix.dev/conda-forge/noarch/pyee-13.0.1-pyhd8ed1ab_0.conda
       - conda: https://prefix.dev/conda-forge/noarch/pyflakes-3.4.0-pyhd8ed1ab_0.conda
       - conda: https://prefix.dev/conda-forge/noarch/pygments-2.21.0-pyhcf101f3_0.conda
       - conda: https://prefix.dev/conda-forge/noarch/pyparsing-3.3.2-pyhcf101f3_0.conda
@@ -4117,6 +4135,7 @@ environments:
       - conda: https://prefix.dev/conda-forge/win-64/gmock-1.17.0-h368e8a3_2.conda
       - conda: https://prefix.dev/conda-forge/win-64/graphite2-1.3.15-h5112557_1.conda
       - conda: https://prefix.dev/conda-forge/win-64/graphviz-14.1.2-h4c50273_0.conda
+      - conda: https://prefix.dev/conda-forge/win-64/greenlet-3.5.6-py312ha1a9051_0.conda
       - conda: https://prefix.dev/conda-forge/win-64/gst-plugins-base-1.26.11-h88486b4_0.conda
       - conda: https://prefix.dev/conda-forge/win-64/gstreamer-1.26.11-hae9036a_0.conda
       - conda: https://prefix.dev/conda-forge/win-64/gtest-1.17.0-h477610d_2.conda
@@ -4321,6 +4340,7 @@ environments:
       - conda: https://prefix.dev/conda-forge/win-64/pillow-12.3.0-py312h31f0997_0.conda
       - conda: https://prefix.dev/conda-forge/win-64/pixman-0.46.4-h5112557_3.conda
       - conda: https://prefix.dev/conda-forge/win-64/pkg-config-0.29.2-hffdb5b9_1012.conda
+      - conda: https://prefix.dev/conda-forge/win-64/playwright-1.61.1-h8fff0a6_0.conda
       - conda: https://prefix.dev/conda-forge/win-64/poco-1.15.3-h856966c_0.conda
       - conda: https://prefix.dev/conda-forge/win-64/poppler-26.05.0-h4b9d284_3.conda
       - conda: https://prefix.dev/conda-forge/win-64/postgresql-18.6-hfea5a2c_0.conda
@@ -6702,6 +6722,20 @@ packages:
     - graphviz >=14.1.2,<15.0a0
   size: 2426455
   timestamp: 1769427102743
+- conda: https://prefix.dev/conda-forge/linux-64/greenlet-3.5.6-py312h80505a6_0.conda
+  sha256: ec381ab27f211928afd0a976fbf765563a751c3a4cf2fa39174a65a783c85d0d
+  md5: aeb718d6d95669b4dcc686750b6c034f
+  depends:
+  - python
+  - libgcc >=15
+  - libstdcxx >=15
+  - __glibc >=2.17,<3.0.a0
+  - python_abi 3.12.* *_cp312
+  license: MIT
+  license_family: MIT
+  run_exports: {}
+  size: 276831
+  timestamp: 1789809465443
 - conda: https://prefix.dev/conda-forge/linux-64/gst-plugins-base-1.26.11-h6d08254_0.conda
   sha256: 5a227ac457b9cc7a70b14008df1f91fd5dd2b3fda9641e5445c950b06d04be9e
   md5: 971da16e7fc43161329213557688d315
@@ -11857,6 +11891,17 @@ packages:
   run_exports: {}
   size: 141241
   timestamp: 1787956226965
+- conda: https://prefix.dev/conda-forge/linux-64/playwright-1.61.0-hd412ae8_0.conda
+  sha256: 76169a1d9275daff3a51531211a436eb4e32aeda6cba91424a6821541ebfea6e
+  md5: c741ba2e5696ffc82a9a2d7f303fcd5c
+  depends:
+  - nodejs
+  - nodejs >=26.3.0,<27.0a0
+  license: Apache-2.0
+  license_family: APACHE
+  run_exports: {}
+  size: 2736471
+  timestamp: 1781525884749
 - conda: https://prefix.dev/conda-forge/linux-64/poco-1.15.3-h8ecfa4d_0.conda
   sha256: 75c7e41a921eecc14fffe0f3762b031999adffb26c60f92e3cf6fd23d4c1fec6
   md5: 7b1cb82266f1c07c396538a135c93ad5
@@ -15584,6 +15629,19 @@ packages:
     - graphviz >=14.1.2,<15.0a0
   size: 2578234
   timestamp: 1769427141106
+- conda: https://prefix.dev/conda-forge/linux-aarch64/greenlet-3.5.6-py312ha0853ce_0.conda
+  sha256: 1fd1aa8d969b4838f5844c93c5fb99f15d51d0d6652360454a1dc17ee48cf334
+  md5: fb9c837262cd34684031ba4bcb89ab5f
+  depends:
+  - python
+  - libstdcxx >=15
+  - libgcc >=15
+  - python_abi 3.12.* *_cp312
+  license: MIT
+  license_family: MIT
+  run_exports: {}
+  size: 275803
+  timestamp: 1789809464887
 - conda: https://prefix.dev/conda-forge/linux-aarch64/gst-plugins-base-1.26.11-hd6b5e5b_0.conda
   sha256: 08921a08bb06079819cf9f64dd282a854807bd67cad09bb8049072503a9d4f22
   md5: 58272f8232b377a6a7bf9293b5b92a34
@@ -20413,6 +20471,17 @@ packages:
   run_exports: {}
   size: 338020
   timestamp: 1787956228046
+- conda: https://prefix.dev/conda-forge/linux-aarch64/playwright-1.61.0-h4337743_0.conda
+  sha256: b8f195a83ac2e891cf371fbc213003d87eb37955632686eeed2f9cf8c8e5bbe9
+  md5: c0fc860bba59fe54510c10805cec53a2
+  depends:
+  - nodejs
+  - nodejs >=26.3.0,<27.0a0
+  license: Apache-2.0
+  license_family: APACHE
+  run_exports: {}
+  size: 2738190
+  timestamp: 1781525900807
 - conda: https://prefix.dev/conda-forge/linux-aarch64/poco-1.15.3-hda7ba30_0.conda
   sha256: 015d521bb695e34e40a6f8e0583df41fd5cda4486306eecfda01f38b5791b2ec
   md5: 7bc68b2fe9c505916c733040e020419b
@@ -23505,6 +23574,20 @@ packages:
   run_exports: {}
   size: 19044
   timestamp: 1667916747996
+- conda: https://prefix.dev/conda-forge/noarch/playwright-python-1.61.0-pyhcf101f3_0.conda
+  sha256: 07891fe0c5a82960f9aed6a3cc2ef0e77b9b12e4e8bb8480e9ff3cf71272d909
+  md5: d90379397c65c5b7a3db0e6206eaf945
+  depends:
+  - greenlet >=3.1.1,<4
+  - playwright
+  - pyee >=13,<14
+  - python >=3.10
+  - python
+  license: Apache-2.0
+  license_family: APACHE
+  run_exports: {}
+  size: 180823
+  timestamp: 1782729536002
 - conda: https://prefix.dev/conda-forge/noarch/pluggy-1.6.0-pyhf9edf01_1.conda
   sha256: e14aafa63efa0528ca99ba568eaf506eb55a0371d12e6250aaaa61718d2eb62e
   md5: d7585b6550ad04c8c5e21097ada2888e
@@ -23651,6 +23734,17 @@ packages:
   run_exports: {}
   size: 150656
   timestamp: 1766345630713
+- conda: https://prefix.dev/conda-forge/noarch/pyee-13.0.1-pyhd8ed1ab_0.conda
+  sha256: 938ab8d67ec0183f0a920eccbf34677d1f10ad4e73377ee60b9635734e834bf5
+  md5: eadf0f76d9121a6297be754e9d7cc099
+  depends:
+  - python >=3.10
+  - typing_extensions
+  license: MIT
+  license_family: MIT
+  run_exports: {}
+  size: 20049
+  timestamp: 1771871117073
 - conda: https://prefix.dev/conda-forge/noarch/pyflakes-3.4.0-pyhd8ed1ab_0.conda
   sha256: 4b6fb3f7697b4e591c06149671699777c71ca215e9ec16d5bd0767425e630d65
   md5: dba204e749e06890aeb3756ef2b1bf35
@@ -25922,6 +26016,19 @@ packages:
     - graphviz >=14.1.2,<15.0a0
   size: 2297868
   timestamp: 1769427939677
+- conda: https://prefix.dev/conda-forge/osx-64/greenlet-3.5.6-py312haab1465_0.conda
+  sha256: a8afa3d363659faf88bcc9381591de66dfdf9cee3b3ee5c2eb5ce7cc7c995dbf
+  md5: 453efc088fed2276e1da5882888fc4e7
+  depends:
+  - python
+  - __osx >=11.0
+  - libcxx >=21
+  - python_abi 3.12.* *_cp312
+  license: MIT
+  license_family: MIT
+  run_exports: {}
+  size: 264993
+  timestamp: 1789809695735
 - conda: https://prefix.dev/conda-forge/osx-64/gst-plugins-base-1.26.11-h79212b8_0.conda
   sha256: 7303ee0bd359f5c023f0ea6a59f44b298981f6093646e2151b1884264075124e
   md5: fd18831918725f8326d749297c8d513f
@@ -30161,6 +30268,17 @@ packages:
   run_exports: {}
   size: 286590
   timestamp: 1787956273688
+- conda: https://prefix.dev/conda-forge/osx-64/playwright-1.61.0-hfab2e3e_0.conda
+  sha256: 1ecf82f31d6a138a509c2f6078d31ad669982e7dbfa8b86feb6c24408f48c218
+  md5: 3b0335ddc4d651519b68964ae405f041
+  depends:
+  - nodejs
+  - nodejs >=26.3.0,<27.0a0
+  license: Apache-2.0
+  license_family: APACHE
+  run_exports: {}
+  size: 2735978
+  timestamp: 1781525970987
 - conda: https://prefix.dev/conda-forge/osx-64/poco-1.15.3-h2769bbe_0.conda
   sha256: b692f50df30f2cd30fce4f5cd832a85633cfa0755d63d2b95ef9400640ba8483
   md5: d810daaf67f91eb44b05d94afdd143ba
@@ -33404,6 +33522,19 @@ packages:
     - graphviz >=14.1.2,<15.0a0
   size: 2218284
   timestamp: 1769427599940
+- conda: https://prefix.dev/conda-forge/osx-arm64/greenlet-3.5.6-py312hdef455b_0.conda
+  sha256: 1b2cb6c46e9fbfb56fa71e6a2b37792f2f4ed191b3f06023af2ab565b7afa738
+  md5: 0ecf58fc34e99b222069a93db10d8f2f
+  depends:
+  - python
+  - __osx >=11.0
+  - libcxx >=21
+  - python_abi 3.12.* *_cp312
+  license: MIT
+  license_family: MIT
+  run_exports: {}
+  size: 263757
+  timestamp: 1789809527226
 - conda: https://prefix.dev/conda-forge/osx-arm64/gst-plugins-base-1.26.11-hda1d4dc_0.conda
   sha256: 576152e840dba95db7fb6893d4001e2aedb61350d19a7539e0e409eea881e54d
   md5: 400c61fc970839d3b23f2ffe822ead23
@@ -37656,6 +37787,17 @@ packages:
   run_exports: {}
   size: 273770
   timestamp: 1787956229376
+- conda: https://prefix.dev/conda-forge/osx-arm64/playwright-1.61.0-hd1b9f45_0.conda
+  sha256: 5199f1f685cec10f7be5f7ab36c47cdf8a4eded6501a6805c3e89b4f70923eac
+  md5: a23873f2bc61557510fdebe3d72cf6c8
+  depends:
+  - nodejs
+  - nodejs >=26.3.0,<27.0a0
+  license: Apache-2.0
+  license_family: APACHE
+  run_exports: {}
+  size: 2737374
+  timestamp: 1781525936723
 - conda: https://prefix.dev/conda-forge/osx-arm64/poco-1.15.3-hfea56ce_0.conda
   sha256: 2b162d6d6899d86322298d2a5caef1302a61a602263c86a751b9cb9e4ed77f37
   md5: 36f35aff5b958804745e1f909a283e06
@@ -40820,6 +40962,20 @@ packages:
     - graphviz >=14.1.2,<15.0a0
   size: 1223547
   timestamp: 1769427507016
+- conda: https://prefix.dev/conda-forge/win-64/greenlet-3.5.6-py312ha1a9051_0.conda
+  sha256: 07b133bcccd8edcf601a6e868b97dae3df005f688096f56ec2d94dc6115cc7b0
+  md5: 16c55af53a0772accabdffb08e581dba
+  depends:
+  - python
+  - vc >=14.3,<15
+  - vc14_runtime >=14.44.35208
+  - ucrt >=10.0.20348.0
+  - python_abi 3.12.* *_cp312
+  license: MIT
+  license_family: MIT
+  run_exports: {}
+  size: 257019
+  timestamp: 1789809525831
 - conda: https://prefix.dev/conda-forge/win-64/gst-plugins-base-1.26.11-h88486b4_0.conda
   sha256: 68e518906536886fdf9e9e839a90747e44bacc2e0c2005ab335d265ba074623b
   md5: 5c22a369b4efc69768bdc311c2114778
@@ -44783,6 +44939,17 @@ packages:
   run_exports: {}
   size: 37837
   timestamp: 1787956224223
+- conda: https://prefix.dev/conda-forge/win-64/playwright-1.61.1-h8fff0a6_0.conda
+  sha256: ff44302d737d8d65e990fae3f822b0973b060fcccdc97f39dfb12d3edeb38a17
+  md5: 2ea8786bb0b300a37fb83f7dfc9fbf87
+  depends:
+  - nodejs
+  - nodejs >=26.4.0,<27.0a0
+  license: Apache-2.0
+  license_family: APACHE
+  run_exports: {}
+  size: 2745214
+  timestamp: 1783262636308
 - conda: https://prefix.dev/conda-forge/win-64/poco-1.15.3-h856966c_0.conda
   sha256: 76f08674b98dfcf18a61b3920546671e70ec35bac80f29a68a505abb85abfb77
   md5: f71296abf835cf16cd068392142f5549

@@ -108,6 +108,7 @@ def apply_changes(state):
         launcher.save_state({"modifiers": []})
         _clean_status()
         core_pkg.is_running = False
+        core_pkg.ready = False
         _pkg_start_times.pop("core", None)
         _intended_running.discard("core")
         for mod in state.packages:
@@ -115,6 +116,7 @@ def apply_changes(state):
                 if mod.is_running and "stop" in mod.lifecycle_hooks:
                     launcher.run_shell_command(mod.lifecycle_hooks["stop"])
                 mod.is_running = False
+                mod.ready = False
                 _pkg_start_times.pop(mod.id, None)
                 _intended_running.discard(mod.id)
 
