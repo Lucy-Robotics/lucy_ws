@@ -47,6 +47,7 @@
     },
     {
       "id": "robot_inmoov",
+      "requires_component": "robot_inmoov",
       "name": "Robot: InMoov",
       "description": "(robot_package:=inmoov_urdf)",
       "type": "modifier",
@@ -58,6 +59,7 @@
     },
     {
       "id": "robot_so_arm101",
+      "requires_component": "robot_so_arm101",
       "name": "Robot: SO-ARM101",
       "description": "(robot_package:=so_arm101_urdf)",
       "type": "modifier",
@@ -69,6 +71,7 @@
     },
     {
       "id": "robot_inmoov_i2",
+      "requires_component": "robot_inmoov_i2",
       "name": "Robot: InMoov i2",
       "description": "(robot_package:=inmoov_i2_urdf)",
       "type": "modifier",
@@ -118,6 +121,7 @@
     },
     {
       "id": "real",
+      "requires_component": "firmware",
       "name": "... with Real Hardware",
       "description": "(Connect to physical robot)",
       "type": "modifier",
