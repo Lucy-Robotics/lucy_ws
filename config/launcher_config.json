@@ -47,7 +47,8 @@
     },
     {
       "id": "robot_inmoov",
-      "name": "InMoov",
+      "requires_component": "robot_inmoov",
+      "name": "Robot: InMoov",
       "description": "(robot_package:=inmoov_urdf)",
       "type": "modifier",
       "dependencies": ["core"],
@@ -58,7 +59,8 @@
     },
     {
       "id": "robot_so_arm101",
-      "name": "SO-ARM101",
+      "requires_component": "robot_so_arm101",
+      "name": "Robot: SO-ARM101",
       "description": "(robot_package:=so_arm101_urdf)",
       "type": "modifier",
       "dependencies": ["core"],
@@ -69,7 +71,8 @@
     },
     {
       "id": "robot_inmoov_i2",
-      "name": "InMoov i2",
+      "requires_component": "robot_inmoov_i2",
+      "name": "Robot: InMoov i2",
       "description": "(robot_package:=inmoov_i2_urdf)",
       "type": "modifier",
       "dependencies": ["core"],
@@ -128,9 +131,10 @@
       "default_on": false
     },
     {
-      "id": "real_mcu_bridge",
-      "name": "Micro controllers",
-      "description": "(host relays to the boards: bridge:=mcu_bridge)",
+      "id": "real",
+      "requires_component": "firmware",
+      "name": "... with Real Hardware",
+      "description": "(Connect to physical robot)",
       "type": "modifier",
       "dependencies": ["hardware"],
       "conflicts": [],
