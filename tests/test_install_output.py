@@ -77,18 +77,15 @@ def test_setup_firmware_toolchain_runs_pixi_task(monkeypatch):
     monkeypatch.delenv("LUCY_SKIP_FIRMWARE_SETUP", raising=False)
     monkeypatch.setattr(install, "pixi_run", record)
     install.setup_firmware_toolchain("/tmp/ws", lambda *a, **k: 0, log=lambda m: None)
-    assert calls == [["run", "firmware-setup"]]
+    assert calls == [["run", "firmware-setup"], ["run", "firmware-build-linux"]]
 
 
-def test_build_workspace_sets_up_firmware_toolchain_before_colcon(monkeypatch):
+def test_build_skips_panel_install_without_control_panel(tmp_path, monkeypatch):
+    import components
+
     calls = []
-
-    def record(project_root, args, run_command):
-        calls.append(args)
-        return 0
-
-    monkeypatch.delenv("LUCY_SKIP_FIRMWARE_SETUP", raising=False)
-    monkeypatch.setattr(install, "pixi_run", record)
-    monkeypatch.setattr(install, "build_local_realsense_optional", lambda *a, **k: None)
-    install.build_workspace("/tmp/ws", lambda *a, **k: 0, log=lambda m: None)
-    assert calls.index(["run", "firmware-setup"]) < calls.index(["run", "build"])
+    components.save(tmp_path, {"simulation": False, "visualisation": False, "control_panel": False})
+    monkeypatch.setenv("LUCY_SKIP_FIRMWARE_SETUP", "1")
+    monkeypatch.setattr(install, "pixi_run", lambda root, args, run_command: calls.append(args) or 0)
+    install.build_workspace(tmp_path, lambda *a, **k: 0, log=lambda m: None)
+    assert calls == [["run", "build"]]
