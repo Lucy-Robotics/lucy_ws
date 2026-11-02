@@ -34,6 +34,8 @@ import zipfile
 from pathlib import Path
 from typing import Callable, Iterable, Optional
 
+import components
+
 ROOT = Path(__file__).resolve().parent
 
 MIN_PIXI_VERSION = "0.78.0"
@@ -687,6 +689,8 @@ def install_repos(
 
     root = Path(project_root)
     repos = parse_repos(root, developer, repos_branch)
+    if not components.load(root)["control_panel"]:
+        repos = [r for r in repos if r["name"] != components.CONTROL_PANEL_REPO]
     if not repos:
         raise RuntimeError(f"No repos with name and url in {repos_config_path(root)}")
 
@@ -718,7 +722,7 @@ def install_repos(
 
 
 def pixi_run(project_root: Path | str, args: list[str], run_command: Callable) -> int:
-    return run_command(["pixi", *args], cwd=str(project_root))
+    return run_command(components.pixi_command(project_root, args), cwd=str(project_root))
 
 
 def ensure_windows_libexec_shims(project_root: Path | str, log: Log = print) -> list[str]:
@@ -850,7 +854,7 @@ def pixi_install(
     if not (Path(project_root) / "pixi.lock").is_file():
         log("No pixi.lock - running pixi lock (solves every platform in pixi.toml) ...")
         pixi_run(project_root, ["lock"], run_command)
-    log("Pixi install (RoboStack Jazzy, all workspace platforms) ...")
+    log(f"Pixi install (RoboStack Jazzy, environment {components.pixi_env(components.load(project_root))}) ...")
     pixi_run(project_root, ["install"], run_command)
     ensure_windows_libexec_shims(project_root, log)
     patch_windows_rosbridge_signals(project_root, log)
@@ -877,8 +881,9 @@ def build_workspace(
 ) -> None:
     log("Building ROS workspace (colcon) ...")
     pixi_run(project_root, ["run", "build"], run_command)
-    log("Installing control panel dependencies (yarn) ...")
-    pixi_run(project_root, ["run", "panel-install"], run_command)
+    if components.load(project_root)["control_panel"]:
+        log("Installing control panel dependencies (yarn) ...")
+        pixi_run(project_root, ["run", "panel-install"], run_command)
     build_local_realsense_optional(project_root, run_command, log)
     setup_firmware_toolchain(project_root, run_command, log)
 
@@ -978,6 +983,9 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
                         help="Fallback branch for repos without one set")
     parser.add_argument("--fetch-method", choices=["git", "zip", "auto"], default="auto",
                         help="How to fetch repositories (default: auto)")
+    for name, label in components.LABELS.items():
+        parser.add_argument(f"--{name.replace('_', '-')}", dest=name, action=argparse.BooleanOptionalAction,
+                            default=None, help=f"Install {label} (saved in .env)")
     args = parser.parse_args(argv)
 
     for flag, mode in (("repair", "repair"), ("build_only", "build-only"), ("update", "update")):
@@ -990,6 +998,10 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
 
 def main(argv: Optional[list[str]] = None) -> int:
     args = parse_args(argv)
+    selection = components.load(ROOT)
+    selection.update({name: getattr(args, name) for name in components.LABELS if getattr(args, name) is not None})
+    components.save(ROOT, selection)
+    print(f"Components: {components.summary(selection)}")
     try:
         run_flow(
             ROOT, args.mode,
