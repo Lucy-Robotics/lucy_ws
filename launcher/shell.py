@@ -5,6 +5,8 @@ import shlex
 import subprocess
 import threading
 
+import components
+
 from .constants import (
     DDS_ENV_SCRIPT,
     GUI_ENV_KEYS,
@@ -65,14 +67,17 @@ def _pixi_workspace_script(user_cmd: str) -> str:
     happens to match Pixi's. `bash -c` keeps Pixi's PATH ordering intact."""
     user_cmd = user_cmd.strip()
     prelude = _env_prelude()
-    if user_cmd.startswith("pixi "):
+    pixi_run = f"pixi run -e {components.pixi_env(components.load(WORKSPACE_ROOT))}"
+    if user_cmd.startswith("pixi run "):
+        pixi_part = pixi_run + user_cmd[len("pixi run"):]
+    elif user_cmd.startswith("pixi "):
         pixi_part = user_cmd
     elif prelude or any(op in user_cmd for op in (";", "&&", "||", "|", "&")):
-        pixi_part = f"pixi run -- bash -c {shlex.quote(prelude + user_cmd)}"
+        pixi_part = f"{pixi_run} -- bash -c {shlex.quote(prelude + user_cmd)}"
     elif user_cmd.startswith("ros2 "):
-        pixi_part = f"pixi run -- bash -c {shlex.quote(prelude + user_cmd)}"
+        pixi_part = f"{pixi_run} -- bash -c {shlex.quote(prelude + user_cmd)}"
     else:
-        pixi_part = f"pixi run -- {user_cmd}"
+        pixi_part = f"{pixi_run} -- {user_cmd}"
     body = f"cd {WORKSPACE_ROOT} && {pixi_part}"
     exports = _gui_env_exports()
     if exports:
