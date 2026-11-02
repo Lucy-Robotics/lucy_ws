@@ -40,14 +40,20 @@ channels = [
 # Pin distro mutex so all RoboStack packages come from the same rebuild cycle.
 # See: https://github.com/RoboStack/ros-jazzy/issues/125
 ros2-distro-mutex = ">=0.15,<0.16"
-ros-jazzy-desktop = "*"
-ros-jazzy-ros-gz = "*"
+ros-jazzy-ros-base = "*"
+ros-jazzy-xacro = "*"
 ros-jazzy-rosbridge-suite = "*"
 ros-jazzy-ros2-control = "*"
 ros-jazzy-ros2-controllers = "*"
+ros-jazzy-backward-ros = "*"
+
+[feature.viz.dependencies]
+ros-jazzy-desktop = "*"
+
+[feature.sim.dependencies]
+ros-jazzy-ros-gz = "*"
 ros-jazzy-gz-ros2-control = "*"
 ros-jazzy-simulation-interfaces = "*"
-ros-jazzy-backward-ros = "*"
 
 # RealSense is not a Pixi dependency — build locally when needed:
 #   ./scripts/build_local_realsense.sh  (or LUCY_BUILD_REALSENSE=1 python3 install.py)
@@ -198,4 +204,7 @@ scripts = ["install/setup.bat"]
 env = { GZ_SIM_SYSTEM_PLUGIN_PATH = "%CONDA_PREFIX%/Library/bin", RMW_IMPLEMENTATION = "rmw_cyclonedds_cpp", CYCLONEDDS_URI = '<CycloneDDS><Domain id="any"><General><Interfaces><NetworkInterface address="127.0.0.1" multicast="true"/></Interfaces><AllowMulticast>true</AllowMulticast></General></Domain></CycloneDDS>' }
 
 [environments]
-default = { features = ["ros", "build", "panel", "dev", "launcher", "firmware"] }
+default = { features = ["ros", "build", "panel", "dev", "launcher", "firmware", "viz"], solve-group = "lucy" }
+sim = { features = ["ros", "build", "panel", "dev", "launcher", "firmware", "viz", "sim"], solve-group = "lucy" }
+minimal = { features = ["ros", "build", "panel", "dev", "launcher", "firmware"], solve-group = "lucy" }
+minimal-sim = { features = ["ros", "build", "panel", "dev", "launcher", "firmware", "sim"], solve-group = "lucy" }
