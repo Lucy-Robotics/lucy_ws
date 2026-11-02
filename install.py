@@ -688,9 +688,9 @@ def install_repos(
         return fetch_method
 
     root = Path(project_root)
-    repos = parse_repos(root, developer, repos_branch)
-    if not components.load(root)["control_panel"]:
-        repos = [r for r in repos if r["name"] != components.CONTROL_PANEL_REPO]
+    selection = components.load(root)
+    left_out = components.left_out_repos(selection)
+    repos = [r for r in parse_repos(root, developer, repos_branch) if r["name"] not in left_out]
     if not repos:
         raise RuntimeError(f"No repos with name and url in {repos_config_path(root)}")
 
@@ -715,6 +715,8 @@ def install_repos(
         log("NOTE: ZIP-based install - local changes under src/ were replaced.")
 
     mark_optional_colcon_ignore(root, repos, log)
+    for name in components.mark_left_out(root, selection):
+        log(f"install: skipping src/{name}, left out of the component choice")
     return effective
 
 
@@ -907,6 +909,9 @@ def setup_firmware_toolchain(
     if env_flag("LUCY_SKIP_FIRMWARE_SETUP"):
         log("Firmware toolchain: LUCY_SKIP_FIRMWARE_SETUP set — skipping")
         return
+    if not components.load(project_root)["firmware"]:
+        log("Firmware toolchain: embedded firmware left out — skipping")
+        return
     log("Firmware toolchain (pixi run firmware-setup) ...")
     pixi_run(project_root, ["run", "firmware-setup"], run_command)
     log("Host firmware binaries (pixi run firmware-build-linux) ...")
@@ -1006,6 +1011,9 @@ def main(argv: Optional[list[str]] = None) -> int:
     args = parse_args(argv)
     selection = components.load(ROOT)
     selection.update({name: getattr(args, name) for name in components.LABELS if getattr(args, name) is not None})
+    for problem in components.problems(selection):
+        print(f"Install failed: {problem}", file=sys.stderr)
+        return 1
     components.save(ROOT, selection)
     print(f"Components: {components.summary(selection)}")
     try:
