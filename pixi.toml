@@ -114,7 +114,17 @@ test-only = "python scripts/ci_colcon_test.py --merge-install"
 [feature.panel.tasks]
 panel-install = { cmd = "yarn install", cwd = "src/lucy_control_panel" }
 panel-dev = { cmd = "yarn dev", cwd = "src/lucy_control_panel" }
-panel-build = { cmd = "yarn build", cwd = "src/lucy_control_panel" }
+panel-build = { cmd = "yarn build", cwd = "src/lucy_control_panel", inputs = [
+  "src/lucy_control_panel/src",
+  "src/lucy_control_panel/public",
+  "src/lucy_control_panel/index.html",
+  "src/lucy_control_panel/package.json",
+  "src/lucy_control_panel/yarn.lock",
+  "src/lucy_control_panel/vite.config.ts",
+  "src/lucy_control_panel/tsconfig*.json",
+  "src/lucy_control_panel/.env",
+], outputs = ["src/lucy_control_panel/dist"] }
+panel-prod = { cmd = "yarn preview", cwd = "src/lucy_control_panel", depends-on = ["panel-build"] }
 
 [feature.dev.tasks]
 doctor = "python scripts/ros_doctor.py"

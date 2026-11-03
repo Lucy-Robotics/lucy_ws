@@ -879,13 +879,19 @@ def build_local_realsense_optional(
 
 
 def build_workspace(
-    project_root: Path | str, run_command: Callable = default_run_command, log: Log = print
+    project_root: Path | str,
+    run_command: Callable = default_run_command,
+    log: Log = print,
+    developer: bool = False,
 ) -> None:
     log("Building ROS workspace (colcon) ...")
     pixi_run(project_root, ["run", "build"], run_command)
     if components.load(project_root)["control_panel"]:
         log("Installing control panel dependencies (yarn) ...")
         pixi_run(project_root, ["run", "panel-install"], run_command)
+        if not developer:
+            log("Building the control panel for production ...")
+            pixi_run(project_root, ["run", "panel-build"], run_command)
     build_local_realsense_optional(project_root, run_command, log)
     setup_firmware_toolchain(project_root, run_command, log)
 
@@ -964,7 +970,7 @@ def run_flow(
     if skip_build:
         log("Skipping workspace build (--skip-build).")
     else:
-        build_workspace(root, run_command, log)
+        build_workspace(root, run_command, log, developer=developer)
 
     return {"mode": mode, "developer": developer, "fetch_method": effective, "skip_build": skip_build}
 
