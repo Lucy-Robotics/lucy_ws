@@ -12,6 +12,7 @@ Skip with ``LUCY_SKIP_USB_ACCESS=1``. Non-Linux hosts are a no-op.
 """
 from __future__ import annotations
 
+import filecmp
 import os
 import platform
 import shutil
@@ -99,6 +100,32 @@ def matching_tty_nodes() -> list[tuple[Path, str, str, str]]:
     return found
 
 
+def udev_rules_installed() -> bool:
+    """True when every config/udev rule is already in /etc/udev/rules.d, unchanged (no sudo needed to check)."""
+    rules = sorted(UDEV_SOURCE_DIR.glob("*.rules"))
+    try:
+        return bool(rules) and not OBSOLETE_RULE.exists() and all(
+            filecmp.cmp(src, UDEV_TARGET_DIR / src.name, shallow=False) for src in rules
+        )
+    except OSError:
+        return False
+
+
+def prime_sudo() -> None:
+    """Ask for the sudo password once, up front, only if ensure_usb_access() will need it."""
+    if (
+        env_flag("LUCY_SKIP_USB_ACCESS")
+        or platform.system() != "Linux"
+        or os.geteuid() == 0  # type: ignore[attr-defined]
+        or not sys.stdin.isatty()
+        or shutil.which("sudo") is None
+        or udev_rules_installed()
+    ):
+        return
+    log.info("USB udev rules need installing: sudo will ask for your password once, now.")
+    subprocess.run(["sudo", "-v"], check=False)
+
+
 def install_udev_rules(*, allow_prompt: bool) -> bool:
     """Install config/udev/*.rules permanently. Returns True on success."""
     rules = sorted(UDEV_SOURCE_DIR.glob("*.rules"))
@@ -170,7 +197,9 @@ def ensure_usb_access(*, allow_prompt: bool | None = None) -> None:
 
     log.step(5, 5, "USB serial access (Pico CDC + Feetech)...")
     permanent = False
-    if _sudo_available_noninteractive() or allow_prompt:
+    if udev_rules_installed():
+        log.ok("udev rules already installed")
+    elif _sudo_available_noninteractive() or allow_prompt:
         permanent = install_udev_rules(allow_prompt=allow_prompt)
         if permanent:
             log.ok("permanent udev rules installed / reloaded")
