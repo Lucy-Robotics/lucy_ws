@@ -6,7 +6,7 @@ import time
 
 from .constants import LOADING_TIMEOUT, STOPPING_TIMEOUT
 from .config import get_dev_mode, load_state
-from .package import Package, _pkg_visible
+from .package import Package, _pkg_for_mode, _pkg_visible
 from .shell import tmux_window_snapshot
 
 
@@ -23,7 +23,7 @@ class LauncherState:
             p for p in config_data["packages"] if _pkg_visible(p, dev_mode)
         ]
         self.packages = [
-            Package(p, running_state["modifiers"]) for p in package_configs
+            Package(_pkg_for_mode(p, dev_mode), running_state["modifiers"]) for p in package_configs
         ]
         self.package_map = {p.id: p for p in self.packages}
 

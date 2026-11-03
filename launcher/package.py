@@ -49,6 +49,13 @@ def _pkg_visible(pkg_config, dev_mode):
     return _env_enabled(pkg_config.get("requires_env"))
 
 
+def _pkg_for_mode(pkg_config, dev_mode):
+    """The package as launched in this mode: dev_command replaces command in developer mode."""
+    if dev_mode and "dev_command" in pkg_config:
+        return {**pkg_config, "command": pkg_config["dev_command"]}
+    return pkg_config
+
+
 class Package:
     def __init__(self, data, running_modifiers):
         self.id = data["id"]

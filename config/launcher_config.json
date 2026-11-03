@@ -122,9 +122,10 @@
       "type": "interface",
       "dependencies": [],
       "conflicts": [],
-      "command": "pixi run panel-dev",
+      "command": "pixi run panel-prod",
+      "dev_command": "pixi run panel-dev",
       "readiness_check": "bash scripts/port_open.sh ${LUCY_LCP_PUBLISHED_HOST_PORT:-4004}",
-      "readiness_timeout": 120,
+      "readiness_timeout": 300,
       "default_on": false
     },
     {

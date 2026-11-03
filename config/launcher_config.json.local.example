@@ -99,9 +99,10 @@
       "type": "interface",
       "dependencies": [],
       "conflicts": [],
-      "command": "pixi run panel-dev",
+      "command": "pixi run panel-prod",
+      "dev_command": "pixi run panel-dev",
       "readiness_check": "pgrep -f '[v]ite' >/dev/null 2>&1",
-      "readiness_timeout": 120,
+      "readiness_timeout": 300,
       "default_on": false
     },
     {
