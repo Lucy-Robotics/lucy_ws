@@ -16,6 +16,38 @@ permissions:
   contents: read
 
 jobs:
+  installer-branches:
+    name: "Windows installer: pick the branches"
+    runs-on: ubuntu-latest
+    outputs:
+      lucy_ws: ${{ steps.pick.outputs.lucy_ws }}
+      repos: ${{ steps.pick.outputs.repos }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          repository: Lucy-Robotics/lucy_ws
+          ref: ${{ github.event.repository.name != 'lucy_ws' && (github.base_ref == 'master' && 'master' || 'dev') || '' }}
+
+      - name: Pick the sub-repo branches
+        id: pick
+        shell: bash
+        env:
+          CALLER: ${{ github.event.repository.name }}
+          CALLER_REF: ${{ github.head_ref || github.ref_name }}
+          MASTER_SIDE: ${{ github.base_ref == 'master' || github.ref_name == 'master' || startsWith(github.ref, 'refs/tags/') }}
+        run: |
+          python3 scripts/ci_pick_repos.py | tee picked.txt
+          echo "lucy_ws=$(awk '$1 == "lucy_ws" { print $2 }' picked.txt)" >> "$GITHUB_OUTPUT"
+          { echo 'repos<<REPOS_JSON'; cat config/repos.json; echo; echo REPOS_JSON; } >> "$GITHUB_OUTPUT"
+
+  windows-installer:
+    name: Windows installer
+    needs: installer-branches
+    uses: Lucy-Robotics/Lucy_windows/.github/workflows/installer-e2e.yml@master
+    with:
+      lucy_ws_branch: ${{ needs.installer-branches.outputs.lucy_ws }}
+      repos_json: ${{ needs.installer-branches.outputs.repos }}
+
   pixi-install-build-test:
     name: Pixi install & build (${{ matrix.runner }})
     concurrency:
@@ -70,18 +102,7 @@ jobs:
           CALLER: ${{ github.event.repository.name }}
           CALLER_REF: ${{ github.head_ref || github.ref_name }}
           MASTER_SIDE: ${{ github.base_ref == 'master' || github.ref_name == 'master' || startsWith(github.ref, 'refs/tags/') }}
-        run: |
-          python3 -c "
-          import json, os, pathlib
-          p = pathlib.Path('config/repos.json')
-          c = json.loads(p.read_text())
-          for r in c['repos']:
-              r['branch'] = 'master' if os.environ['MASTER_SIDE'] == 'true' else 'dev'
-              if r['name'] == os.environ['CALLER']:
-                  r['branch'] = os.environ['CALLER_REF']
-              print(r['name'], r['branch'])
-          p.write_text(json.dumps(c, indent=2))
-          "
+        run: python3 scripts/ci_pick_repos.py
 
       - name: Clone sub-repositories (skip colcon)
         shell: bash
