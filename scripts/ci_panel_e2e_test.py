@@ -56,6 +56,14 @@ def stop(proc: subprocess.Popen) -> None:
         os.killpg(proc.pid, signal.SIGKILL)
 
 
+def wait_for_port(port: int, procs: dict[str, subprocess.Popen]) -> None:
+    deadline = time.time() + BRINGUP_TIMEOUT_S
+    while not port_open(port):
+        if any(p.poll() is not None for p in procs.values()) or time.time() > deadline:
+            raise CheckFailed(f"port {port} never opened")
+        time.sleep(1.0)
+
+
 def wait_for_stack(ros: Ros, procs: dict[str, subprocess.Popen]) -> None:
     deadline = time.time() + BRINGUP_TIMEOUT_S
     while time.time() < deadline:
@@ -87,8 +95,10 @@ def main() -> int:
     procs: dict[str, subprocess.Popen] = {}
     try:
         wait_for_previous_stack(ros)
-        procs = {"core": start(f"core robot_package:={robot}"), "control-panel": start("control-panel")}
-        log(f"started pixi run core robot_package:={robot} and pixi run control-panel")
+        procs = {"core": start(f"core robot_package:={robot}")}
+        wait_for_port(ROSBRIDGE_PORT, procs)
+        procs["control-panel"] = start("control-panel")
+        log(f"started pixi run core robot_package:={robot}, then pixi run control-panel")
         wait_for_stack(ros, procs)
         check_robot_identity(ros, robot)
         exercise_panel(ros, robot)
