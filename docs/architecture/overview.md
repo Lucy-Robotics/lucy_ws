@@ -40,7 +40,7 @@ flowchart TB
   Pixi --> Robots
   Robots -->|"URDF active.yaml"| ROS
   ROS -.->|"generate build flash"| FW
-  ROS -->|"USB CDC Modbus RTU"| MCU
+  ROS -->|"USB CDC f64 table"| MCU
   FW -.->|"UF2"| MCU
   MCU --> Actuators
   Cams -->|"image topics"| ROS
@@ -55,11 +55,11 @@ flowchart TB
 |------|---------|
 | `lucy_control_panel` | External UI - React app in the browser (rosbridge client) |
 | `Pixi_launcher` | Pixi env, `repos.json`, Control Center / launch |
-| `lucy_ros_packages` | Bringup, ros2_control, config pipeline, Modbus bridge, cameras, msgs |
+| `lucy_ros_packages` | Bringup, ros2_control, config pipeline, `mcu_bridge` launch, cameras, msgs |
 | `robot_packages` | `*_urdf` packages (e.g. `inmoov_urdf`, `so_arm101_urdf`) |
 | `MCU` | Microcontrollers |
 | `Actuators` | PWM and/or UART bus motors (and related I2C/ADC devices when configured) |
-| `Gazebo_RViz` | Sim / viz; no Modbus |
+| `Gazebo_RViz` | Sim / viz; no SHM and no USB CDC to an MCU |
 
 ## How the pieces connect (real robot)
 
@@ -68,10 +68,10 @@ flowchart TB
 | `lucy_control_panel` (browser) | `lucy_ros_packages` | rosbridge WebSocket: trajectories, config services/actions, camera subscribe |
 | Robot packages (`*_urdf`) | `lucy_ros_packages` | URDF + `config/hardware/active.yaml` (radians) |
 | Config pipeline | `lucy_embedded_firmware` | Per-board YAML → Cargo build → UF2 flash |
-| ros2_control | MCU | `LucySystemHardware` → SHM → `lucy_modbus_bridge` → USB Modbus |
+| ros2_control | MCU | One `LucySystemHardware` per board → SHM `/{node_name}` → one `mcu_bridge` → USB CDC `f64` table |
 | MCU | Actuators | PWM and/or UART bus (plus I2C/ADC when configured) |
 | Cameras | Control panel | ROS image topics through bringup → rosbridge |
-| Gazebo | Robot | `gz_ros2_control` - **no** SHM/Modbus |
+| Gazebo | Robot | `gz_ros2_control` — no SHM and no USB CDC |
 
 ## Units (cross-cutting)
 
@@ -79,7 +79,7 @@ flowchart TB
 |-------|------|
 | Robot hardware YAML | radians |
 | Control panel editors | degrees (UI only) |
-| SHM + Modbus registers | milliradians |
+| Host SHM and the USB CDC table | `f64` radians |
 
 ## Multi-robot
 
