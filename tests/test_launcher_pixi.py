@@ -1,6 +1,7 @@
 """Tests for launcher Pixi/tmux command wrapping (no tmux or ROS required)."""
 
 import os
+import re
 import sys
 
 import launcher
@@ -30,20 +31,20 @@ def test_state_file_is_workspace_scoped():
 def test_pixi_workspace_script_wraps_ros2():
     body = _pixi_workspace_script("ros2 doctor --report")
     assert f"cd {WORKSPACE_ROOT}" in body
-    assert "pixi run -- bash -c" in body
+    assert re.search(r"pixi run -e \S+ -- bash -c", body)
     assert "nix_gl_env.sh" in body
     assert "ros2 doctor --report" in body
 
 
 def test_pixi_workspace_script_preserves_pixi_command():
     body = _pixi_workspace_script("pixi run panel-dev")
-    assert "pixi run panel-dev" in body
+    assert re.search(r"pixi run -e \S+ panel-dev", body)
     assert "pixi run -- pixi" not in body
 
 
 def test_pixi_workspace_script_complex_shell_uses_bash_c():
     body = _pixi_workspace_script("echo hi && ros2 doctor")
-    assert "pixi run -- bash -c" in body
+    assert re.search(r"pixi run -e \S+ -- bash -c", body)
 
 
 def test_pixi_workspace_script_inner_shell_is_not_a_login_shell():
@@ -100,6 +101,8 @@ def test_core_teardown_waits_before_kill_window():
     assert "C-c" in cmd
     assert "kill-window" in cmd
     assert "pgrep" in cmd
+    assert "list-panes" in cmd
+    assert cmd.index("C-c") < cmd.index("list-panes") < cmd.index("kill-window")
     assert cmd == CORE_TEARDOWN
 
 

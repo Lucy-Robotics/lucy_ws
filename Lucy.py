@@ -5,8 +5,11 @@ import subprocess
 import sys
 import shutil
 
+import components
+
 try:
     import curses
+    from components_screen import choose_components
 except ImportError:  # Windows: handled by windows_main
     curses = None
 
@@ -191,7 +194,7 @@ def main_tui(stdscr):
 
     is_dev_mode = get_dev_mode()
     current_idx = 0
-    options = ["Launch", "---", "Update", "Rebuild", "Exit", "---", "Developer Mode"]
+    options = ["Launch", "---", "Update", "Rebuild", "Components", "Exit", "---", "Developer Mode"]
 
     while True:
         stdscr.clear()
@@ -240,11 +243,14 @@ def main_tui(stdscr):
                     "extra_env": INSTALL_ENV,
                 }
             elif selected_option == "Rebuild":
+                panel = components.load(".")["control_panel"]
                 return {
-                    "cmd": ["pixi", "run", "build"],
+                    "cmd": components.pixi_command(".", ["run", "build"]),
                     "name": "Rebuild",
-                    "followup": [["pixi", "run", "panel-install"]],
+                    "followup": [components.pixi_command(".", ["run", "panel-install"])] if panel else [],
                 }
+            elif selected_option == "Components":
+                choose_components(stdscr, ".")
             elif selected_option == "Launch":
                 # Hands the terminal to the stack; the menu does not come back.
                 return {"cmd": ["./launch_lucy.sh"], "name": "Launch", "exits_menu": True}
@@ -280,7 +286,7 @@ if __name__ == "__main__":
             print(f"A terminal error occurred: {e}", file=sys.stderr)
             print("This might be due to resizing the window. Please restart.", file=sys.stderr)
             sys.exit(1)
-        if not wants_install:
+        if not wants_install or curses.wrapper(choose_components, ".") is None:
             sys.exit(0)
         rc = run_command([sys.executable, "install.py"], extra_env=INSTALL_ENV)
         if rc != 0:

@@ -3,6 +3,8 @@
 import os
 import subprocess
 
+import components
+
 from .constants import LOADING_TIMEOUT, WORKSPACE_ROOT
 from .config import save_state
 from .shell import run_shell_command, _pane_exit_status
@@ -45,6 +47,8 @@ def _pkg_visible(pkg_config, dev_mode):
     if pkg_config.get("dev_only") and not dev_mode:
         return False
     if not _ros_pkg_installed(pkg_config.get("requires_pkg")):
+        return False
+    if not components.load(WORKSPACE_ROOT).get(pkg_config.get("requires_component"), True):
         return False
     return _env_enabled(pkg_config.get("requires_env"))
 

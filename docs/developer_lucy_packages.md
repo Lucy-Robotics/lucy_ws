@@ -85,7 +85,7 @@ Pixi installs RoboStack Jazzy; `colcon build --symlink-install` builds `src/`; `
 | `python3 install.py --build-only` | Skip git; `pixi install` + colcon + panel yarn |
 | `python3 install.py --skip-build` | Clone/pull only (CI) |
 
-After the colcon/panel build, install runs **`pixi run firmware-setup`** (rustup, `thumbv6m-none-eabi`, `elf2uf2-rs`, and Raspberry Pi **`picotool`** into the Pixi env, plus `libusb`). Skip with **`LUCY_SKIP_FIRMWARE_SETUP=1`**. Verify anytime with **`pixi run firmware-check`**. Linux udev for Pico USB is still deferred when the shell is non-interactive. Restart **Core** after a first-time setup so the config pipeline node picks up `picotool` on `PATH`.
+After the colcon/panel build, install runs **`pixi run firmware-setup`** (rustup, `thumbv6m-none-eabi`, `elf2uf2-rs`, and Raspberry Pi **`picotool`** into the Pixi env, plus `libusb`). It then builds the host firmware binaries (**`pixi run firmware-build-linux`**: linux, mcu_bridge), so an update never runs a stale bridge. Skip both with **`LUCY_SKIP_FIRMWARE_SETUP=1`**. Verify anytime with **`pixi run firmware-check`**. Linux udev for Pico USB is still deferred when the shell is non-interactive. Restart **Core** after a first-time setup so the config pipeline node picks up `picotool` on `PATH`.
 
 **Do not use `rosdep`** - it bypasses Pixi/RoboStack. Add deps via `pixi.toml` or clone into `src/`. See [`docs/pixi_setup.md`](pixi_setup.md).
 
@@ -236,4 +236,5 @@ Vite proxies `/rosbridge` to `ws://127.0.0.1:9090`. Launcher sets `LUCY_LCP_*` v
 | [`src/lucy_ros_packages/docs/DEVELOPER.md`](../src/lucy_ros_packages/docs/DEVELOPER.md) | bringup, ros2_control, CI |
 | [`src/lucy_ros_packages/docs/ROS2_CONTROL.md`](../src/lucy_ros_packages/docs/ROS2_CONTROL.md) | ros2_control on Lucy |
 | [`src/inmoov_urdf/docs/DEVELOPER.md`](../src/inmoov_urdf/docs/DEVELOPER.md) | URDF, meshes, sim launches |
+| [`src/inmoov_i2_urdf/docs/DEVELOPER.md`](../src/inmoov_i2_urdf/docs/DEVELOPER.md) | InMoov i2 model (fork of `inmoov_urdf`) |
 | [`src/so_arm101_urdf/docs/DEVELOPER.md`](../src/so_arm101_urdf/docs/DEVELOPER.md) | SO-ARM101 follower arm |
