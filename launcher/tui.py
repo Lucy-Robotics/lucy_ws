@@ -10,6 +10,7 @@ except ImportError:
 from .apply import apply_changes, default_robot_selection, restore_selection
 from .config import get_dev_mode, load_config, save_selection
 from .robot_switch import take_robot_request
+from .stack_status import write_stack_status
 from .constants import MIN_TERM_HEIGHT, MIN_TERM_WIDTH, REDRAW_INTERVAL_MS
 from .state import (
     LauncherState,
@@ -284,6 +285,7 @@ def _event_loop(stdscr, state, poller, status_msg=None, status_msg_until=0.0):
             snapshot = poller.take()
             if snapshot is not None:
                 state.apply_snapshot(snapshot)
+            write_stack_status(state)
             switched = take_robot_request(state)
             if switched:
                 apply_changes(state)
