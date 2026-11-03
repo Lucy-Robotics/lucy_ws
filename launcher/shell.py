@@ -1,6 +1,7 @@
 """Shell command execution, Pixi wrapping, and async runners."""
 
 import os
+import re
 import shlex
 import subprocess
 import threading
@@ -166,6 +167,65 @@ def tmux_window_snapshot():
             except ValueError:
                 dead[name] = -1  # signal death reports no status; treat as a crash
     return windows, dead
+
+
+_LAUNCH_PREFIX = re.compile(r"^\[[^\]]+\]\s*")
+
+
+def pick_crash_line(text):
+    """The operator-facing line from a pane or a one-line error file.
+
+    A launch log mixes the failure with everything that kept running afterward.
+    Prefer the process's own message ("Failed to ...") over the launcher's
+    "[ERROR] ... process has died" wrapper. A file that is already one line is
+    that message, so it is returned as written."""
+    rows = []
+    for raw in text.splitlines():
+        raw = raw.strip()
+        if not raw:
+            continue
+        rows.append((_LAUNCH_PREFIX.sub("", raw, count=1).strip(), raw))
+    if not rows:
+        return ""
+    if len(rows) == 1:
+        return rows[0][0]
+
+    best = ""
+    best_rank = 0
+    for stripped, raw in rows:
+        low = stripped.lower()
+        if "relaunch lucy" in low or low.startswith("disconnect and reconnect "):
+            rank = 4
+        elif (
+            low.startswith("failed to ")
+            or low.startswith("error:")
+            or low.startswith("usage:")
+        ):
+            rank = 3
+        elif "panicked at" in low:
+            rank = 2
+        elif raw.startswith("[ERROR]") or stripped.startswith("[ERROR]"):
+            rank = 1
+        else:
+            rank = 0
+        if rank and rank >= best_rank:
+            best_rank = rank
+            best = stripped
+    return best
+
+
+def pane_crash_message(window):
+    """Last operator-facing error currently visible in a tmux window."""
+    if not window:
+        return ""
+    target = shlex.quote(f"{TMUX_SESSION}:{window}")
+    out = subprocess.run(
+        f"tmux capture-pane -p -t {target} -S -300 2>/dev/null",
+        shell=True,
+        capture_output=True,
+        text=True,
+    ).stdout
+    return pick_crash_line(out)
 
 
 def _pane_exit_status(pkg_id):

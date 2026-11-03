@@ -18,6 +18,7 @@ from .state import (
     _nav_hint,
     _pkg_start_times,
     _pkg_stop_times,
+    _crash_hint,
     _stage_hint,
     _status_url,
     get_pkg_status,
@@ -57,6 +58,7 @@ def _draw_pkg_row(
     hint="",
     url="",
     stage="",
+    detail="",
 ):
     base = f"{prefix}{indent}{checkbox} {name}"
     stdscr.addstr(y, x, base, attr)
@@ -74,6 +76,15 @@ def _draw_pkg_row(
         col += len(status_str)
     except curses.error:
         pass
+    if detail and status == "crashed":
+        room = stdscr.getmaxyx()[1] - col - 1
+        if room > 1:
+            text = _fit(f" {detail}", room)
+            try:
+                stdscr.addstr(y, col, text, curses.color_pair(2))
+                col += len(text)
+            except curses.error:
+                pass
     if stage:
         # Dimmed: the stage is a progress readout, not a state of its own, and
         # must not compete with the status label it trails.
@@ -211,6 +222,7 @@ def draw_tui(
                 hint,
                 _status_url(p),
                 _stage_hint(p, status),
+                _crash_hint(p, status),
             )
         row += len(items) + 1
 

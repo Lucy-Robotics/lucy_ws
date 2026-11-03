@@ -1,17 +1,22 @@
 #!/usr/bin/env python3
-"""Grant local access to Lucy USB-serial devices (Pico CDC + Feetech host dongle).
+"""Grant local access to Lucy USB devices (Pico CDC/BOOTSEL + Feetech dongle).
 
 Used by ``firmware_setup`` / ``pixi run setup-udev``:
 
 1. Prefer permanent: install ``config/udev/*.rules`` under ``/etc/udev/rules.d``
-   (sudo) and reload udev.
-2. Always attempt temporary: ``chmod 0666`` on currently plugged matching TTYs
+   (sudo once) and reload udev — tty CDC, raw USB (picotool), and RPI-RP2 block
+   device so the flash pipeline never needs sudo at runtime.
+2. On NixOS (immutable ``/etc/udev``): print a host-specific ``configuration.nix``
+   snippet (absolute rules path + current user) to copy/paste, then
+   ``sudo nixos-rebuild switch``.
+3. Always attempt temporary: ``chmod 0666`` on currently plugged matching TTYs
    so the current session works without replug / dialout.
 
 Skip with ``LUCY_SKIP_USB_ACCESS=1``. Non-Linux hosts are a no-op.
 """
 from __future__ import annotations
 
+import getpass
 import os
 import platform
 import shutil
@@ -38,6 +43,8 @@ WORKSPACE_ROOT = Path(__file__).resolve().parents[1]
 UDEV_SOURCE_DIR = WORKSPACE_ROOT / "config" / "udev"
 UDEV_TARGET_DIR = Path("/etc/udev/rules.d")
 OBSOLETE_RULE = UDEV_TARGET_DIR / "99-lucy-rp2040.rules"
+# Unique line from config/udev/99-lucy-usb-serial.rules (present after NixOS rebuild).
+LUCY_UDEV_MARKER = "Lucy USB access without dialout"
 
 
 def env_flag(name: str) -> bool:
@@ -99,11 +106,156 @@ def matching_tty_nodes() -> list[tuple[Path, str, str, str]]:
     return found
 
 
+def matching_usb_nodes() -> list[tuple[Path, str, str, str]]:
+    """List (/dev/bus/usb/BBB/DDD, vid, pid, label) for picotool force-reset."""
+    wanted = {(v, p): label for v, p, label in LUCY_USB_IDS}
+    found: list[tuple[Path, str, str, str]] = []
+    root = Path("/sys/bus/usb/devices")
+    if not root.is_dir():
+        return found
+    for entry in root.iterdir():
+        vid_path = entry / "idVendor"
+        pid_path = entry / "idProduct"
+        if not vid_path.is_file() or not pid_path.is_file():
+            continue
+        try:
+            vid = vid_path.read_text(encoding="utf-8").strip().lower().zfill(4)[-4:]
+            pid = pid_path.read_text(encoding="utf-8").strip().lower().zfill(4)[-4:]
+            bus = int((entry / "busnum").read_text(encoding="utf-8").strip())
+            addr = int((entry / "devnum").read_text(encoding="utf-8").strip())
+        except (OSError, ValueError):
+            continue
+        label = wanted.get((vid, pid))
+        if not label:
+            continue
+        node = Path(f"/dev/bus/usb/{bus:03d}/{addr:03d}")
+        if node.exists():
+            found.append((node, vid, pid, label))
+    return found
+
+
+def is_nixos() -> bool:
+    """True when ``/etc/udev/rules.d`` is the NixOS store symlink (or ``/etc/NIXOS``)."""
+    if Path("/etc/NIXOS").exists():
+        return True
+    try:
+        return Path("/etc/udev/rules.d").resolve().as_posix().startswith("/nix/store/")
+    except OSError:
+        return False
+
+
+def current_username() -> str:
+    for key in ("USER", "LOGNAME", "USERNAME"):
+        value = (os.environ.get(key) or "").strip()
+        if value:
+            return value
+    try:
+        return getpass.getuser()
+    except Exception:
+        return "<you>"
+
+
+def nixos_configuration_snippet() -> str:
+    """Host-specific NixOS fragment ready to paste into configuration.nix / a flake."""
+    rules = (UDEV_SOURCE_DIR / "99-lucy-usb-serial.rules").resolve()
+    user = current_username()
+    return (
+        "programs.nix-ld.enable = true;\n"
+        f'services.udev.extraRules = builtins.readFile "{rules}";\n'
+        f'users.users.{user}.extraGroups = [ "dialout" ];\n'
+    )
+
+
+def lucy_udev_rules_active() -> bool:
+    """True when Lucy USB udev rules are already loaded into the running system."""
+    roots = (
+        Path("/etc/udev/rules.d"),
+        Path("/run/current-system/etc/udev/rules.d"),
+    )
+    for root in roots:
+        if not root.is_dir():
+            continue
+        try:
+            paths = list(root.glob("*.rules"))
+        except OSError:
+            continue
+        for path in paths:
+            try:
+                text = path.read_text(encoding="utf-8", errors="ignore")
+            except OSError:
+                continue
+            if LUCY_UDEV_MARKER in text:
+                return True
+    return False
+
+
+def user_in_dialout() -> bool:
+    """True when the current user is in the dialout group (effective or configured)."""
+    try:
+        import grp
+    except ImportError:
+        return False
+    try:
+        dialout = grp.getgrnam("dialout")
+    except KeyError:
+        return True  # no dialout group on this system
+    user = current_username()
+    if user in dialout.gr_mem:
+        return True
+    try:
+        return dialout.gr_gid in os.getgroups()
+    except OSError:
+        return False
+
+
+def nixos_usb_already_configured() -> bool:
+    """Skip the MANUAL SETUP prompt when Lucy USB udev rules are already active.
+
+    Dialout is checked only for a soft hint: group membership needs a re-login
+    after rebuild, so it must not re-trigger the banner.
+    """
+    return lucy_udev_rules_active()
+
+
+def prompt_nixos_udev_config(*, allow_prompt: bool) -> None:
+    """Print a copy/paste NixOS config block with absolute paths for this machine."""
+    # Plain stdout: eye-catching banner + clean copy/paste (no log prefixes).
+    sys.stdout.write(
+        "\n"
+        "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n"
+        "!!!                                                      !!!\n"
+        "!!!            MANUAL SETUP REQUIRED                     !!!\n"
+        "!!!                                                      !!!\n"
+        "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n"
+        "\n"
+        "NixOS: paste into configuration.nix (or a flake module):\n"
+        "\n"
+    )
+    sys.stdout.write(nixos_configuration_snippet())
+    sys.stdout.write(
+        "\n"
+        "Then:  sudo nixos-rebuild switch   (re-login + replug USB)\n"
+        "\n"
+    )
+    sys.stdout.flush()
+    if allow_prompt and sys.stdin.isatty():
+        try:
+            input("Press Enter to continue… ")
+        except EOFError:
+            pass
+
+
 def install_udev_rules(*, allow_prompt: bool) -> bool:
     """Install config/udev/*.rules permanently. Returns True on success."""
     rules = sorted(UDEV_SOURCE_DIR.glob("*.rules"))
     if not rules:
         log.error(f"no udev rules under {UDEV_SOURCE_DIR}")
+        return False
+
+    if is_nixos():
+        if nixos_usb_already_configured():
+            return True
+        prompt_nixos_udev_config(allow_prompt=allow_prompt)
         return False
 
     for src in rules:
@@ -120,38 +272,46 @@ def install_udev_rules(*, allow_prompt: bool) -> bool:
     if shutil.which("udevadm"):
         _sudo(["udevadm", "control", "--reload-rules"], allow_prompt=allow_prompt)
         _sudo(["udevadm", "trigger", "--subsystem-match=tty"], allow_prompt=allow_prompt)
+        _sudo(["udevadm", "trigger", "--subsystem-match=usb"], allow_prompt=allow_prompt)
+        _sudo(["udevadm", "trigger", "--subsystem-match=block"], allow_prompt=allow_prompt)
     return True
 
 
+def _chmod_node(node: Path, label: str, *, allow_prompt: bool, fixed: list[Path]) -> None:
+    try:
+        if os.access(node, os.R_OK | os.W_OK):
+            log.ok(f"already accessible: {node} ({label})")
+            fixed.append(node)
+            return
+    except OSError:
+        pass
+
+    try:
+        os.chmod(node, 0o666)
+        log.ok(f"temporary access (chmod): {node} ({label})")
+        fixed.append(node)
+        return
+    except PermissionError:
+        pass
+
+    result = _sudo(["chmod", "0666", str(node)], allow_prompt=allow_prompt)
+    if result.returncode == 0:
+        log.ok(f"temporary access (sudo chmod): {node} ({label})")
+        fixed.append(node)
+    else:
+        log.error(
+            f"cannot chmod {node} ({label}): "
+            f"{result.stderr.strip() or 'permission denied'}"
+        )
+
+
 def apply_temporary_access(*, allow_prompt: bool) -> list[Path]:
-    """chmod 0666 matching TTYs so this session can open them without dialout."""
+    """chmod 0666 matching TTYs + raw USB nodes (picotool) for this session."""
     fixed: list[Path] = []
     for node, _vid, _pid, label in matching_tty_nodes():
-        try:
-            if os.access(node, os.R_OK | os.W_OK):
-                log.ok(f"already accessible: {node} ({label})")
-                fixed.append(node)
-                continue
-        except OSError:
-            pass
-
-        try:
-            os.chmod(node, 0o666)
-            log.ok(f"temporary access (chmod): {node} ({label})")
-            fixed.append(node)
-            continue
-        except PermissionError:
-            pass
-
-        result = _sudo(["chmod", "0666", str(node)], allow_prompt=allow_prompt)
-        if result.returncode == 0:
-            log.ok(f"temporary access (sudo chmod): {node} ({label})")
-            fixed.append(node)
-        else:
-            log.error(
-                f"cannot chmod {node} ({label}): "
-                f"{result.stderr.strip() or 'permission denied'}"
-            )
+        _chmod_node(node, label, allow_prompt=allow_prompt, fixed=fixed)
+    for node, _vid, _pid, label in matching_usb_nodes():
+        _chmod_node(node, f"{label} [usb]", allow_prompt=allow_prompt, fixed=fixed)
     return fixed
 
 
@@ -170,7 +330,15 @@ def ensure_usb_access(*, allow_prompt: bool | None = None) -> None:
 
     log.step(5, 5, "USB serial access (Pico CDC + Feetech)...")
     permanent = False
-    if _sudo_available_noninteractive() or allow_prompt:
+    if is_nixos():
+        if nixos_usb_already_configured():
+            log.ok("NixOS USB access already configured — skipping setup prompt")
+            permanent = True
+            if not user_in_dialout():
+                log.info("dialout not active in this session yet — re-login if CDC is still locked")
+        else:
+            prompt_nixos_udev_config(allow_prompt=allow_prompt)
+    elif _sudo_available_noninteractive() or allow_prompt:
         permanent = install_udev_rules(allow_prompt=allow_prompt)
         if permanent:
             log.ok("permanent udev rules installed / reloaded")

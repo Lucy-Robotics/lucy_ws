@@ -192,6 +192,65 @@ def _row_text(screen):
     return "".join(text for _, _, text, _ in screen.writes)
 
 
+def test_crash_line_prefers_the_process_message_over_the_died_wrapper():
+    """The pane keeps logging after the firmware exits. The row wants the reason."""
+    from launcher import pick_crash_line
+
+    log = """
+[INFO] [lucy_embedded_firmware_linux-6]: process started with pid [3670493]
+[lucy_embedded_firmware_linux-6] Disconnect and reconnect SO-ARM. Then relaunch Lucy.
+[ERROR] [lucy_embedded_firmware_linux-6]: process has died [pid 3670493, exit code 1, cmd 'lucy-embedded-firmware-linux so_arm'].
+[rviz2-7] [INFO] [rviz2]: Stereo is NOT SUPPORTED
+"""
+    assert pick_crash_line(log) == (
+        "Disconnect and reconnect SO-ARM. Then relaunch Lucy."
+    )
+
+
+def test_a_one_line_error_file_is_the_message():
+    from launcher import pick_crash_line
+
+    assert pick_crash_line(
+        "shm_open(\"/so_arm\") failed after 30s: No such file or directory\n"
+    ) == 'shm_open("/so_arm") failed after 30s: No such file or directory'
+
+
+def test_crash_hint_is_only_shown_when_crashed():
+    from launcher import _crash_hint
+
+    pkg = types.SimpleNamespace(
+        crash_message="Disconnect and reconnect SO-ARM. Then relaunch Lucy."
+    )
+    assert _crash_hint(pkg, "crashed") == pkg.crash_message
+    assert _crash_hint(pkg, "loading") == ""
+    assert _crash_hint(pkg, "running") == ""
+
+
+def test_row_shows_the_error_to_the_right_of_crashed(fake_curses):
+    screen = FakeScreen(width=160)
+    tui._draw_pkg_row(
+        screen, 3, 4, "  ", "    ", "[x]", "... with Real Hardware", 0, "crashed",
+        detail="Disconnect and reconnect SO-ARM. Then relaunch Lucy.",
+    )
+    assert _row_text(screen) == (
+        "      [x] ... with Real Hardware [CRASHED] "
+        "Disconnect and reconnect SO-ARM. Then relaunch Lucy."
+    )
+    detail = next(w for w in screen.writes if "Disconnect" in w[2])
+    assert detail[3] == fake_curses.color_pair(2)
+
+
+def test_a_long_crash_message_is_truncated_rather_than_dropped(fake_curses):
+    screen = FakeScreen(width=70)
+    tui._draw_pkg_row(
+        screen, 3, 4, "  ", "    ", "[x]", "... with Real Hardware", 0, "crashed",
+        detail="Disconnect and reconnect SO-ARM. Then relaunch Lucy.",
+    )
+    text = _row_text(screen)
+    assert "[CRASHED] Disconnect" in text
+    assert len(text) + 4 <= 70
+
+
 def test_row_shows_the_stage_after_the_loading_label(fake_curses):
     screen = FakeScreen()
     tui._draw_pkg_row(

@@ -612,6 +612,34 @@ def test_intended_running_package_crashes_immediately_when_not_running():
         _pkg_start_times.pop("real", None)
 
 
+def test_real_hardware_crash_message_comes_from_the_error_file(tmp_path, monkeypatch):
+    from launcher.package import Package
+
+    error_file = tmp_path / "error"
+    error_file.write_text(
+        "Disconnect and reconnect SO-ARM. Then relaunch Lucy.\n"
+    )
+    monkeypatch.setattr(
+        "launcher.package.pane_crash_message",
+        lambda _window: (_ for _ in ()).throw(AssertionError("pane scrape unused")),
+    )
+    pkg = Package(
+        {
+            "id": "real",
+            "name": "... with Real Hardware",
+            "type": "modifier",
+            "command": "real:=true",
+            "readiness_check": "false",
+            "error_check": f'cat "{error_file}"',
+            "crash_log_window": "core",
+        },
+        running_modifiers=["real"],
+    )
+    assert pkg.crash_message == (
+        "Disconnect and reconnect SO-ARM. Then relaunch Lucy."
+    )
+
+
 def test_real_hardware_stays_loading_until_microcontroller_ready_file_exists(tmp_path):
     import time
     from launcher.package import Package
