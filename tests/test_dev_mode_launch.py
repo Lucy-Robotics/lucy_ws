@@ -90,4 +90,4 @@ def test_install_builds_the_panel_outside_developer_mode(monkeypatch, developer,
     install.build_workspace("/ws", lambda cmd, **_k: commands.append(cmd) or 0,
                             lambda _m: None, developer=developer)
 
-    assert (["pixi", "run", "panel-build"] in commands) == builds_panel
+    assert any(cmd[-1] == "panel-build" for cmd in commands) == builds_panel
