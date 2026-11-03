@@ -9,6 +9,7 @@ except ImportError:
 
 from .apply import apply_changes, default_robot_selection, restore_selection
 from .config import get_dev_mode, load_config, save_selection
+from .robot_switch import take_robot_request
 from .constants import MIN_TERM_HEIGHT, MIN_TERM_WIDTH, REDRAW_INTERVAL_MS
 from .state import (
     LauncherState,
@@ -295,6 +296,13 @@ def _event_loop(stdscr, state, poller, status_msg=None, status_msg_until=0.0):
             snapshot = poller.take()
             if snapshot is not None:
                 state.apply_snapshot(snapshot)
+            switched = take_robot_request(state)
+            if switched:
+                apply_changes(state)
+                save_selection({p.id for p in state.packages if p.selected})
+                status_msg = f"Control panel switched to {switched.name}"
+                status_msg_until = time.time() + 5.0
+                poller.request_refresh()
             if status_msg and time.time() >= status_msg_until:
                 status_msg = None
             display_list = draw_tui(
