@@ -247,7 +247,10 @@ def main_tui(stdscr):
                 return {
                     "cmd": components.pixi_command(".", ["run", "build"]),
                     "name": "Rebuild",
-                    "followup": [components.pixi_command(".", ["run", "panel-install"])] if panel else [],
+                    "followup": [
+                        components.pixi_command(".", ["run", task])
+                        for task in ["panel-install"] + ([] if is_dev_mode else ["panel-build"])
+                    ] if panel else [],
                 }
             elif selected_option == "Components":
                 choose_components(stdscr, ".")
