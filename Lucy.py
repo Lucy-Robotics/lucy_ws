@@ -243,7 +243,8 @@ def main_tui(stdscr):
                 return {
                     "cmd": ["pixi", "run", "build"],
                     "name": "Rebuild",
-                    "followup": [["pixi", "run", "panel-install"]],
+                    "followup": [["pixi", "run", "panel-install"]]
+                    + ([] if is_dev_mode else [["pixi", "run", "panel-build"]]),
                 }
             elif selected_option == "Launch":
                 # Hands the terminal to the stack; the menu does not come back.
