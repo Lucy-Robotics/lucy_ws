@@ -41,6 +41,8 @@ Every package entry in `config/launcher_config.json` uses the following fields t
 | `default_on` | `boolean` | If set to `true`, the package will be selected by default when the launcher boots up (currently unused as the launcher loads an empty initial state, but available for future functionality). |
 | `readiness_check` | `string` | Optional shell command that exits 0 when the package or modifier is ready and running. |
 | `exit_check` | `string` | Optional shell command returning the exit code of an underlying process (e.g. `cat /tmp/.lucy_real_hardware_status 2>/dev/null`), enabling immediate crash detection without a tmux window. |
+| `error_check` | `string` | Optional shell command printing the one-line reason shown to the right of `[CRASHED]` (e.g. `cat /tmp/.lucy_real_hardware_error 2>/dev/null`). |
+| `crash_log_window` | `string` | Optional tmux window whose recent output supplies that reason when `error_check` is empty. Modifiers share `core`. |
 | `readiness_timeout` | `integer` | Timeout in seconds before an unready package is considered crashed (default: 30s). |
 
 ### Under the Hood (`launcher` and `launch_lucy.sh`)

@@ -12,6 +12,18 @@ from .state import (
 )
 
 
+def _clean_status():
+    try:
+        from pathlib import Path
+
+        Path("/tmp/.lucy_real_hardware_status").unlink(missing_ok=True)
+        Path("/tmp/.lucy_real_hardware_error").unlink(missing_ok=True)
+        Path("/tmp/.lucy_real_hardware_ready").unlink(missing_ok=True)
+        Path("/tmp/.lucy_real_hardware_expected").unlink(missing_ok=True)
+    except OSError:
+        pass
+
+
 def _package_needs_vite_preserve(pkg) -> bool:
     """True when this package's readiness probe or command targets a Vite dev server."""
     if pkg.readiness_check and "vite" in pkg.readiness_check.lower():
@@ -65,6 +77,7 @@ def stop_all_packages(state):
         if core and core.is_running:
             launcher._stop_core_tmux()
         launcher.save_state({"modifiers": []})
+        _clean_status()
     launcher._finish_teardown()
 
 
@@ -95,6 +108,7 @@ def apply_changes(state):
             protect_vite=protect_vite,
         )
         launcher.save_state({"modifiers": []})
+        _clean_status()
         core_pkg.is_running = False
         core_pkg.ready = False
         _pkg_start_times.pop("core", None)
@@ -159,6 +173,7 @@ def apply_changes(state):
                 _pkg_start_times[pkg.id] = time.time()
                 _intended_running.add(pkg.id)
             elif pkg.type == "core":
+                _clean_status()
                 base_cmd = pkg.command
                 selected_modifiers = [
                     p for p in state.packages if p.type == "modifier" and p.selected
