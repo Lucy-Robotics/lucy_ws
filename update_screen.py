@@ -75,6 +75,12 @@ def _draw_rows(stdscr, screen: Screen, room: int) -> None:
             put(stdscr, FIRST_ROW + i, BRANCH_COLUMN, fit(screen.picker.text(repo), room))
 
 
+def _branch_attr(screen: Screen, repo: str, branch: str) -> int:
+    if branch == screen.picker.targets[repo]:
+        return curses.A_REVERSE if screen.editing else curses.A_BOLD
+    return curses.color_pair(tui_toolbox.CYAN) if branch == screen.picker.current[repo] else curses.A_DIM
+
+
 def _draw_branch_list(stdscr, screen: Screen, room: int) -> None:
     repo = screen.focused_repo
     options = screen.picker.options[repo]
@@ -82,8 +88,8 @@ def _draw_branch_list(stdscr, screen: Screen, room: int) -> None:
     for i in range(len(screen.focus)):
         index = picked + i - screen.current
         if 0 <= index < len(options):
-            attr = curses.A_DIM if index != picked else curses.A_REVERSE if screen.editing else curses.A_BOLD
-            put(stdscr, FIRST_ROW + i, BRANCH_COLUMN, fit(options[index], room), attr)
+            put(stdscr, FIRST_ROW + i, BRANCH_COLUMN, fit(options[index], room),
+                _branch_attr(screen, repo, options[index]))
 
 
 def _note(screen: Screen) -> tuple[str, str]:
