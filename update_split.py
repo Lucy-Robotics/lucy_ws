@@ -35,8 +35,9 @@ def clipboard_command() -> str | None:
     return next((command for command in CLIPBOARD_COMMANDS if shutil.which(command.split()[0])), None)
 
 
-def log_script(cmd: list[str], env: dict[str, str]) -> str:
-    update = shlex.join(["env", *(f"{key}={value}" for key, value in env.items()), *cmd])
+def log_script(commands: list[list[str]], env: dict[str, str]) -> str:
+    prefix = ["env", *(f"{key}={value}" for key, value in env.items())]
+    update = " && ".join(shlex.join([*prefix, *command]) for command in commands)
     tmux = f"tmux -L {SERVER}"
     return (f"{update}; rc=$?; echo $rc > {EXIT_FILE}; echo; "
             f'{tmux} capture-pane -J -p -S - -t "$TMUX_PANE" > {LOG_FILE}; '
@@ -49,7 +50,7 @@ def _tmux(*args: str) -> int:
     return subprocess.run(["tmux", "-L", SERVER, *args], env=env, stderr=subprocess.DEVNULL, check=False).returncode
 
 
-def _start(root, cmd: list[str], env: dict[str, str]) -> None:
+def _start(root, commands: list[list[str]], env: dict[str, str]) -> None:
     root_dir = str(Path(root).resolve())
     for stale in (EXIT_FILE, update_progress.PROGRESS_FILE):
         (Path(root) / stale).unlink(missing_ok=True)
@@ -65,13 +66,13 @@ def _start(root, cmd: list[str], env: dict[str, str]) -> None:
         _tmux("set-option", "-s", "copy-command", clipboard_command())
     _tmux("set-window-option", "-t", SERVER, "main-pane-width", str(STATUS_WIDTH))
     _tmux("set-window-option", "-t", SERVER, "main-pane-height", str(STATUS_HEIGHT))
-    _tmux("split-window", "-t", SERVER, "-c", root_dir, "sh", "-c", log_script(cmd, env))
+    _tmux("split-window", "-t", SERVER, "-c", root_dir, "sh", "-c", log_script(commands, env))
     arrange = "if-shell " + " ".join(shlex.quote(part) for part in ARRANGE)
     _tmux("set-hook", "-t", SERVER, "window-resized", arrange)
     _tmux("if-shell", "-t", SERVER, *ARRANGE)
 
 
-def run(root, cmd: list[str], env: dict[str, str]) -> None:
+def run(root, commands: list[list[str]], env: dict[str, str]) -> None:
     if _tmux("has-session", "-t", f"={SERVER}") != 0:
-        _start(root, cmd, env)
+        _start(root, commands, env)
     _tmux("attach-session", "-t", f"={SERVER}")
