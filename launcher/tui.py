@@ -7,6 +7,7 @@ try:
 except ImportError:
     curses = None
 
+from .access_urls import access_urls, fit_urls
 from .apply import apply_changes, default_robot_selection, restore_selection
 from .autostart import autostart
 from .config import get_dev_mode, load_config, save_selection
@@ -24,7 +25,6 @@ from .state import (
     _pkg_stop_times,
     _crash_hint,
     _stage_hint,
-    _status_url,
     get_pkg_status,
 )
 
@@ -60,7 +60,7 @@ def _draw_pkg_row(
     attr,
     status,
     hint="",
-    url="",
+    urls=(),
     stage="",
     detail="",
 ):
@@ -100,8 +100,8 @@ def _draw_pkg_row(
                 col += len(text)
             except curses.error:
                 pass
-    if url and status == "running":
-        text = f" ({url})"
+    if urls and status == "running":
+        text = fit_urls(urls, stdscr.getmaxyx()[1] - col - 1)
         try:
             stdscr.addstr(y, col, text, curses.color_pair(3))
             col += len(text)
@@ -228,7 +228,7 @@ def draw_tui(
                 attr,
                 status,
                 hint,
-                _status_url(p),
+                access_urls(p, state),
                 _stage_hint(p, status),
                 _crash_hint(p, status),
             )
