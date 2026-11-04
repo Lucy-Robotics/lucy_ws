@@ -2,43 +2,43 @@
   "repos": [
     {
       "name": "lucy_ros_packages",
-      "branch": "master",
+      "branch": "aes/poc-hardware-tested",
       "url_https": "https://github.com/Lucy-Robotics/lucy_ros_packages.git",
       "url_ssh": "git@github.com:Lucy-Robotics/lucy_ros_packages.git"
     },
     {
       "name": "lucy_control_panel",
-      "branch": "master",
+      "branch": "aes/poc-hardware-tested",
       "url_https": "https://github.com/Lucy-Robotics/lucy_control_panel.git",
       "url_ssh": "git@github.com:Lucy-Robotics/lucy_control_panel.git"
     },
     {
       "name": "lucy_embedded_firmware",
-      "branch": "master",
+      "branch": "aes/poc-hardware-tested",
       "url_https": "https://github.com/Lucy-Robotics/lucy_embedded_firmware.git",
       "url_ssh": "git@github.com:Lucy-Robotics/lucy_embedded_firmware.git"
     },
     {
       "name": "inmoov_urdf",
-      "branch": "master",
+      "branch": "aes/poc-hardware-tested",
       "url_https": "https://github.com/Lucy-Robotics/inmoov_urdf.git",
       "url_ssh": "git@github.com:Lucy-Robotics/inmoov_urdf.git"
     },
     {
       "name": "so_arm101_urdf",
-      "branch": "master",
+      "branch": "aes/poc-hardware-tested",
       "url_https": "https://github.com/Lucy-Robotics/so_arm101_urdf.git",
       "url_ssh": "git@github.com:Lucy-Robotics/so_arm101_urdf.git"
     },
     {
       "name": "inmoov_i2_urdf",
-      "branch": "master",
+      "branch": "robot/poc",
       "url_https": "https://github.com/Lucy-Robotics/inmoov_i2_urdf.git",
       "url_ssh": "git@github.com:Lucy-Robotics/inmoov_i2_urdf.git"
     },
     {
       "name": "marty_urdf",
-      "branch": "aes/latest",
+      "branch": "aes/poc-hardware-tested",
       "url_https": "https://github.com/Lucy-Robotics/marty_urdf.git",
       "url_ssh": "git@github.com:Lucy-Robotics/marty_urdf.git"
     }
