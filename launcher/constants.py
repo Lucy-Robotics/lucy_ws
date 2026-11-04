@@ -8,6 +8,7 @@ CONFIG_DIR = WORKSPACE_ROOT / "config"
 DEFAULT_CONFIG_FILE = CONFIG_DIR / "launcher_config.json"
 LOCAL_CONFIG_FILE = CONFIG_DIR / "launcher_config.json.local"
 STATE_FILE = WORKSPACE_ROOT / ".lucy_launcher_modifiers.json"
+OPTIONS_FILE = WORKSPACE_ROOT / ".lucy_launcher_options.json"
 SELECTION_FILE = WORKSPACE_ROOT / ".lucy_launcher_state.json"
 LAUNCHER_PIDFILE = WORKSPACE_ROOT / ".lucy_launcher.pid"
 TMUX_SESSION = os.environ.get("LUCY_TMUX_SESSION", "lucy_ws")

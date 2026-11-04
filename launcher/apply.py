@@ -4,6 +4,7 @@ import time
 
 from .config import load_selection
 from .constants import TMUX_SESSION
+from .options import default_options, options_changed, record_launch, with_options
 from .shell import run_teardown_async
 from .state import (
     _intended_running,
@@ -123,6 +124,13 @@ def apply_changes(state):
                 _intended_running.discard(mod.id)
 
     for pkg in state.packages:
+        if pkg.selected and pkg.is_running and pkg.id not in _pkg_stop_times and options_changed(state, pkg):
+            launcher._stop_tmux_window(pkg.id)
+            pkg.is_running = False
+
+    for pkg in state.packages:
+        if pkg.type == "option":
+            continue
         if not pkg.selected and pkg.is_running:
             stopping = True
             if pkg.is_complex_command():
@@ -154,7 +162,8 @@ def apply_changes(state):
     for pkg in state.packages:
         crashed = pkg.pane_dead and pkg.pane_exit_status != 0
         if (
-            pkg.selected
+            pkg.type != "option"
+            and pkg.selected
             and pkg.id not in _pkg_stop_times
             and (not pkg.is_running or crashed)
         ):
@@ -196,9 +205,10 @@ def apply_changes(state):
                 if pkg.type == "interface":
                     launcher.run_shell_command(
                         launcher._tmux_new_pixi_window(
-                            pkg.id, pkg.command, remain_on_exit=True
+                            pkg.id, with_options(pkg, state), remain_on_exit=True
                         )
                     )
+                    record_launch(state, pkg)
                 else:
                     launcher.run_shell_command(
                         launcher._tmux_new_pixi_window(
@@ -232,6 +242,7 @@ def restore_selection(state):
     if chosen is not None:
         for pkg in robots:
             pkg.selected = pkg is chosen
+    default_options(state)
 
 
 def default_robot_selection(state):

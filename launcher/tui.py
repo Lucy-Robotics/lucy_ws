@@ -13,6 +13,7 @@ from .config import get_dev_mode, load_config, save_selection
 from .robot_switch import take_robot_request
 from .stack_status import write_stack_status
 from .constants import MIN_TERM_HEIGHT, MIN_TERM_WIDTH, REDRAW_INTERVAL_MS
+from .options import with_focused_options
 from .state import (
     LauncherState,
     StatusPoller,
@@ -73,7 +74,7 @@ def _draw_pkg_row(
         "crashed": (" [CRASHED]", curses.color_pair(2) | curses.A_BOLD),
         "stopped": (" [STOPPED]", curses.A_DIM),
     }
-    status_str, status_attr = labels.get(status, (" [STOPPED]", curses.A_DIM))
+    status_str, status_attr = labels.get(status, (" [STOPPED]", curses.A_DIM)) if status else ("", 0)
     try:
         stdscr.addstr(y, col, status_str, status_attr)
         col += len(status_str)
@@ -142,7 +143,7 @@ def draw_too_small_message(stdscr):
 def draw_tui(
     stdscr,
     state,
-    current_idx,
+    focused_id,
     error_msg,
     status_msg,
     unapplied=False,
@@ -188,9 +189,13 @@ def draw_tui(
         for p in state.packages
         if p.type in ("core", "modifier") and not p.requires_pkg
     ]
-    interfaces = [p for p in state.packages if p.type == "interface"]
+    interfaces = with_focused_options(
+        [p for p in state.packages if p.type == "interface"], state.packages, focused_id
+    )
     tools = [p for p in state.packages if p.type == "tool"]
     display_list = cores_and_mods + robots + interfaces + tools
+    ids = [p.id for p in display_list]
+    current_idx = ids.index(focused_id) if focused_id in ids else 0
 
     def draw_section(title, color, items, offset, gap=1, indent_all=False):
         nonlocal row
@@ -206,11 +211,11 @@ def draw_tui(
                 attr |= curses.A_BOLD
             if p.subitem:
                 indent = "        "
-            elif indent_all or p.type == "modifier":
+            elif indent_all or p.type in ("modifier", "option"):
                 indent = "    "
             else:
                 indent = ""
-            status = get_pkg_status(p)
+            status = None if p.type == "option" else get_pkg_status(p)
             hint = _nav_hint(p)
             _draw_pkg_row(
                 stdscr,
@@ -276,7 +281,7 @@ def main(stdscr):
 def _event_loop(stdscr, state, poller, status_msg=None, status_msg_until=0.0):
     """Draw/input loop. Package status arrives from `poller` as finished
     snapshots so no keystroke ever waits on a readiness probe."""
-    current_idx = 0
+    focused_id = None
     error_msg = None
     confirm_exit = False
 
@@ -298,7 +303,7 @@ def _event_loop(stdscr, state, poller, status_msg=None, status_msg_until=0.0):
             display_list = draw_tui(
                 stdscr,
                 state,
-                current_idx,
+                focused_id,
                 error_msg,
                 status_msg,
                 _has_unapplied_changes(state),
@@ -345,13 +350,14 @@ def _event_loop(stdscr, state, poller, status_msg=None, status_msg_until=0.0):
                     confirm_exit = False
                     continue
 
+            ids = [p.id for p in display_list]
+            current_idx = ids.index(focused_id) if focused_id in ids else 0
             if key == curses.KEY_UP:
-                current_idx = (current_idx - 1) % len(display_list)
+                focused_id = ids[(current_idx - 1) % len(ids)]
             elif key == curses.KEY_DOWN:
-                current_idx = (current_idx + 1) % len(display_list)
+                focused_id = ids[(current_idx + 1) % len(ids)]
             elif key == ord(" "):
-                pkg_to_toggle = display_list[current_idx]
-                error_msg = state.toggle(pkg_to_toggle.id)
+                error_msg = state.toggle(ids[current_idx])
             elif key == ord("\n"):
                 apply_changes(state)
                 save_selection({p.id for p in state.packages if p.selected})
