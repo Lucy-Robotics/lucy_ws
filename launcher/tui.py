@@ -30,6 +30,8 @@ from .links import ADD_INTERFACE, ADD_ROBOT, LinkRow, draw_link_row, open_link
 from .instance import claim_domains, other_instance_claims, other_instance_domains
 from .robot_switch import take_robot_request
 from .stack_status import write_stack_status
+from .constants import MIN_TERM_HEIGHT, MIN_TERM_WIDTH, REDRAW_INTERVAL_MS
+from .options import with_focused_options
 from .state import (
     LauncherState,
     StatusPoller,
@@ -92,12 +94,7 @@ def _draw_pkg_row(
         "crashed": (" [CRASHED]", curses.color_pair(2) | curses.A_BOLD),
         "stopped": (" [STOPPED]", curses.A_DIM),
     }
-    status_str, status_attr = labels.get(status, ("", curses.A_DIM))
-    head = f"{prefix}{indent}{checkbox} "
-    room = stdscr.getmaxyx()[1] - x - len(head) - len(status_str) - 1
-    base = head + _fit(name, max(room, 0))
-    stdscr.addstr(y, x, base, attr)
-    col = x + len(base)
+    status_str, status_attr = labels.get(status, (" [STOPPED]", curses.A_DIM)) if status else ("", 0)
     try:
         stdscr.addstr(y, col, status_str, status_attr)
         col += len(status_str)
@@ -187,7 +184,7 @@ def launch_sections(state):
 def draw_tui(
     stdscr,
     state,
-    current_idx,
+    focused_id,
     error_msg,
     status_msg,
     unapplied=False,
@@ -229,7 +226,21 @@ def draw_tui(
     elif unapplied:
         stdscr.addstr(h - 2, 2, _fit(UNAPPLIED, w - 3), curses.color_pair(1))
 
-    def draw_items(items, offset, x=4):
+    robots = [p for p in state.packages if p.type == "modifier" and p.requires_pkg]
+    cores_and_mods = [
+        p
+        for p in state.packages
+        if p.type in ("core", "modifier") and not p.requires_pkg
+    ]
+    interfaces = with_focused_options(
+        [p for p in state.packages if p.type == "interface"], state.packages, focused_id
+    )
+    tools = [p for p in state.packages if p.type == "tool"]
+    display_list = cores_and_mods + robots + interfaces + tools
+    ids = [p.id for p in display_list]
+    current_idx = ids.index(focused_id) if focused_id in ids else 0
+
+    def draw_section(title, color, items, offset, gap=1, indent_all=False):
         nonlocal row
         for i, p in enumerate(items):
             list_idx = offset + i
@@ -249,13 +260,11 @@ def draw_tui(
                 attr |= curses.A_BOLD
             if p.subitem:
                 indent = "        "
-            elif _is_mode(p):
+            elif indent_all or p.type in ("modifier", "option"):
                 indent = "    "
             else:
                 indent = ""
-            status = get_pkg_status(p)
-            shows_stopped = p.type == "core" or p.selected
-            label = status if shows_stopped or status != "stopped" else None
+            status = None if p.type == "option" else get_pkg_status(p)
             hint = _nav_hint(p)
             _draw_pkg_row(
                 stdscr,
@@ -333,7 +342,7 @@ def main(stdscr):
 def _event_loop(stdscr, state, poller, status_msg=None, status_msg_until=0.0):
     """Draw/input loop. Package status arrives from `poller` as finished
     snapshots so no keystroke ever waits on a readiness probe."""
-    current_idx = 0
+    focused_id = None
     error_msg = None
     error_until = 0.0
     confirm_exit = False
@@ -361,7 +370,7 @@ def _event_loop(stdscr, state, poller, status_msg=None, status_msg_until=0.0):
             display_list = draw_tui(
                 stdscr,
                 state,
-                current_idx,
+                focused_id,
                 error_msg,
                 status_msg,
                 _has_unapplied_changes(state),
@@ -413,35 +422,14 @@ def _event_loop(stdscr, state, poller, status_msg=None, status_msg_until=0.0):
                     confirm_exit = False
                     continue
 
-            current = display_list[current_idx]
-            on_domain = current is DOMAIN_ROW
-            if isinstance(current, SectionRow):
-                fold = fold_change(key, current.title in folded)
-                if fold:
-                    folded.add(current.title)
-                elif fold is False:
-                    opened = folded - {current.title}
-                    if rows_needed(launch_sections(state), opened) > height:
-                        error_msg = f"Terminal too small to open {current.title}"
-                        error_until = time.time() + 3.0
-                    else:
-                        folded = opened
-                if fold is not None:
-                    continue
+            ids = [p.id for p in display_list]
+            current_idx = ids.index(focused_id) if focused_id in ids else 0
             if key == curses.KEY_UP:
-                current_idx = (current_idx - 1) % len(display_list)
+                focused_id = ids[(current_idx - 1) % len(ids)]
             elif key == curses.KEY_DOWN:
-                current_idx = (current_idx + 1) % len(display_list)
-            elif isinstance(current, LinkRow) and key in (ord(" "), ord("\n")):
-                status_msg = open_link(current)
-                status_msg_until = time.time() + 5.0
-            elif on_domain and (step := domain_step(key)):
-                state.step_domain(step, other_instance_domains())
-                claim_domains(state.claimed_domains())
+                focused_id = ids[(current_idx + 1) % len(ids)]
             elif key == ord(" "):
-                if not on_domain:
-                    error_msg = state.toggle(current.id)
-                    error_until = time.time() + 3.0
+                error_msg = state.toggle(ids[current_idx])
             elif key == ord("\n"):
                 apply_changes(state)
                 claim_domains(state.claimed_domains())

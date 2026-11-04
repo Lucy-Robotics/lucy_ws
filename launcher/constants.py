@@ -7,36 +7,13 @@ WORKSPACE_ROOT = Path(__file__).resolve().parent.parent
 CONFIG_DIR = WORKSPACE_ROOT / "config"
 DEFAULT_CONFIG_FILE = CONFIG_DIR / "launcher_config.json"
 LOCAL_CONFIG_FILE = CONFIG_DIR / "launcher_config.json.local"
-DEFAULT_TMUX_SESSION = "lucy_ws_0"
-# One Control Center per tmux session. launch_lucy.sh starts the first one in
-# lucy_ws_0 and the next in lucy_ws_<n> when the previous ones are in use: an
-# instance with its own files, ROS domain and ports. Processes are tied to their
-# instance by this variable.
-TMUX_SESSION = os.environ.get("LUCY_TMUX_SESSION", DEFAULT_TMUX_SESSION)
-
-
-def state_root(environ=os.environ) -> Path:
-    """Lucy's state, outside the repo: $XDG_STATE_HOME/lucy (~/.local/state/lucy).
-
-    Holds one directory per ws (tmux session) for its selection and modifiers,
-    and every Control Center's pidfile: sessions, ports and ROS domains are
-    host-wide, so each launcher must see the others' claims."""
-    base = environ.get("XDG_STATE_HOME") or str(Path.home() / ".local" / "state")
-    return Path(base) / "lucy"
-
-
-def pidfile_for(session: str, root: Path) -> Path:
-    return root / f"launcher.{session}.pid"
-
-
-STATE_ROOT = state_root()
-STATE_DIR = STATE_ROOT / TMUX_SESSION
-STATE_FILE = STATE_DIR / "modifiers.json"
-SELECTION_FILE = STATE_DIR / "selection.json"
-LAUNCHER_PIDFILE = pidfile_for(TMUX_SESSION, STATE_ROOT)
-# pgrep restricted to this instance's processes (readiness checks, teardown).
-INSTANCE_PGREP = WORKSPACE_ROOT / "scripts" / "instance_pgrep.sh"
-MIN_TERM_WIDTH = 40
+STATE_FILE = WORKSPACE_ROOT / ".lucy_launcher_modifiers.json"
+OPTIONS_FILE = WORKSPACE_ROOT / ".lucy_launcher_options.json"
+SELECTION_FILE = WORKSPACE_ROOT / ".lucy_launcher_state.json"
+LAUNCHER_PIDFILE = WORKSPACE_ROOT / ".lucy_launcher.pid"
+TMUX_SESSION = os.environ.get("LUCY_TMUX_SESSION", "lucy_ws")
+MIN_TERM_HEIGHT = 22
+MIN_TERM_WIDTH = 65
 
 LOADING_TIMEOUT = 30  # seconds before LOADING transitions to CRASHED
 STOPPING_TIMEOUT = 30  # seconds to show STOPPING before giving up
