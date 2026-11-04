@@ -18,6 +18,8 @@ UP, DOWN, RIGHT, LEFT, ENTER, SPACE, ESC = (
 TO_MARTY = [UP, UP, UP]
 TO_CORE_REPO = [UP, UP]
 TO_WORKSPACE = [UP]
+TO_FIRST_ROBOT = [UP] * 6
+TO_SIMULATION = [UP] * 10
 
 
 class Screen:
@@ -73,7 +75,6 @@ def test_x_exits_even_from_a_branch_list(workspace, key):
     screen = Screen([*TO_CORE_REPO, RIGHT, DOWN, ord(key), ENTER])
     assert update_screen.update_screen(screen, workspace) is None
     assert screen.keys == [ENTER]
-    assert not (workspace / "config" / "repos.json.local").exists()
 
 
 def test_update_stays_refused_without_a_robot(workspace):
@@ -174,9 +175,60 @@ def test_escape_inside_the_branches_only_leaves_the_branches(workspace):
     assert not screen.keys
 
 
-def test_exit_forgets_a_picked_branch(workspace):
+def test_a_picked_branch_is_in_the_file_without_pressing_update(workspace):
     _repo_with_branches(workspace / "src" / "lucy_ros_packages", "feature")
     assert update_screen.update_screen(Screen([*TO_CORE_REPO, RIGHT, DOWN, LEFT, ESC]), workspace) is None
+    pins = json.loads((workspace / "config" / "repos.json.local").read_text())
+    assert pins["repos"][0]["branch"] == "feature"
+
+
+def test_picking_a_branch_then_going_back_restores_the_file(workspace):
+    _repo_with_branches(workspace / "src" / "lucy_ros_packages", "feature")
+    assert update_screen.update_screen(Screen([*TO_CORE_REPO, RIGHT, DOWN, UP, LEFT, ESC]), workspace) is None
+    pins = json.loads((workspace / "config" / "repos.json.local").read_text())
+    assert pins["repos"][0]["branch"] == "dev"
+
+
+def test_opening_the_screen_shows_a_branch_edited_in_the_file(workspace):
+    _repo_with_branches(workspace / "src" / "lucy_ros_packages", "feature")
+    data = json.loads((workspace / "config" / "repos.json").read_text())
+    data["repos"][0]["branch"] = "feature"
+    (workspace / "config" / "repos.json.local").write_text(json.dumps(data))
+    assert update_screen.BranchPicker(workspace).targets["lucy_ros_packages"] == "feature"
+
+
+def _rows(workspace):
+    rows = json.loads((workspace / "config" / "repos.json.local").read_text())["repos"]
+    return {row["name"]: row for row in rows}
+
+
+def test_a_toggled_component_is_in_the_file_without_pressing_update(workspace):
+    assert update_screen.update_screen(Screen([*TO_MARTY, SPACE, ESC]), workspace) is None
+    assert _rows(workspace)["marty_urdf"]["enabled"] is True
+    assert components.load(workspace)["robot_marty"] is True
+
+
+def test_toggling_a_component_twice_turns_it_back_off_in_the_file(workspace):
+    assert update_screen.update_screen(Screen([*TO_MARTY, SPACE, SPACE, ESC]), workspace) is None
+    assert _rows(workspace)["marty_urdf"]["enabled"] is False
+
+
+def test_turning_off_every_robot_leaves_the_file_alone(workspace):
+    data = json.loads((workspace / "config" / "repos.json").read_text())
+    data["repos"].append({"name": "inmoov_urdf", "branch": "dev", "url_https": "https://x/i.git"})
+    (workspace / "config" / "repos.json").write_text(json.dumps(data))
+    components.save(workspace, {**components.DEFAULTS, **{robot: False for robot in components.ROBOTS[1:]}})
+    before = (workspace / "config" / "repos.json.local").read_text()
+    screen = Screen([*TO_FIRST_ROBOT, SPACE, ESC])
+    assert update_screen.update_screen(screen, workspace) is None
+    assert "Pick at least one robot" in screen.drawn
+    assert (workspace / "config" / "repos.json.local").read_text() == before
+
+
+def test_toggling_simulation_waits_for_update_because_it_picks_the_pixi_environment(workspace):
+    screen = Screen([*TO_SIMULATION, SPACE, ESC])
+    assert update_screen.update_screen(screen, workspace) is None
+    assert not (workspace / ".env").exists()
     assert not (workspace / "config" / "repos.json.local").exists()
 
 
