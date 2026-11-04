@@ -644,6 +644,9 @@ def fetch_repo_git(
     run_command(git + ["fetch", "origin"])
     if run_command(git + ["checkout", branch], check=False) != 0:
         run_command(git + ["checkout", "-b", branch, f"origin/{branch}"])
+    if run_quiet(git + ["rev-parse", "--verify", "--quiet", f"refs/remotes/origin/{branch}"]).returncode != 0:
+        log(f"install: {branch} of {repo_name} is not on origin, keeping the local branch")
+        return
     if run_command(git + ["pull", "--ff-only", "origin", branch], check=False) != 0:
         raise RuntimeError(
             f"Cannot fast-forward {repo_name} on {branch}. "
