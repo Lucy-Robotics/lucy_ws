@@ -10,14 +10,17 @@ LABELS = {
     "robot_inmoov": "Robot: InMoov",
     "robot_so_arm101": "Robot: SO-ARM101",
     "robot_inmoov_i2": "Robot: InMoov i2",
+    "robot_marty": "Robot: Marty",
 }
-DEFAULTS = {name: name != "simulation" for name in LABELS}
+OFF_BY_DEFAULT = {"simulation", "robot_marty"}
+DEFAULTS = {name: name not in OFF_BY_DEFAULT for name in LABELS}
 REPOS = {
     "control_panel": "lucy_control_panel",
     "firmware": "lucy_embedded_firmware",
     "robot_inmoov": "inmoov_urdf",
     "robot_so_arm101": "so_arm101_urdf",
     "robot_inmoov_i2": "inmoov_i2_urdf",
+    "robot_marty": "marty_urdf",
 }
 ROBOTS = [name for name in LABELS if name.startswith("robot_")]
 PIXI_ENV_KEY = "LUCY_PIXI_ENV"
