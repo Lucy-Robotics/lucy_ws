@@ -11,16 +11,21 @@ import tui_toolbox
 import update_branches
 import update_screen
 import update_status
+from update_branches import WORKSPACE
 
-UP, DOWN, RIGHT, ENTER, SPACE, ESC = curses.KEY_UP, curses.KEY_DOWN, curses.KEY_RIGHT, ord("\n"), ord(" "), 27
+UP, DOWN, RIGHT, LEFT, ENTER, SPACE, ESC = (
+    curses.KEY_UP, curses.KEY_DOWN, curses.KEY_RIGHT, curses.KEY_LEFT, ord("\n"), ord(" "), 27)
+TO_MARTY = [UP, UP, UP]
+TO_CORE_REPO = [UP, UP]
+TO_WORKSPACE = [UP]
 
 
 class Screen:
     def __init__(self, keys, size=(Lucy.MIN_TERM_HEIGHT, Lucy.MIN_TERM_WIDTH)):
-        self.keys, self.size, self.written, self.drawn = list(keys), size, {}, ""
+        self.keys, self.size, self.written, self.drawn, self.lines = list(keys), size, {}, "", {}
 
     def getmaxyx(self): return self.size
-    def erase(self): self.written, self.drawn = {}, ""
+    def erase(self): self.written, self.drawn, self.lines = {}, "", {}
     def refresh(self): pass
     def getch(self): return self.keys.pop(0)
 
@@ -28,6 +33,7 @@ class Screen:
         assert y < self.size[0] and x + len(text) < self.size[1]
         self.written[y] = text
         self.drawn += text
+        self.lines[y] = self.lines.get(y, "") + text
 
 
 @pytest.fixture
@@ -43,23 +49,34 @@ def workspace(tmp_path, monkeypatch):
 
 
 def test_update_button_saves_the_choice_and_asks_for_the_update(workspace):
-    assert update_screen.update_screen(Screen([UP, UP, SPACE, DOWN, DOWN, ENTER]), workspace) is True
+    keys = [*TO_MARTY, SPACE, DOWN, DOWN, DOWN, ENTER]
+    assert update_screen.update_screen(Screen(keys), workspace) is not None
     assert components.load(workspace)["robot_marty"] is True
 
 
 def test_exit_button_leaves_without_saving(workspace):
-    assert update_screen.update_screen(Screen([UP, UP, SPACE, DOWN, DOWN, DOWN, ENTER]), workspace) is False
+    keys = [*TO_MARTY, SPACE, DOWN, DOWN, DOWN, DOWN, ENTER]
+    assert update_screen.update_screen(Screen(keys), workspace) is None
     assert not (workspace / ".env").exists()
 
 
 def test_escape_leaves_without_saving(workspace):
-    assert update_screen.update_screen(Screen([UP, UP, SPACE, ESC]), workspace) is False
+    assert update_screen.update_screen(Screen([*TO_MARTY, SPACE, ESC]), workspace) is None
     assert not (workspace / ".env").exists()
+
+
+@pytest.mark.parametrize("key", ["x", "X"])
+def test_x_exits_even_from_a_branch_list(workspace, key):
+    _repo_with_branches(workspace / "src" / "lucy_ros_packages", "feature")
+    screen = Screen([*TO_CORE_REPO, RIGHT, DOWN, ord(key), ENTER])
+    assert update_screen.update_screen(screen, workspace) is None
+    assert screen.keys == [ENTER]
+    assert not (workspace / "config" / "repos.json.local").exists()
 
 
 def test_update_stays_refused_without_a_robot(workspace):
     components.save(workspace, {**components.DEFAULTS, **{robot: False for robot in components.ROBOTS}})
-    assert update_screen.update_screen(Screen([ENTER, ESC]), workspace) is False
+    assert update_screen.update_screen(Screen([ENTER, ESC]), workspace) is None
 
 
 def test_screen_fits_the_minimum_terminal(workspace):
@@ -134,33 +151,93 @@ def _repo_with_branches(path, *names):
         subprocess.run([*git, "branch", name], check=True)
 
 
-def test_right_arrow_picks_the_next_branch_and_update_pins_it(workspace):
+def test_right_enters_the_branches_and_down_picks_the_next_one(workspace):
     _repo_with_branches(workspace / "src" / "lucy_ros_packages", "feature", "zeta")
-    assert update_screen.update_screen(Screen([UP, RIGHT, DOWN, ENTER]), workspace) is True
+    keys = [*TO_CORE_REPO, RIGHT, DOWN, LEFT, DOWN, DOWN, ENTER]
+    assert update_screen.update_screen(Screen(keys), workspace) is not None
     pins = json.loads((workspace / "config" / "repos.json.local").read_text())
     assert pins["repos"][0]["branch"] == "feature"
 
 
+def test_up_and_down_move_between_rows_until_right_is_pressed(workspace):
+    _repo_with_branches(workspace / "src" / "lucy_ros_packages", "feature")
+    assert update_screen.update_screen(Screen([*TO_CORE_REPO, DOWN, DOWN, DOWN, ENTER]), workspace) is None
+    assert not (workspace / "config" / "repos.json.local").exists()
+
+
+def test_escape_inside_the_branches_only_leaves_the_branches(workspace):
+    _repo_with_branches(workspace / "src" / "lucy_ros_packages", "feature")
+    screen = Screen([*TO_CORE_REPO, RIGHT, ESC, ESC])
+    assert update_screen.update_screen(screen, workspace) is None
+    assert not screen.keys
+
+
 def test_exit_forgets_a_picked_branch(workspace):
     _repo_with_branches(workspace / "src" / "lucy_ros_packages", "feature")
-    assert update_screen.update_screen(Screen([UP, RIGHT, ESC]), workspace) is False
+    assert update_screen.update_screen(Screen([*TO_CORE_REPO, RIGHT, DOWN, LEFT, ESC]), workspace) is None
     assert not (workspace / "config" / "repos.json.local").exists()
 
 
 def test_update_without_a_branch_change_writes_no_pin_file(workspace):
-    assert update_screen.update_screen(Screen([ENTER]), workspace) is True
+    assert update_screen.update_screen(Screen([ENTER]), workspace) is not None
     assert not (workspace / "config" / "repos.json.local").exists()
 
 
-def test_the_focused_repo_lists_its_branches_and_the_others_only_their_own(workspace):
+def test_the_focused_repo_lists_its_branches_on_separate_lines(workspace):
     _repo_with_branches(workspace / "src" / "lucy_ros_packages", "feature")
-    wide = (Lucy.MIN_TERM_HEIGHT, 120)
-    unfocused = Screen([ESC], wide)
-    update_screen.update_screen(unfocused, workspace)
-    assert "feature" not in unfocused.drawn
-    focused = Screen([UP, ESC], wide)
-    update_screen.update_screen(focused, workspace)
-    assert "feature" in focused.drawn
+    screen = Screen([*TO_CORE_REPO, ESC])
+    update_screen.update_screen(screen, workspace)
+    assert "dev" in screen.lines[10] and "feature" in screen.lines[11]
+
+
+def test_other_rows_only_show_their_own_branch(workspace):
+    _repo_with_branches(workspace / "src" / "lucy_ros_packages", "feature")
+    screen = Screen([ESC])
+    update_screen.update_screen(screen, workspace)
+    assert "feature" not in screen.drawn
+
+
+def test_a_picked_branch_turns_the_checkbox_yellow(workspace, monkeypatch):
+    monkeypatch.setattr(update_screen.curses, "color_pair", lambda pair: pair)
+    assert update_screen.check_attr("installed", True) == tui_toolbox.YELLOW
+    assert update_screen.check_attr("installed", False) == tui_toolbox.GREEN
+
+
+def test_a_picked_branch_is_listed_as_a_pending_switch(workspace):
+    _repo_with_branches(workspace / "src" / "lucy_ros_packages", "feature")
+    screen = Screen([*TO_CORE_REPO, RIGHT, DOWN, LEFT, ESC])
+    update_screen.update_screen(screen, workspace)
+    assert "Switching: lucy_ros_packages -> feature" in screen.drawn
+
+
+def test_the_workspace_branch_is_handed_back_and_never_pinned(workspace):
+    _repo_with_branches(workspace, "feature")
+    keys = [*TO_WORKSPACE, RIGHT, DOWN, LEFT, DOWN, ENTER]
+    assert update_screen.update_screen(Screen(keys), workspace) == "feature"
+    assert not (workspace / "config" / "repos.json.local").exists()
+
+
+def test_a_workspace_switch_restarts_lucy_on_the_new_code(monkeypatch):
+    calls = []
+    monkeypatch.setattr(Lucy.os, "execv", lambda path, args: calls.append(args))
+    Lucy.restart_if_switched({"restart": True})
+    Lucy.restart_if_switched({})
+    assert len(calls) == 1 and calls[0][-1] == "Lucy.py"
+
+
+def test_switching_the_workspace_checks_out_before_installing_and_restarts(monkeypatch):
+    monkeypatch.setattr(Lucy, "current_branch", lambda _: "dev")
+    task = Lucy.update_task("feature")
+    assert task["cmd"] == ["git", "checkout", "feature"]
+    assert task["followup"][0][-1] == "install.py"
+    assert task["restart"]
+
+
+@pytest.mark.parametrize("branch", ["dev", ""])
+def test_staying_on_the_workspace_branch_only_installs(monkeypatch, branch):
+    monkeypatch.setattr(Lucy, "current_branch", lambda _: "dev")
+    task = Lucy.update_task(branch)
+    assert task["cmd"][-1] == "install.py" and "restart" not in task
 
 
 def test_the_focused_repo_shows_its_version_and_last_update_at_the_bottom(workspace):
@@ -168,7 +245,7 @@ def test_the_focused_repo_shows_its_version_and_last_update_at_the_bottom(worksp
     _repo_with_branches(repo)
     (repo / "version.txt").write_text("v1.2.3\n")
     (repo / ".git" / "FETCH_HEAD").touch()
-    screen = Screen([UP, ESC])
+    screen = Screen([*TO_CORE_REPO, ESC])
     update_screen.update_screen(screen, workspace)
     assert screen.written[Lucy.MIN_TERM_HEIGHT - 1].startswith("Version v1.2.3-g")
     assert "Last updated 20" in screen.written[Lucy.MIN_TERM_HEIGHT - 1]

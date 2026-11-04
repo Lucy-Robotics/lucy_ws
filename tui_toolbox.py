@@ -43,7 +43,9 @@ def draw_title(stdscr, title: str) -> None:
     stdscr.addstr(0, max(0, (stdscr.getmaxyx()[1] - len(title)) // 2), title, curses.A_BOLD)
 
 
-def draw_row(stdscr, y, x, prefix, indent, checkbox, name, attr, tag, tag_attr) -> int:
+def draw_row(stdscr, y, x, prefix, indent, checkbox, name, attr, tag, tag_attr, checkbox_attr=None) -> int:
     base = f"{prefix}{indent}{checkbox} {name}"
     stdscr.addstr(y, x, base, attr)
+    if checkbox_attr is not None:
+        put(stdscr, y, x + len(prefix) + len(indent), checkbox, checkbox_attr)
     return put(stdscr, y, x + len(base), tag, tag_attr)
