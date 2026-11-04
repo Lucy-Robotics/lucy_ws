@@ -8,6 +8,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from types import SimpleNamespace
+
 import install  # noqa: E402
 
 
@@ -100,3 +102,15 @@ def test_firmware_toolchain_skipped_when_firmware_left_out(tmp_path, monkeypatch
     monkeypatch.setattr(install, "pixi_run", lambda root, args, run_command: calls.append(args) or 0)
     install.setup_firmware_toolchain(tmp_path, lambda *a, **k: 0, log=lambda m: None)
     assert calls == []
+
+
+def test_update_keeps_a_branch_that_only_exists_locally(tmp_path, monkeypatch):
+    dest = tmp_path / "repo"
+    (dest / ".git").mkdir(parents=True)
+    commands = []
+    monkeypatch.setattr(install, "run_quiet", lambda cmd, **_: SimpleNamespace(stdout="", returncode=1))
+    logs = []
+    install.fetch_repo_git("repo", "git@x:repo.git", "wip", str(dest), "update",
+                           lambda cmd, check=True: commands.append(cmd) or 0, logs.append)
+    assert not any("pull" in cmd for cmd in commands)
+    assert "not on origin" in logs[-1]
