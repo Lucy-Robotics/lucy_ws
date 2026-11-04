@@ -5,7 +5,8 @@ from types import SimpleNamespace
 import pytest
 
 from launcher import access_urls as module
-from launcher.access_urls import access_urls, fit_urls, reachable
+from launcher.access_urls import access_urls, reachable
+from launcher.tui import _fit
 
 LOCAL = "https://localhost:4004"
 LAN = "https://10.0.0.5:4004"
@@ -33,10 +34,10 @@ def test_only_the_launched_every_network_option_lists_addresses(command, is_runn
     assert access_urls(panel, state) == [LOCAL]
 
 
-def test_urls_stop_at_the_terminal_edge():
-    assert fit_urls([LOCAL, LAN], 100) == f" ({LOCAL}  {LAN})"
-    assert fit_urls([LOCAL, LAN], 30) == f" ({LOCAL})"
-    assert fit_urls([LOCAL, LAN], 5) == ""
+def test_urls_cut_at_the_terminal_edge_end_with_dots():
+    label = f" ({LOCAL}  {LAN})"
+    assert _fit(label, 100) == label
+    assert _fit(label, 30) == f" ({LOCAL}  h..."
 
 
 @pytest.mark.parametrize("ip, expected", [
