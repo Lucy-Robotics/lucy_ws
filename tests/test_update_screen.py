@@ -23,13 +23,15 @@ TO_WORKSPACE = [UP]
 class Screen:
     def __init__(self, keys, size=(Lucy.MIN_TERM_HEIGHT, Lucy.MIN_TERM_WIDTH)):
         self.keys, self.size, self.written, self.drawn, self.lines = list(keys), size, {}, "", {}
+        self.attrs = {}
 
     def getmaxyx(self): return self.size
     def erase(self): self.written, self.drawn, self.lines = {}, "", {}
     def refresh(self): pass
     def getch(self): return self.keys.pop(0)
 
-    def addstr(self, y, x, text, *_):
+    def addstr(self, y, x, text, *attr):
+        self.attrs[text] = attr[0] if attr else 0
         assert y < self.size[0] and x + len(text) < self.size[1]
         self.written[y] = text
         self.drawn += text
@@ -201,6 +203,16 @@ def test_a_picked_branch_turns_the_checkbox_yellow(workspace, monkeypatch):
     monkeypatch.setattr(update_screen.curses, "color_pair", lambda pair: pair)
     assert update_screen.check_attr("installed", True) == tui_toolbox.YELLOW
     assert update_screen.check_attr("installed", False) == tui_toolbox.GREEN
+
+
+def test_the_branch_the_repo_is_on_keeps_its_own_color_while_picking(workspace, monkeypatch):
+    monkeypatch.setattr(update_screen.curses, "color_pair", lambda pair: pair)
+    _repo_with_branches(workspace / "src" / "lucy_ros_packages", "feature", "zeta")
+    screen = Screen([*TO_CORE_REPO, RIGHT, DOWN, ord("x")])
+    update_screen.update_screen(screen, workspace)
+    assert screen.attrs["dev"] == tui_toolbox.CYAN
+    assert screen.attrs["feature"] == curses.A_REVERSE
+    assert screen.attrs["zeta"] == curses.A_DIM
 
 
 def test_a_picked_branch_is_listed_as_a_pending_switch(workspace):
