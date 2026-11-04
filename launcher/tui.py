@@ -7,7 +7,7 @@ try:
 except ImportError:
     curses = None
 
-from .access_urls import access_urls, fit_urls
+from .access_urls import access_urls
 from .apply import apply_changes, default_robot_selection, restore_selection
 from .autostart import autostart
 from .config import get_dev_mode, load_config, save_selection
@@ -101,7 +101,8 @@ def _draw_pkg_row(
             except curses.error:
                 pass
     if urls and status == "running":
-        text = fit_urls(urls, stdscr.getmaxyx()[1] - col - 1)
+        room = stdscr.getmaxyx()[1] - col - 1
+        text = _fit(f" ({'  '.join(urls)})", room) if room > 1 else ""
         try:
             stdscr.addstr(y, col, text, curses.color_pair(3))
             col += len(text)
