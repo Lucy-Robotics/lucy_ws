@@ -124,10 +124,9 @@ def _draw(stdscr, screen: Screen) -> None:
 
 
 def _edit_branch(screen: Screen, key: int) -> None:
-    if key == curses.KEY_UP:
-        screen.picker.shift(screen.focused_repo, -1)
-    elif key == curses.KEY_DOWN:
-        screen.picker.shift(screen.focused_repo, 1)
+    if key in (curses.KEY_UP, curses.KEY_DOWN):
+        screen.picker.shift(screen.focused_repo, 1 if key == curses.KEY_DOWN else -1)
+        screen.picker.save()
     elif key in (curses.KEY_LEFT, ord(" "), ord("\n"), ord("\r"), ord("q"), ord("Q"), 27):
         screen.editing = False
 
@@ -159,11 +158,12 @@ def update_screen(stdscr, root) -> str | None:
         elif key in (ord(" "), ord("\n"), ord("\r")):
             if screen.focused in screen.selection:
                 screen.selection[screen.focused] = not screen.selection[screen.focused]
+                if not components.problems(screen.selection):
+                    components.save_repos(root, screen.selection)
             elif on_button and BUTTONS[screen.current - len(focus)] == "Exit":
                 return None
             elif on_button and not components.problems(screen.selection):
                 components.save(root, screen.selection)
-                screen.picker.save()
                 return screen.picker.targets.get(WORKSPACE, "")
         elif key in (ord("q"), ord("Q"), 27):
             return None

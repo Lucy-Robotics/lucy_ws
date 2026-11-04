@@ -41,7 +41,7 @@ cd lucy_ws
 python3 Lucy.py
 ```
 
-**Update** opens a screen listing each component and repo. The checkbox colour gives its state: green is installed, yellow has something to apply, red failed, grey is not installed. On a repo row, the bottom line shows its version and last update, Right enters its branch list and Up/Down picks a branch (saved in `config/repos.json.local`; for `lucy_ws`, Update checks it out first and restarts Lucy). Pressing the Update button shows the steps next to the live logs in tmux, side by side or stacked to fit the window. Drag in the logs to copy them; the full log is saved to `log/update.log`.
+**Update** opens a screen listing each component and repo. The checkbox colour gives its state: green is installed, yellow has something to apply, red failed, grey is not installed. On a repo row, the bottom line shows its version and last update, Right enters its branch list and Up/Down picks a branch (for `lucy_ws`, Update checks it out first and restarts Lucy). The screen opens on `config/repos.json.local` and writes each branch and component choice to it straight away: `branch` and `enabled` on each repo. Update applies the file, so a choice made before Exit is still there, in yellow, next time. Simulation and Visualisation have no repo, so they stay in `.env` and are saved by Update. Pressing the Update button shows the steps next to the live logs in tmux, side by side or stacked to fit the window. Drag in the logs to copy them; the full log is saved to `log/update.log`.
 
 If you choose to install pixi beforehand, you will need to source it:
 ```
