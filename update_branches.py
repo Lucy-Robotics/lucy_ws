@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-import json
 import subprocess
 from datetime import datetime
 from pathlib import Path
 
 import install
+import repos_file
 
 WORKSPACE = "lucy_ws"
 
@@ -94,8 +94,9 @@ class BranchPicker:
     def save(self) -> None:
         if all(self.targets[name] == pin for name, pin in self.pins.items()):
             return
-        data = json.loads(install.repos_config_path(self.root).read_text())
+        data = repos_file.read(self.root)
         for repo in data["repos"]:
             if repo.get("name") in self.pins:
                 repo["branch"] = self.targets[repo["name"]]
-        (self.root / "config" / "repos.json.local").write_text(json.dumps(data, indent=2) + "\n")
+        repos_file.write(self.root, data)
+        self.pins = {name: self.targets[name] for name in self.pins}
