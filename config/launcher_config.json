@@ -146,6 +146,7 @@
       "conflicts": [],
       "command": "pixi run panel-prod --port ${LUCY_LCP_PUBLISHED_HOST_PORT:-4004} --strictPort",
       "dev_command": "pixi run panel-dev",
+      "command_win": "pixi run panel-prod --port 4004 --strictPort",
       "readiness_check": "bash scripts/port_open.sh ${LUCY_LCP_PUBLISHED_HOST_PORT:-4004}",
       "readiness_timeout": 300,
       "default_on": false
