@@ -6,8 +6,6 @@ import components
 import install
 import install_health
 
-WORKSPACE = "lucy_ws"
-
 
 def core_repos(root) -> list[str]:
     return [repo["name"] for repo in install.parse_repos(root) if repo["name"] not in components.REPOS.values()]
