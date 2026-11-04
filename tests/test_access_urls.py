@@ -6,7 +6,7 @@ import pytest
 
 from launcher import access_urls as module
 from launcher.access_urls import access_urls, reachable
-from launcher.tui import _fit
+from tui_toolbox import fit
 
 LOCAL = "https://localhost:4004"
 LAN = "https://10.0.0.5:4004"
@@ -36,8 +36,8 @@ def test_only_the_launched_every_network_option_lists_addresses(command, is_runn
 
 def test_urls_cut_at_the_terminal_edge_end_with_dots():
     label = f" ({LOCAL}  {LAN})"
-    assert _fit(label, 100) == label
-    assert _fit(label, 30) == f" ({LOCAL}  h..."
+    assert fit(label, 100) == label
+    assert fit(label, 30) == f" ({LOCAL}  h..."
 
 
 @pytest.mark.parametrize("ip, expected", [
