@@ -6,7 +6,7 @@ LABELS = {
     "simulation": "Simulation (Gazebo)",
     "visualisation": "Visualisation (RViz, rqt)",
     "control_panel": "Control panel (web UI)",
-    "firmware": "Embedded firmware (real hardware)",
+    "firmware": "Embedded firmware (hardware)",
     "robot_inmoov": "Robot: InMoov",
     "robot_so_arm101": "Robot: SO-ARM101",
     "robot_inmoov_i2": "Robot: InMoov i2",

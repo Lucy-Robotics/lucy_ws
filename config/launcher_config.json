@@ -134,7 +134,7 @@
     {
       "id": "real",
       "requires_component": "firmware",
-      "name": "... with Real Hardware",
+      "name": "... with Hardware",
       "description": "(Connect to physical robot)",
       "type": "modifier",
       "dependencies": ["core"],
