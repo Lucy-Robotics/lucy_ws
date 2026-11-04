@@ -152,6 +152,28 @@
       "default_on": false
     },
     {
+      "id": "panel_host_local",
+      "requires_component": "control_panel",
+      "name": "This computer only",
+      "description": "Only this computer can open the panel",
+      "type": "option",
+      "parent": "control_panel",
+      "conflicts": ["panel_host_network"],
+      "command": "--host 127.0.0.1",
+      "default_on": false
+    },
+    {
+      "id": "panel_host_network",
+      "requires_component": "control_panel",
+      "name": "Every network (0.0.0.0)",
+      "description": "Devices on your networks can open the panel",
+      "type": "option",
+      "parent": "control_panel",
+      "conflicts": ["panel_host_local"],
+      "command": "--host 0.0.0.0",
+      "default_on": true
+    },
+    {
       "id": "lucy_cli",
       "name": "Lucy CLI",
       "description": "Command Line Interface",
