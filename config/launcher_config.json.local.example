@@ -51,7 +51,7 @@
       "description": "(robot_package:=inmoov_urdf)",
       "type": "modifier",
       "dependencies": ["core"],
-      "conflicts": ["robot_thais", "robot_so_arm101", "robot_inmoov_i2"],
+      "conflicts": ["robot_thais", "robot_so_arm101", "robot_inmoov_i2", "robot_marty"],
       "command": "robot_package:=inmoov_urdf",
       "requires_pkg": "inmoov_urdf",
       "default_on": true
@@ -62,7 +62,7 @@
       "description": "(robot_package:=thais_urdf)",
       "type": "modifier",
       "dependencies": ["core"],
-      "conflicts": ["robot_inmoov", "robot_so_arm101", "robot_inmoov_i2"],
+      "conflicts": ["robot_inmoov", "robot_so_arm101", "robot_inmoov_i2", "robot_marty"],
       "command": "robot_package:=thais_urdf",
       "requires_pkg": "thais_urdf",
       "default_on": false
@@ -73,7 +73,7 @@
       "description": "(robot_package:=so_arm101_urdf)",
       "type": "modifier",
       "dependencies": ["core"],
-      "conflicts": ["robot_inmoov", "robot_thais", "robot_inmoov_i2"],
+      "conflicts": ["robot_inmoov", "robot_thais", "robot_inmoov_i2", "robot_marty"],
       "command": "robot_package:=so_arm101_urdf",
       "requires_pkg": "so_arm101_urdf",
       "default_on": false
