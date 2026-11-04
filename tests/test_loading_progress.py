@@ -229,11 +229,11 @@ def test_crash_hint_is_only_shown_when_crashed():
 def test_row_shows_the_error_to_the_right_of_crashed(fake_curses):
     screen = FakeScreen(width=160)
     tui._draw_pkg_row(
-        screen, 3, 4, "  ", "    ", "[x]", "... with Real Hardware", 0, "crashed",
+        screen, 3, 4, "  ", "    ", "[x]", "... with Hardware", 0, "crashed",
         detail="Disconnect and reconnect SO-ARM. Then relaunch Lucy.",
     )
     assert _row_text(screen) == (
-        "      [x] ... with Real Hardware [CRASHED] "
+        "      [x] ... with Hardware [CRASHED] "
         "Disconnect and reconnect SO-ARM. Then relaunch Lucy."
     )
     detail = next(w for w in screen.writes if "Disconnect" in w[2])
@@ -243,7 +243,7 @@ def test_row_shows_the_error_to_the_right_of_crashed(fake_curses):
 def test_a_long_crash_message_is_truncated_rather_than_dropped(fake_curses):
     screen = FakeScreen(width=70)
     tui._draw_pkg_row(
-        screen, 3, 4, "  ", "    ", "[x]", "... with Real Hardware", 0, "crashed",
+        screen, 3, 4, "  ", "    ", "[x]", "... with Hardware", 0, "crashed",
         detail="Disconnect and reconnect SO-ARM. Then relaunch Lucy.",
     )
     text = _row_text(screen)
