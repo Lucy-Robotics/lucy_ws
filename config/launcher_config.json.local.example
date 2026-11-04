@@ -125,9 +125,9 @@
       "default_on": false
     },
     {
-      "id": "real_mcu_bridge",
-      "name": "Micro controllers",
-      "description": "(host relays to the boards: bridge:=mcu_bridge)",
+      "id": "real",
+      "name": "... with Hardware",
+      "description": "(Connect to physical robot)",
       "type": "modifier",
       "dependencies": ["core"],
       "conflicts": ["gazebo"],
