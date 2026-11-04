@@ -35,6 +35,8 @@ from pathlib import Path
 from typing import Callable, Iterable, Optional
 
 import components
+import install_health
+import update_progress
 
 ROOT = Path(__file__).resolve().parent
 
@@ -692,8 +694,7 @@ def install_repos(
 
     root = Path(project_root)
     selection = components.load(root)
-    left_out = components.left_out_repos(selection)
-    repos = [r for r in parse_repos(root, developer, repos_branch) if r["name"] not in left_out]
+    repos = selected_repos(root, developer, repos_branch)
     if not repos:
         raise RuntimeError(f"No repos with name and url in {repos_config_path(root)}")
 
@@ -706,11 +707,13 @@ def install_repos(
         if mode == "repair":
             log(f"Repair: removing src/{repo['name']} ...")
             remove_workspace_src_repo(root, repo["name"])
-        used = fetch_repo(
-            repo["name"], repo["url"], repo["branch"], str(root / "src" / repo["name"]),
-            mode=mode, fetch_method=effective, developer=developer,
-            run_command=run_command, log=log,
-        )
+        with update_progress.step(root, update_progress.repo_step(repo["name"])), \
+                install_health.tracked(root, repo["name"]):
+            used = fetch_repo(
+                repo["name"], repo["url"], repo["branch"], str(root / "src" / repo["name"]),
+                mode=mode, fetch_method=effective, developer=developer,
+                run_command=run_command, log=log,
+            )
         if used == "zip":
             effective = "zip"
 
@@ -888,13 +891,16 @@ def build_workspace(
     developer: bool = False,
 ) -> None:
     log("Building ROS workspace (colcon) ...")
-    pixi_run(project_root, ["run", "build"], run_command)
+    with update_progress.step(project_root, update_progress.BUILD):
+        pixi_run(project_root, ["run", "build"], run_command)
     if components.load(project_root)["control_panel"]:
-        log("Installing control panel dependencies (yarn) ...")
-        pixi_run(project_root, ["run", "panel-install"], run_command)
-        if not developer:
-            log("Building the control panel for production ...")
-            pixi_run(project_root, ["run", "panel-build"], run_command)
+        with update_progress.step(project_root, update_progress.PANEL), \
+                install_health.tracked(project_root, components.REPOS["control_panel"]):
+            log("Installing control panel dependencies (yarn) ...")
+            pixi_run(project_root, ["run", "panel-install"], run_command)
+            if not developer:
+                log("Building the control panel for production ...")
+                pixi_run(project_root, ["run", "panel-build"], run_command)
     build_local_realsense_optional(project_root, run_command, log)
     setup_firmware_toolchain(project_root, run_command, log)
 
@@ -915,13 +921,36 @@ def setup_firmware_toolchain(
     if not components.load(project_root)["firmware"]:
         log("Firmware toolchain: embedded firmware left out — skipping")
         return
-    log("Firmware toolchain (pixi run firmware-setup) ...")
-    pixi_run(project_root, ["run", "firmware-setup"], run_command)
-    log("Host firmware binaries (pixi run firmware-build-linux) ...")
-    pixi_run(project_root, ["run", "firmware-build-linux"], run_command)
+    with update_progress.step(project_root, update_progress.FIRMWARE), \
+            install_health.tracked(project_root, components.REPOS["firmware"]):
+        log("Firmware toolchain (pixi run firmware-setup) ...")
+        pixi_run(project_root, ["run", "firmware-setup"], run_command)
+        log("Host firmware binaries (pixi run firmware-build-linux) ...")
+        pixi_run(project_root, ["run", "firmware-build-linux"], run_command)
 
 
 # --- flow --------------------------------------------------------------------
+
+
+def selected_repos(root: Path, developer: bool, repos_branch: Optional[str]) -> list[dict]:
+    left_out = components.left_out_repos(components.load(root))
+    return [r for r in parse_repos(root, developer, repos_branch) if r["name"] not in left_out]
+
+
+def flow_steps(
+    root: Path, mode: InstallMode, developer: bool, repos_branch: Optional[str], skip_build: bool
+) -> list[str]:
+    selection = components.load(root)
+    fetched = [] if mode == "build-only" else selected_repos(root, developer, repos_branch)
+    steps = [update_progress.repo_step(repo["name"]) for repo in fetched] + [update_progress.PIXI]
+    if skip_build:
+        return steps
+    steps.append(update_progress.BUILD)
+    if selection["control_panel"]:
+        steps.append(update_progress.PANEL)
+    if selection["firmware"] and not env_flag("LUCY_SKIP_FIRMWARE_SETUP"):
+        steps.append(update_progress.FIRMWARE)
+    return steps
 
 
 def run_flow(
@@ -959,6 +988,8 @@ def run_flow(
         log("Repair: removing colcon artifacts (build/, install/, log/) ...")
         remove_build_artifacts(root, log)
 
+    update_progress.plan(root, flow_steps(root, mode, developer, repos_branch, skip_build))
+
     effective = install_repos(
         root, mode, developer=developer, repos_branch=repos_branch,
         fetch_method=fetch_method, run_command=run_command, log=log,
@@ -968,7 +999,8 @@ def run_flow(
         log("Repair: re-solving Pixi lock (pixi lock) ...")
         pixi_run(root, ["lock"], run_command)
 
-    pixi_install(root, run_command, log)
+    with update_progress.step(root, update_progress.PIXI):
+        pixi_install(root, run_command, log)
 
     if skip_build:
         log("Skipping workspace build (--skip-build).")

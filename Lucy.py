@@ -6,10 +6,14 @@ import sys
 import shutil
 
 import components
+import update_split
+from pathlib import Path
+from tui_toolbox import draw_title
+from update_branches import version
 
 try:
     import curses
-    from components_screen import choose_components
+    from update_screen import update_screen
 except ImportError:  # Windows: handled by windows_main
     curses = None
 
@@ -18,6 +22,10 @@ ESCAPE_DELAY_MS = 50
 MIN_TERM_HEIGHT = 15
 MIN_TERM_WIDTH = 65
 INSTALL_ENV = {"LUCY_PIXI_AUTO_UPGRADE": "1"}
+
+def lucy_title():
+    return f"Lucy {version(Path('.'))}"
+
 
 def is_installed():
     """True when the workspace has been built (mirrors launch_lucy.sh's check)."""
@@ -136,12 +144,12 @@ def not_installed_screen(stdscr):
     use_responsive_escape()
 
     is_dev_mode = get_dev_mode()
+    title = lucy_title()
 
     while True:
         stdscr.clear()
         h, w = stdscr.getmaxyx()
-        title = "Lucy Workspace Manager"
-        stdscr.addstr(0, max(0, (w - len(title)) // 2), title, curses.A_BOLD)
+        draw_title(stdscr, title)
 
         lines = [
             ("Lucy is not installed on this machine.", curses.A_BOLD),
@@ -188,19 +196,16 @@ def main_tui(stdscr):
     stdscr.nodelay(0)
     stdscr.timeout(-1)
     use_responsive_escape()
-    curses.start_color()
-    curses.use_default_colors()
-    curses.init_pair(1, curses.COLOR_CYAN, -1)
 
     is_dev_mode = get_dev_mode()
+    title = lucy_title()
     current_idx = 0
-    options = ["Launch", "---", "Update", "Rebuild", "Components", "Exit", "---", "Developer Mode"]
+    options = ["Launch", "---", "Update", "Rebuild", "Exit", "---", "Developer Mode"]
 
     while True:
         stdscr.clear()
         h, w = stdscr.getmaxyx()
-        title = "Lucy Workspace Manager"
-        stdscr.addstr(0, max(0, (w - len(title)) // 2), title, curses.A_BOLD)
+        draw_title(stdscr, title)
 
         for i, option in enumerate(options):
             if option == "---":
@@ -237,11 +242,12 @@ def main_tui(stdscr):
                 is_dev_mode = not is_dev_mode
                 set_dev_mode(is_dev_mode)
             elif selected_option == "Update":
-                return {
-                    "cmd": [sys.executable, "install.py"],
-                    "name": "Install",
-                    "extra_env": INSTALL_ENV,
-                }
+                if update_screen(stdscr, "."):
+                    return {
+                        "cmd": [sys.executable, "install.py"],
+                        "name": "Install",
+                        "extra_env": INSTALL_ENV,
+                    }
             elif selected_option == "Rebuild":
                 panel = components.load(".")["control_panel"]
                 return {
@@ -252,8 +258,6 @@ def main_tui(stdscr):
                         for task in ["panel-install"] + ([] if is_dev_mode else ["panel-build"])
                     ] if panel else [],
                 }
-            elif selected_option == "Components":
-                choose_components(stdscr, ".")
             elif selected_option == "Launch":
                 # Hands the terminal to the stack; the menu does not come back.
                 return {"cmd": ["./launch_lucy.sh"], "name": "Launch", "exits_menu": True}
@@ -289,7 +293,7 @@ if __name__ == "__main__":
             print(f"A terminal error occurred: {e}", file=sys.stderr)
             print("This might be due to resizing the window. Please restart.", file=sys.stderr)
             sys.exit(1)
-        if not wants_install or curses.wrapper(choose_components, ".") is None:
+        if not wants_install or not curses.wrapper(update_screen, "."):
             sys.exit(0)
         rc = run_command([sys.executable, "install.py"], extra_env=INSTALL_ENV)
         if rc != 0:
@@ -325,6 +329,10 @@ if __name__ == "__main__":
         if not task:
             # User selected Exit
             break
+
+        if task["name"] == "Install" and update_split.available():
+            update_split.run(".", task["cmd"], task["extra_env"])
+            continue
 
         rc = run_command(task["cmd"], extra_env=task.get("extra_env"))
         for follow in task.get("followup", []):
