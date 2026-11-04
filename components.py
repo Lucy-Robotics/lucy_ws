@@ -80,6 +80,11 @@ def left_out_repos(selection: dict[str, bool]) -> set[str]:
     return {repo for name, repo in REPOS.items() if not selection[name]}
 
 
+def _left_out_mark(repo_dir: Path) -> bool:
+    ignore = repo_dir / "COLCON_IGNORE"
+    return ignore.is_file() and ignore.read_text() == LEFT_OUT_MARK
+
+
 def mark_left_out(root: Path | str, selection: dict[str, bool]) -> list[str]:
     left_out = left_out_repos(selection)
     marked = []
@@ -89,9 +94,19 @@ def mark_left_out(root: Path | str, selection: dict[str, bool]) -> list[str]:
         if repo in left_out and repo_dir.is_dir():
             ignore.write_text(LEFT_OUT_MARK)
             marked.append(repo)
-        elif ignore.is_file() and ignore.read_text() == LEFT_OUT_MARK:
+        elif _left_out_mark(repo_dir):
             ignore.unlink()
     return marked
+
+
+def installed(root: Path | str, name: str) -> bool:
+    root = Path(root)
+    if name not in REPOS:
+        saved = load(root)
+        return saved[name] and (root / ".pixi" / "envs" / pixi_env(saved)).is_dir()
+    repo_dir = root / "src" / REPOS[name]
+    built = name not in ROBOTS or (root / "install" / REPOS[name]).is_dir()
+    return repo_dir.is_dir() and built and not _left_out_mark(repo_dir)
 
 
 def summary(selection: dict[str, bool]) -> str:
