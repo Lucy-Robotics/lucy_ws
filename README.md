@@ -94,7 +94,7 @@ Windows is **visualisation only** for now. `pixi run core` starts a `/joint_stat
 **Components you can enable:**
 
 - **Core** - base robot stack (`lucy_bringup`)
-- **Modifiers** - Simulator (Gazebo), **… headless** (server-only sim, under Simulator), Visualizer (RViz), Real Hardware
+- **Modifiers** - Simulator (Gazebo), **… headless** (server-only sim, under Simulator), Visualizer (RViz), Hardware
 - **Interfaces** - Control Panel (web UI), Lucy CLI
 - **Tools** - Console, rqt
 
