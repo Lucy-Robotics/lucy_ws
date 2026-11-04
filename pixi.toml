@@ -115,7 +115,7 @@ panel-build = { cmd = "yarn build", cwd = "src/lucy_control_panel", inputs = [
   "src/lucy_control_panel/yarn.lock",
   "src/lucy_control_panel/vite.config.ts",
   "src/lucy_control_panel/tsconfig*.json",
-  "src/lucy_control_panel/.env",
+  "src/lucy_control_panel/.env*",
 ], outputs = ["src/lucy_control_panel/dist"] }
 panel-prod = { cmd = "yarn preview", cwd = "src/lucy_control_panel", depends-on = ["panel-build"] }
 
