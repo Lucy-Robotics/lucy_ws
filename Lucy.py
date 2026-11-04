@@ -9,7 +9,7 @@ import components
 import update_split
 from pathlib import Path
 from tui_toolbox import draw_title
-from update_branches import version
+from update_branches import current_branch, version
 
 try:
     import curses
@@ -127,6 +127,28 @@ def run_command(command, extra_env=None):
         print(f"An error occurred: {e}")
         return -1
 
+def run_task(task):
+    rc = run_command(task["cmd"], extra_env=task.get("extra_env"))
+    for follow in task.get("followup", []):
+        if rc != 0:
+            break
+        rc = run_command(follow, extra_env=task.get("extra_env"))
+    return rc
+
+
+def update_task(workspace_branch):
+    install = [sys.executable, "install.py"]
+    task = {"cmd": install, "name": "Install", "extra_env": INSTALL_ENV}
+    if workspace_branch in ("", current_branch(Path("."))):
+        return task
+    return {**task, "cmd": ["git", "checkout", workspace_branch], "followup": [install], "restart": True}
+
+
+def restart_if_switched(task):
+    if task.get("restart"):
+        os.execv(sys.executable, [sys.executable, "Lucy.py"])
+
+
 def use_responsive_escape():
     """ESC starts every arrow and function key sequence, so ncurses delays
     reporting a lone ESC. Call after curses is initialised."""
@@ -242,12 +264,9 @@ def main_tui(stdscr):
                 is_dev_mode = not is_dev_mode
                 set_dev_mode(is_dev_mode)
             elif selected_option == "Update":
-                if update_screen(stdscr, "."):
-                    return {
-                        "cmd": [sys.executable, "install.py"],
-                        "name": "Install",
-                        "extra_env": INSTALL_ENV,
-                    }
+                workspace_branch = update_screen(stdscr, ".")
+                if workspace_branch is not None:
+                    return update_task(workspace_branch)
             elif selected_option == "Rebuild":
                 panel = components.load(".")["control_panel"]
                 return {
@@ -293,9 +312,11 @@ if __name__ == "__main__":
             print(f"A terminal error occurred: {e}", file=sys.stderr)
             print("This might be due to resizing the window. Please restart.", file=sys.stderr)
             sys.exit(1)
-        if not wants_install or not curses.wrapper(update_screen, "."):
+        workspace_branch = curses.wrapper(update_screen, ".") if wants_install else None
+        if workspace_branch is None:
             sys.exit(0)
-        rc = run_command([sys.executable, "install.py"], extra_env=INSTALL_ENV)
+        install_task = update_task(workspace_branch)
+        rc = run_task(install_task)
         if rc != 0:
             print(f"\n--- Install finished with exit code {rc} ---")
             print("Press Enter to exit.")
@@ -304,6 +325,7 @@ if __name__ == "__main__":
         print("\n--- Install finished successfully. ---")
         print("Press Enter to continue to the menu.")
         input()
+        restart_if_switched(install_task)
 
     if not check_prereqs():
         sys.exit(1)
@@ -331,14 +353,11 @@ if __name__ == "__main__":
             break
 
         if task["name"] == "Install" and update_split.available():
-            update_split.run(".", task["cmd"], task["extra_env"])
+            update_split.run(".", [task["cmd"], *task.get("followup", [])], task["extra_env"])
+            restart_if_switched(task)
             continue
 
-        rc = run_command(task["cmd"], extra_env=task.get("extra_env"))
-        for follow in task.get("followup", []):
-            if rc != 0:
-                break
-            rc = run_command(follow, extra_env=task.get("extra_env"))
+        rc = run_task(task)
 
         if task.get("exits_menu", False):
             print(f"--- Session finished with exit code {rc} ---")
@@ -349,6 +368,7 @@ if __name__ == "__main__":
             print(f"\n--- Task '{task_name}' finished successfully. ---")
             print("Press Enter to return to the menu.")
             input()
+            restart_if_switched(task)
         else:
             print(f"\n--- Task '{task_name}' finished with exit code {rc} ---")
             print("Press Enter to exit.")

@@ -14,11 +14,16 @@ def test_two_panes_need_room_on_one_side(cols, rows, fits):
 
 
 def test_the_log_pane_saves_a_plain_log_before_closing():
-    script = update_split.log_script(["python3", "install.py"], {"A": "b c"})
+    script = update_split.log_script([["python3", "install.py"]], {"A": "b c"})
     assert script.startswith("env 'A=b c' python3 install.py; rc=$?;")
     assert script.index(update_split.EXIT_FILE) < script.index("capture-pane") < script.index("read _")
     assert script.index("read _") < script.index("kill-server")
     assert f"> {update_split.LOG_FILE}" in script
+
+
+def test_a_failed_branch_switch_stops_before_the_install():
+    script = update_split.log_script([["git", "checkout", "dev"], ["python3", "install.py"]], {})
+    assert script.startswith("env git checkout dev && env python3 install.py; rc=$?;")
 
 
 def test_layouts_switch_at_the_side_by_side_width():

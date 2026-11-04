@@ -10,13 +10,13 @@ from tui_toolbox import draw_row, draw_title, fit, put
 
 TITLE = "Updating Lucy"
 REFRESH_MS = 500
-LABEL_WIDTH = 34
+LABEL_WIDTH = 60
 RUNNING_HINT = "Drag in the logs to copy them"
-TAGS = {
-    "done": ("[DONE]", tui_toolbox.GREEN, 0),
-    "running": ("[RUNNING]", tui_toolbox.YELLOW, curses.A_BOLD),
-    "next": ("[NEXT]", 0, curses.A_DIM),
-    "failed": ("[FAILED]", tui_toolbox.RED, curses.A_BOLD),
+CHECK_COLORS = {
+    "done": (tui_toolbox.GREEN, 0),
+    "running": (tui_toolbox.YELLOW, curses.A_BOLD),
+    "next": (0, curses.A_DIM),
+    "failed": (tui_toolbox.RED, curses.A_BOLD),
 }
 
 
@@ -41,10 +41,10 @@ def draw(stdscr, root) -> None:
     if not steps:
         put(stdscr, 2, 2, fit("Preparing...", w - 3), curses.A_DIM)
     for i, row in enumerate(visible(steps, max(1, h - 4))):
-        tag, pair, attr = TAGS[row["state"]]
+        pair, attr = CHECK_COLORS[row["state"]]
         draw_row(stdscr, 2 + i, 2, "> " if row["state"] == "running" else "  ", "",
-                 "[x]" if row["state"] == "done" else "[ ]", f"{row['label'][:LABEL_WIDTH]:<{LABEL_WIDTH}}",
-                 curses.A_BOLD if row["state"] == "running" else 0, f" {tag}", curses.color_pair(pair) | attr)
+                 "[x]" if row["state"] == "done" else "[ ]", row["label"][:LABEL_WIDTH],
+                 curses.A_BOLD if row["state"] == "running" else 0, "", 0, curses.color_pair(pair) | attr)
     put(stdscr, h - 1, 2, fit(finished_hint(root), w - 3), curses.A_DIM)
     stdscr.refresh()
 
