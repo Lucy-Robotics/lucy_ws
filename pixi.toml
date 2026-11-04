@@ -113,8 +113,10 @@ test-only = "python scripts/ci_colcon_test.py --merge-install"
 
 [feature.panel.tasks]
 panel-install = { cmd = "yarn install", cwd = "src/lucy_control_panel" }
-panel-dev = { cmd = "yarn dev", cwd = "src/lucy_control_panel" }
-panel-build = { cmd = "yarn build", cwd = "src/lucy_control_panel", inputs = [
+panel-version = "mkdir -p log && git describe --tags --always > log/lucy_version || cat version.txt > log/lucy_version"
+panel-dev = { cmd = "VITE_LUCY_VERSION=$(cat ../../log/lucy_version) yarn dev", cwd = "src/lucy_control_panel", depends-on = ["panel-version"] }
+panel-build = { cmd = "VITE_LUCY_VERSION=$(cat ../../log/lucy_version) yarn build", cwd = "src/lucy_control_panel", depends-on = ["panel-version"], inputs = [
+  "log/lucy_version",
   "src/lucy_control_panel/src",
   "src/lucy_control_panel/public",
   "src/lucy_control_panel/index.html",
