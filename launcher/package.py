@@ -7,6 +7,7 @@ import components
 
 from .constants import LOADING_TIMEOUT, WORKSPACE_ROOT
 from .config import save_state
+from .options import launched_options
 from .shell import pane_crash_message, pick_crash_line, run_shell_command, _pane_exit_status
 
 
@@ -70,7 +71,9 @@ class Package:
         self.conflicts = data.get("conflicts", [])
         self.command = data.get("command", "")
         self.lifecycle_hooks = data.get("lifecycle_hooks", {})
-        self.selected = data.get("default_on", False)
+        self.default_on = data.get("default_on", False)
+        self.selected = self.default_on
+        self.parent = data.get("parent")
         self.requires_pkg = data.get("requires_pkg")
         self.subitem = data.get("subitem", False)
         self.readiness_check = data.get("readiness_check")
@@ -116,6 +119,8 @@ class Package:
             )
         elif self.type == "modifier":
             is_running = self.id in running_modifiers
+        elif self.type == "option":
+            is_running = self.id in launched_options()
         elif self.type in ("core", "tool", "interface"):
             if tmux_windows is not None:
                 is_running = self.id in tmux_windows
