@@ -610,7 +610,7 @@ def test_modifier_with_exit_check_reports_crash_when_exit_code_present(tmp_path)
     pkg = Package(
         {
             "id": "real",
-            "name": "... with Real Hardware",
+            "name": "... with Hardware",
             "type": "modifier",
             "command": "mode:=real bridge:=linux",
             "readiness_check": "false",
@@ -651,7 +651,7 @@ def test_intended_running_package_crashes_immediately_when_not_running():
     pkg = Package(
         {
             "id": "real",
-            "name": "... with Real Hardware",
+            "name": "... with Hardware",
             "type": "modifier",
             "command": "mode:=real bridge:=linux",
         },
@@ -681,7 +681,7 @@ def test_real_hardware_crash_message_comes_from_the_error_file(tmp_path, monkeyp
     pkg = Package(
         {
             "id": "real",
-            "name": "... with Real Hardware",
+            "name": "... with Hardware",
             "type": "modifier",
             "command": "real:=true",
             "readiness_check": "false",
@@ -704,7 +704,7 @@ def test_real_hardware_stays_loading_until_microcontroller_ready_file_exists(tmp
     pkg = Package(
         {
             "id": "real",
-            "name": "... with Real Hardware",
+            "name": "... with Hardware",
             "type": "modifier",
             "command": "mode:=real bridge:=linux",
             "readiness_check": (
