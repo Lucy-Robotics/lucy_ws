@@ -34,6 +34,8 @@ cd lucy_ws
 python3 Lucy.py
 ```
 
+**Update** opens a screen listing each component and repo: its install status, its branch (Left/Right on a row picks another one, saved in `config/repos.json.local`), and its version and last update at the bottom. Pressing the Update button shows the steps next to the live logs in tmux, side by side or stacked to fit the window. Drag in the logs to copy them; the full log is saved to `log/update.log`.
+
 If you choose to install pixi beforehand, you will need to source it:
 ```
 export PATH="$HOME/.pixi/bin:$PATH"
