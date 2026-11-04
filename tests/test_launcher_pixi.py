@@ -226,6 +226,7 @@ def test_stop_all_packages_single_finish_teardown(monkeypatch):
             self.type = ptype
             self.is_running = running
             self.lifecycle_hooks = {}
+            self.parent = None
 
         def is_complex_command(self):
             return False
@@ -271,6 +272,7 @@ def test_stop_all_packages_stops_running_interfaces(monkeypatch):
             self.type = ptype
             self.is_running = running
             self.lifecycle_hooks = {}
+            self.parent = None
 
         def is_complex_command(self):
             return False
@@ -306,6 +308,7 @@ def test_stop_all_packages_runs_core_teardown_when_running(monkeypatch):
             self.type = ptype
             self.is_running = running
             self.lifecycle_hooks = {}
+            self.parent = None
 
         def is_complex_command(self):
             return False
@@ -381,6 +384,7 @@ def test_apply_changes_modifier_restart_calls_finish_teardown(monkeypatch):
             self.ready = running
             self.command = command
             self.lifecycle_hooks = {}
+            self.parent = None
             self.pane_dead = False
             self.pane_exit_status = None
             self.readiness_check = None
@@ -435,6 +439,7 @@ def test_apply_changes_modifier_restart_preserves_control_panel(monkeypatch):
             self.is_running = running
             self.command = command
             self.lifecycle_hooks = {}
+            self.parent = None
             self.pane_dead = False
             self.pane_exit_status = None
             self.readiness_check = readiness_check
@@ -492,6 +497,7 @@ def test_apply_changes_stopping_core_preserves_running_control_panel(monkeypatch
             self.is_running = running
             self.command = command
             self.lifecycle_hooks = {}
+            self.parent = None
             self.pane_dead = False
             self.pane_exit_status = None
             self.readiness_check = readiness_check
