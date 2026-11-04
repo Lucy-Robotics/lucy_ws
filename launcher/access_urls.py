@@ -44,14 +44,3 @@ def access_urls(pkg, state):
     if not any("0.0.0.0" in o.command and o.is_running for o in options_of(state, pkg)):
         return [url]
     return [url, *(url.replace("localhost", ip) for ip in network_ips())]
-
-
-def fit_urls(urls, room):
-    """As many URLs as fit in `room` columns, left to right, as one " (a  b)" label."""
-    label = ""
-    for count in range(1, len(urls) + 1):
-        candidate = f" ({'  '.join(urls[:count])})"
-        if len(candidate) > room:
-            break
-        label = candidate
-    return label
