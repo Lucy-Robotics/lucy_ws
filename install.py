@@ -36,6 +36,7 @@ from typing import Callable, Iterable, Optional
 
 import components
 import install_health
+import repos_file
 import update_progress
 
 ROOT = Path(__file__).resolve().parent
@@ -163,9 +164,7 @@ def load_dotenv(root: Path, env: Optional[dict] = None) -> dict:
 
 
 def repos_config_path(project_root: Path | str) -> Path:
-    root = Path(project_root)
-    local = root / "config" / "repos.json.local"
-    return local if local.exists() else root / "config" / "repos.json"
+    return repos_file.active_path(project_root)
 
 
 def parse_repos(
@@ -1031,7 +1030,7 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
                         help="How to fetch repositories (default: auto)")
     for name, label in components.LABELS.items():
         parser.add_argument(f"--{name.replace('_', '-')}", dest=name, action=argparse.BooleanOptionalAction,
-                            default=None, help=f"Install {label} (saved in .env)")
+                            default=None, help=f"Install {label}")
     args = parser.parse_args(argv)
 
     for flag, mode in (("repair", "repair"), ("build_only", "build-only"), ("update", "update")):
