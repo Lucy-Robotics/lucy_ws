@@ -293,21 +293,21 @@ def test_a_long_stage_is_truncated_rather_than_dropped(fake_curses):
 
 def test_the_trailing_dots_are_dropped_before_the_label_is_cut():
     """The "n/N" already says it is in progress, so the dots go first."""
-    assert tui._fit(" 1/8 Starting Rosbridge...", 26) == " 1/8 Starting Rosbridge..."
-    assert tui._fit(" 1/8 Starting Rosbridge...", 23) == " 1/8 Starting Rosbridge"
-    assert tui._fit(" 1/8 Starting Rosbridge...", 18) == " 1/8 Starting R..."
+    assert tui.fit(" 1/8 Starting Rosbridge...", 26) == " 1/8 Starting Rosbridge..."
+    assert tui.fit(" 1/8 Starting Rosbridge...", 23) == " 1/8 Starting Rosbridge"
+    assert tui.fit(" 1/8 Starting Rosbridge...", 18) == " 1/8 Starting R..."
 
 
 def test_a_cut_label_never_doubles_the_marker():
     for room in range(6, 30):
-        assert "...." not in tui._fit(" 6/8 Building robot model...", room)
+        assert "...." not in tui.fit(" 6/8 Building robot model...", room)
 
 
 def test_the_cut_marker_is_ascii():
     """No setlocale(), so addstr encodes against ASCII and an ellipsis raises
     UnicodeEncodeError, which is not a curses.error and so is not caught."""
     for room in range(1, 40):
-        tui._fit(" 6/8 Building robot model...", room).encode("ascii")
+        tui.fit(" 6/8 Building robot model...", room).encode("ascii")
 
 
 def test_every_core_stage_keeps_its_counter_at_the_minimum_width():
@@ -318,7 +318,7 @@ def test_every_core_stage_keeps_its_counter_at_the_minimum_width():
     room = MIN_TERM_WIDTH - base - 1
     total = len(core["readiness_stages"])
     for index, stage in enumerate(core["readiness_stages"], start=1):
-        shown = tui._fit(f" {index}/{total} {stage['label']}...", room)
+        shown = tui.fit(f" {index}/{total} {stage['label']}...", room)
         assert len(shown) <= room
         assert f"{index}/{total}" in shown
         verb = stage["label"].split()[0]
