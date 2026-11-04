@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import repos_file
+
 LABELS = {
     "simulation": "Simulation (Gazebo)",
     "visualisation": "Visualisation (RViz, rqt)",
@@ -49,10 +51,12 @@ def _env_lines(root: Path | str) -> list[str]:
 def load(root: Path | str) -> dict[str, bool]:
     pairs = (line.split("=", 1) for line in _env_lines(root) if "=" in line and not line.lstrip().startswith("#"))
     values = {k.strip(): v.strip().strip("'\"").lower() for k, v in pairs}
-    return {
+    from_env = {
         name: values[env_key(name)] in ("1", "true", "yes") if env_key(name) in values else default
         for name, default in DEFAULTS.items()
     }
+    from_file = repos_file.enabled(root)
+    return {name: from_file.get(REPOS.get(name), on) for name, on in from_env.items()}
 
 
 def problems(selection: dict[str, bool]) -> list[str]:
@@ -63,7 +67,14 @@ def pixi_env(selection: dict[str, bool]) -> str:
     return PIXI_ENVS[(selection["simulation"], selection["visualisation"])]
 
 
+def save_repos(root: Path | str, selection: dict[str, bool]) -> None:
+    saved = load(root)
+    if repos_file.active_path(root).is_file() and any(saved[name] != selection[name] for name in REPOS):
+        repos_file.set_enabled(root, {repo: selection[name] for name, repo in REPOS.items()})
+
+
 def save(root: Path | str, selection: dict[str, bool]) -> None:
+    save_repos(root, selection)
     values = {env_key(name): str(on).lower() for name, on in selection.items()}
     values[PIXI_ENV_KEY] = pixi_env(selection)
     kept = [line for line in _env_lines(root) if line.split("=", 1)[0].strip() not in values]
