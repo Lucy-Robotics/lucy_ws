@@ -1,5 +1,6 @@
 import curses
 import json
+import re
 import subprocess
 
 import pytest
@@ -43,9 +44,9 @@ class Screen:
 @pytest.fixture
 def workspace(tmp_path, monkeypatch):
     (tmp_path / "config").mkdir()
-    (tmp_path / "config" / "repos.json").write_text(
-        '{"repos": [{"name": "lucy_ros_packages", "branch": "dev", "url_https": "https://x/a.git"},'
-        ' {"name": "marty_urdf", "branch": "dev", "url_https": "https://x/m.git"}]}')
+    names = ["lucy_ros_packages", *components.REPOS.values()]
+    rows = [{"name": name, "branch": "dev", "url_https": f"https://x/{name}.git"} for name in names]
+    (tmp_path / "config" / "repos.json").write_text(json.dumps({"repos": rows}))
     monkeypatch.setattr(update_screen.curses, "curs_set", lambda _: None)
     monkeypatch.setattr(update_screen.curses, "color_pair", lambda _: 0)
     monkeypatch.setattr(tui_toolbox, "setup_colors", lambda: None)
@@ -214,15 +215,35 @@ def test_toggling_a_component_twice_turns_it_back_off_in_the_file(workspace):
 
 
 def test_turning_off_every_robot_leaves_the_file_alone(workspace):
-    data = json.loads((workspace / "config" / "repos.json").read_text())
-    data["repos"].append({"name": "inmoov_urdf", "branch": "dev", "url_https": "https://x/i.git"})
-    (workspace / "config" / "repos.json").write_text(json.dumps(data))
     components.save(workspace, {**components.DEFAULTS, **{robot: False for robot in components.ROBOTS[1:]}})
     before = (workspace / "config" / "repos.json.local").read_text()
     screen = Screen([*TO_FIRST_ROBOT, SPACE, ESC])
     assert update_screen.update_screen(screen, workspace) is None
     assert "Pick at least one robot" in screen.drawn
     assert (workspace / "config" / "repos.json.local").read_text() == before
+
+
+def _without(workspace, *names):
+    path = workspace / "config" / "repos.json"
+    data = json.loads(path.read_text())
+    data["repos"] = [row for row in data["repos"] if row["name"] not in names]
+    path.write_text(json.dumps(data))
+
+
+def test_a_component_without_a_row_in_the_file_is_not_offered(workspace):
+    _without(workspace, "inmoov_urdf", "marty_urdf")
+    screen = Screen([ESC])
+    assert update_screen.update_screen(screen, workspace) is None
+    assert not re.search(r"Robot: InMoov(?! i2)", screen.drawn)
+    assert components.LABELS["robot_marty"] not in screen.drawn
+    assert components.LABELS["robot_inmoov_i2"] in screen.drawn
+
+
+def test_a_component_without_a_row_is_never_reported_as_installing(workspace):
+    _without(workspace, "inmoov_urdf")
+    text = update_status.summary(workspace, components.load(workspace))[0]
+    assert components.LABELS["robot_inmoov"] not in text.split(", ")
+    assert components.LABELS["robot_inmoov_i2"] in text.split(", ")
 
 
 def test_toggling_simulation_waits_for_update_because_it_picks_the_pixi_environment(workspace):
