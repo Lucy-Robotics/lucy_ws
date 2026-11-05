@@ -8,6 +8,7 @@ except ImportError:
     curses = None
 
 from .apply import apply_changes, default_robot_selection, restore_selection
+from .autostart import autostart
 from .config import get_dev_mode, load_config, save_selection
 from .constants import MIN_TERM_HEIGHT, MIN_TERM_WIDTH, REDRAW_INTERVAL_MS
 from .state import (
@@ -248,21 +249,8 @@ def main(stdscr):
     state = LauncherState(load_config())
     restore_selection(state)
     default_robot_selection(state)
-    status_msg = None
-    status_msg_until = 0.0
-
-    if not get_dev_mode():
-        core_pkg = state.get_by_id("core")
-        lcp_pkg = state.get_by_id("control_panel")
-        if core_pkg:
-            core_pkg.selected = True
-        if lcp_pkg:
-            lcp_pkg.selected = True
-        default_robot_selection(state)
-        apply_changes(state)
-        save_selection({p.id for p in state.packages if p.selected})
-        status_msg = "Starting default services for production mode..."
-        status_msg_until = time.time() + 3.0
+    status_msg = autostart(state, get_dev_mode())
+    status_msg_until = time.time() + 3.0 if status_msg else 0.0
 
     poller = StatusPoller(state)
     try:

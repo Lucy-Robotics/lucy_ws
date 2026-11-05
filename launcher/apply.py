@@ -23,7 +23,7 @@ def _package_needs_vite_preserve(pkg) -> bool:
     else:
         cmd = ""
     cl = cmd.lower()
-    return "vite" in cl or "panel-dev" in cl
+    return "vite" in cl or "panel-dev" in cl or "panel-prod" in cl
 
 
 def _orphan_preserve_from_state(state):
