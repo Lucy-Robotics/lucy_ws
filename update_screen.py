@@ -134,7 +134,7 @@ def _edit_branch(screen: Screen, key: int) -> None:
 def update_screen(stdscr, root) -> str | None:
     curses.curs_set(0)
     tui_toolbox.setup_colors()
-    focus = [*components.LABELS, *update_status.core_repos(root), WORKSPACE]
+    focus = [*update_status.offered(root), *update_status.core_repos(root), WORKSPACE]
     screen = Screen(root, components.load(root), BranchPicker(root), focus, len(focus), version=version(Path(root)))
     stops = len(focus) + len(BUTTONS)
     while True:
