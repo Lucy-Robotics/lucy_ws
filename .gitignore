@@ -32,6 +32,7 @@ __pycache__/
 
 # Launcher runtime modifier state (which core modifiers were applied)
 .lucy_launcher_modifiers.json
+.lucy_launcher_options.json
 .lucy_launcher.pid
 
 # Local repo override (forks/branches; takes precedence over config/repos.json)

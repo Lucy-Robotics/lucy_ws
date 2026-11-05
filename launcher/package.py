@@ -3,9 +3,12 @@
 import os
 import subprocess
 
+import components
+
 from .constants import LOADING_TIMEOUT, WORKSPACE_ROOT
 from .config import save_state
-from .shell import run_shell_command, _pane_exit_status
+from .options import launched_options
+from .shell import pane_crash_message, pick_crash_line, run_shell_command, _pane_exit_status
 
 
 def _env_enabled(var_name):
@@ -46,6 +49,8 @@ def _pkg_visible(pkg_config, dev_mode):
         return False
     if not _ros_pkg_installed(pkg_config.get("requires_pkg")):
         return False
+    if not components.load(WORKSPACE_ROOT).get(pkg_config.get("requires_component"), True):
+        return False
     return _env_enabled(pkg_config.get("requires_env"))
 
 
@@ -66,11 +71,15 @@ class Package:
         self.conflicts = data.get("conflicts", [])
         self.command = data.get("command", "")
         self.lifecycle_hooks = data.get("lifecycle_hooks", {})
-        self.selected = data.get("default_on", False)
+        self.default_on = data.get("default_on", False)
+        self.selected = self.default_on
+        self.parent = data.get("parent")
         self.requires_pkg = data.get("requires_pkg")
         self.subitem = data.get("subitem", False)
         self.readiness_check = data.get("readiness_check")
         self.exit_check = data.get("exit_check")
+        self.error_check = data.get("error_check")
+        self.crash_log_window = data.get("crash_log_window")
         self.readiness_stages = _readiness_stages(data.get("readiness_stages"))
         self.readiness_timeout = data.get("readiness_timeout", LOADING_TIMEOUT)
         self.runs_on_vnc = data.get("runs_on_vnc", False)
@@ -83,6 +92,7 @@ class Package:
         self.stage = None
         self.pane_dead = False
         self.pane_exit_status = None
+        self.crash_message = ""
         self.update_running_status(running_modifiers)
 
         if self.type == "modifier" and self.requires_pkg:
@@ -109,6 +119,8 @@ class Package:
             )
         elif self.type == "modifier":
             is_running = self.id in running_modifiers
+        elif self.type == "option":
+            is_running = self.id in launched_options()
         elif self.type in ("core", "tool", "interface"):
             if tmux_windows is not None:
                 is_running = self.id in tmux_windows
@@ -149,6 +161,7 @@ class Package:
             "stage": stage,
             "pane_exit_status": exit_status,
             "pane_dead": exit_status is not None,
+            "crash_message": self._crash_message(is_running, ready, exit_status),
         }
 
     def _probe_stages(self):
@@ -180,9 +193,38 @@ class Package:
         self.stage = status.get("stage")
         self.pane_exit_status = status["pane_exit_status"]
         self.pane_dead = status["pane_dead"]
+        self.crash_message = status.get("crash_message") or ""
 
     def update_running_status(self, running_modifiers):
         self.apply_status(self.probe_status(running_modifiers))
 
     def is_complex_command(self):
         return isinstance(self.command, dict)
+
+    def _crash_message(self, is_running, ready, exit_status):
+        """Why this row is about to read CRASHED, or "" when nothing failed.
+
+        `error_check` is a one-line file the process writes as it exits. The
+        pane is the fallback for a death that never reached that write: a
+        modifier names the core window, and a tool's own window is its log."""
+        if not is_running and exit_status is None:
+            return ""
+        if self.error_check:
+            text = subprocess.run(
+                self.error_check, shell=True, capture_output=True, text=True
+            ).stdout
+            message = pick_crash_line(text)
+            if message:
+                return message
+        if exit_status == 0 or ready:
+            return ""
+        window = self.crash_log_window
+        if (
+            window is None
+            and exit_status not in (None, 0)
+            and self.type in ("core", "tool", "interface")
+        ):
+            window = self.id
+        if not window:
+            return ""
+        return pane_crash_message(window)

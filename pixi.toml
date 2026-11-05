@@ -40,14 +40,21 @@ channels = [
 # Pin distro mutex so all RoboStack packages come from the same rebuild cycle.
 # See: https://github.com/RoboStack/ros-jazzy/issues/125
 ros2-distro-mutex = ">=0.15,<0.16"
-ros-jazzy-desktop = "*"
-ros-jazzy-ros-gz = "*"
+ros-jazzy-ros-base = "*"
+ros-jazzy-xacro = "*"
 ros-jazzy-rosbridge-suite = "*"
 ros-jazzy-ros2-control = "*"
 ros-jazzy-ros2-controllers = "*"
+ros-jazzy-backward-ros = "*"
+pinocchio = "*"
+
+[feature.viz.dependencies]
+ros-jazzy-desktop = "*"
+
+[feature.sim.dependencies]
+ros-jazzy-ros-gz = "*"
 ros-jazzy-gz-ros2-control = "*"
 ros-jazzy-simulation-interfaces = "*"
-ros-jazzy-backward-ros = "*"
 
 # RealSense is not a Pixi dependency — build locally when needed:
 #   ./scripts/build_local_realsense.sh  (or LUCY_BUILD_REALSENSE=1 python3 install.py)
@@ -106,8 +113,10 @@ test-only = "python scripts/ci_colcon_test.py --merge-install"
 
 [feature.panel.tasks]
 panel-install = { cmd = "yarn install", cwd = "src/lucy_control_panel" }
-panel-dev = { cmd = "yarn dev", cwd = "src/lucy_control_panel" }
-panel-build = { cmd = "yarn build", cwd = "src/lucy_control_panel", inputs = [
+panel-version = "mkdir -p log && git describe --tags --always > log/lucy_version || cat version.txt > log/lucy_version"
+panel-dev = { cmd = "VITE_LUCY_VERSION=$(cat ../../log/lucy_version) yarn dev", cwd = "src/lucy_control_panel", depends-on = ["panel-version"] }
+panel-build = { cmd = "VITE_LUCY_VERSION=$(cat ../../log/lucy_version) yarn build", cwd = "src/lucy_control_panel", depends-on = ["panel-version"], inputs = [
+  "log/lucy_version",
   "src/lucy_control_panel/src",
   "src/lucy_control_panel/public",
   "src/lucy_control_panel/index.html",
@@ -164,10 +173,13 @@ requests = "*"                # for rustup automatic download (if needed)
 # Zero-touch: installs rustup+elf2uf2 into $CONDA_PREFIX/{cargo,rustup}.
 # firmware_cargo_env.py points cargo/rustc at that layout (multi-platform).
 firmware-setup = "python scripts/firmware_setup.py"
-firmware-build = { cmd = "python scripts/firmware_cargo_env.py cargo build --release --target thumbv6m-none-eabi --manifest-path src/lucy_embedded_firmware/firmwares/rp2040/Cargo.toml", cwd = ".", depends-on = ["firmware-setup"] }
+firmware-build = { cmd = "python $PIXI_PROJECT_ROOT/scripts/firmware_cargo_env.py cargo build --release --target thumbv6m-none-eabi", cwd = "src/lucy_embedded_firmware/firmwares/rp2040", depends-on = ["firmware-setup"] }
 # Host Feetech SHM consumer (so101) and mcu_bridge need serialport → libudev on Linux.
 firmware-build-linux = { cmd = "python scripts/firmware_cargo_env.py cargo build --release -p lucy-embedded-firmware-linux -p lucy-embedded-firmware-mcu-bridge --manifest-path src/lucy_embedded_firmware/Cargo.toml", cwd = ".", depends-on = ["firmware-setup"] }
 firmware-flash = { cmd = "python scripts/firmware_flash.py", depends-on = ["firmware-build"] }
+# Arduino Mega boards: `pixi run firmware-flash-mega mega_right [--robot pkg] [--port dev] [--build-only]`.
+# Needs host avr-gcc + avrdude (not on conda-forge).
+firmware-flash-mega = { cmd = "python scripts/firmware_flash_mega.py", depends-on = ["firmware-setup"] }
 firmware-clean = "python scripts/firmware_cargo_env.py cargo clean --manifest-path src/lucy_embedded_firmware/Cargo.toml"
 firmware-test = { cmd = "python scripts/firmware_cargo_env.py cargo test --manifest-path src/lucy_embedded_firmware/Cargo.toml", depends-on = ["firmware-setup"] }
 
@@ -195,4 +207,7 @@ scripts = ["install/setup.bat"]
 env = { GZ_SIM_SYSTEM_PLUGIN_PATH = "%CONDA_PREFIX%/Library/bin", RMW_IMPLEMENTATION = "rmw_cyclonedds_cpp", CYCLONEDDS_URI = '<CycloneDDS><Domain id="any"><General><Interfaces><NetworkInterface address="127.0.0.1" multicast="true"/></Interfaces><AllowMulticast>true</AllowMulticast></General></Domain></CycloneDDS>' }
 
 [environments]
-default = { features = ["ros", "build", "panel", "dev", "launcher", "firmware"] }
+default = { features = ["ros", "build", "panel", "dev", "launcher", "firmware", "viz"], solve-group = "lucy" }
+sim = { features = ["ros", "build", "panel", "dev", "launcher", "firmware", "viz", "sim"], solve-group = "lucy" }
+minimal = { features = ["ros", "build", "panel", "dev", "launcher", "firmware"], solve-group = "lucy" }
+minimal-sim = { features = ["ros", "build", "panel", "dev", "launcher", "firmware", "sim"], solve-group = "lucy" }

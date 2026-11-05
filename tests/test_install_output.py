@@ -8,6 +8,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from types import SimpleNamespace
+
 import install  # noqa: E402
 
 
@@ -77,4 +79,38 @@ def test_setup_firmware_toolchain_runs_pixi_task(monkeypatch):
     monkeypatch.delenv("LUCY_SKIP_FIRMWARE_SETUP", raising=False)
     monkeypatch.setattr(install, "pixi_run", record)
     install.setup_firmware_toolchain("/tmp/ws", lambda *a, **k: 0, log=lambda m: None)
-    assert calls == [["run", "firmware-setup"]]
+    assert calls == [["run", "firmware-setup"], ["run", "firmware-build-linux"]]
+
+
+def test_build_skips_panel_install_without_control_panel(tmp_path, monkeypatch):
+    import components
+
+    calls = []
+    components.save(tmp_path, {**components.DEFAULTS, "visualisation": False, "control_panel": False})
+    monkeypatch.setenv("LUCY_SKIP_FIRMWARE_SETUP", "1")
+    monkeypatch.setattr(install, "pixi_run", lambda root, args, run_command: calls.append(args) or 0)
+    install.build_workspace(tmp_path, lambda *a, **k: 0, log=lambda m: None)
+    assert calls == [["run", "build"]]
+
+
+def test_firmware_toolchain_skipped_when_firmware_left_out(tmp_path, monkeypatch):
+    import components
+
+    calls = []
+    components.save(tmp_path, {**components.DEFAULTS, "firmware": False})
+    monkeypatch.delenv("LUCY_SKIP_FIRMWARE_SETUP", raising=False)
+    monkeypatch.setattr(install, "pixi_run", lambda root, args, run_command: calls.append(args) or 0)
+    install.setup_firmware_toolchain(tmp_path, lambda *a, **k: 0, log=lambda m: None)
+    assert calls == []
+
+
+def test_update_keeps_a_branch_that_only_exists_locally(tmp_path, monkeypatch):
+    dest = tmp_path / "repo"
+    (dest / ".git").mkdir(parents=True)
+    commands = []
+    monkeypatch.setattr(install, "run_quiet", lambda cmd, **_: SimpleNamespace(stdout="", returncode=1))
+    logs = []
+    install.fetch_repo_git("repo", "git@x:repo.git", "wip", str(dest), "update",
+                           lambda cmd, check=True: commands.append(cmd) or 0, logs.append)
+    assert not any("pull" in cmd for cmd in commands)
+    assert "not on origin" in logs[-1]

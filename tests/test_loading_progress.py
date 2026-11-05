@@ -192,6 +192,65 @@ def _row_text(screen):
     return "".join(text for _, _, text, _ in screen.writes)
 
 
+def test_crash_line_prefers_the_process_message_over_the_died_wrapper():
+    """The pane keeps logging after the firmware exits. The row wants the reason."""
+    from launcher import pick_crash_line
+
+    log = """
+[INFO] [lucy_embedded_firmware_linux-6]: process started with pid [3670493]
+[lucy_embedded_firmware_linux-6] Disconnect and reconnect SO-ARM. Then relaunch Lucy.
+[ERROR] [lucy_embedded_firmware_linux-6]: process has died [pid 3670493, exit code 1, cmd 'lucy-embedded-firmware-linux so_arm'].
+[rviz2-7] [INFO] [rviz2]: Stereo is NOT SUPPORTED
+"""
+    assert pick_crash_line(log) == (
+        "Disconnect and reconnect SO-ARM. Then relaunch Lucy."
+    )
+
+
+def test_a_one_line_error_file_is_the_message():
+    from launcher import pick_crash_line
+
+    assert pick_crash_line(
+        "shm_open(\"/so_arm\") failed after 30s: No such file or directory\n"
+    ) == 'shm_open("/so_arm") failed after 30s: No such file or directory'
+
+
+def test_crash_hint_is_only_shown_when_crashed():
+    from launcher import _crash_hint
+
+    pkg = types.SimpleNamespace(
+        crash_message="Disconnect and reconnect SO-ARM. Then relaunch Lucy."
+    )
+    assert _crash_hint(pkg, "crashed") == pkg.crash_message
+    assert _crash_hint(pkg, "loading") == ""
+    assert _crash_hint(pkg, "running") == ""
+
+
+def test_row_shows_the_error_to_the_right_of_crashed(fake_curses):
+    screen = FakeScreen(width=160)
+    tui._draw_pkg_row(
+        screen, 3, 4, "  ", "    ", "[x]", "... with Hardware", 0, "crashed",
+        detail="Disconnect and reconnect SO-ARM. Then relaunch Lucy.",
+    )
+    assert _row_text(screen) == (
+        "      [x] ... with Hardware [CRASHED] "
+        "Disconnect and reconnect SO-ARM. Then relaunch Lucy."
+    )
+    detail = next(w for w in screen.writes if "Disconnect" in w[2])
+    assert detail[3] == fake_curses.color_pair(2)
+
+
+def test_a_long_crash_message_is_truncated_rather_than_dropped(fake_curses):
+    screen = FakeScreen(width=70)
+    tui._draw_pkg_row(
+        screen, 3, 4, "  ", "    ", "[x]", "... with Hardware", 0, "crashed",
+        detail="Disconnect and reconnect SO-ARM. Then relaunch Lucy.",
+    )
+    text = _row_text(screen)
+    assert "[CRASHED] Disconnect" in text
+    assert len(text) + 4 <= 70
+
+
 def test_row_shows_the_stage_after_the_loading_label(fake_curses):
     screen = FakeScreen()
     tui._draw_pkg_row(
@@ -234,21 +293,21 @@ def test_a_long_stage_is_truncated_rather_than_dropped(fake_curses):
 
 def test_the_trailing_dots_are_dropped_before_the_label_is_cut():
     """The "n/N" already says it is in progress, so the dots go first."""
-    assert tui._fit(" 1/8 Starting Rosbridge...", 26) == " 1/8 Starting Rosbridge..."
-    assert tui._fit(" 1/8 Starting Rosbridge...", 23) == " 1/8 Starting Rosbridge"
-    assert tui._fit(" 1/8 Starting Rosbridge...", 18) == " 1/8 Starting R..."
+    assert tui.fit(" 1/8 Starting Rosbridge...", 26) == " 1/8 Starting Rosbridge..."
+    assert tui.fit(" 1/8 Starting Rosbridge...", 23) == " 1/8 Starting Rosbridge"
+    assert tui.fit(" 1/8 Starting Rosbridge...", 18) == " 1/8 Starting R..."
 
 
 def test_a_cut_label_never_doubles_the_marker():
     for room in range(6, 30):
-        assert "...." not in tui._fit(" 6/8 Building robot model...", room)
+        assert "...." not in tui.fit(" 6/8 Building robot model...", room)
 
 
 def test_the_cut_marker_is_ascii():
     """No setlocale(), so addstr encodes against ASCII and an ellipsis raises
     UnicodeEncodeError, which is not a curses.error and so is not caught."""
     for room in range(1, 40):
-        tui._fit(" 6/8 Building robot model...", room).encode("ascii")
+        tui.fit(" 6/8 Building robot model...", room).encode("ascii")
 
 
 def test_every_core_stage_keeps_its_counter_at_the_minimum_width():
@@ -259,7 +318,7 @@ def test_every_core_stage_keeps_its_counter_at_the_minimum_width():
     room = MIN_TERM_WIDTH - base - 1
     total = len(core["readiness_stages"])
     for index, stage in enumerate(core["readiness_stages"], start=1):
-        shown = tui._fit(f" {index}/{total} {stage['label']}...", room)
+        shown = tui.fit(f" {index}/{total} {stage['label']}...", room)
         assert len(shown) <= room
         assert f"{index}/{total}" in shown
         verb = stage["label"].split()[0]

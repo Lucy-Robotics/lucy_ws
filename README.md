@@ -34,18 +34,27 @@ cd lucy_ws
 python3 Lucy.py
 ```
 
-**NixOS:** enable [nix-ld](https://github.com/nix-community/nix-ld) so Pixi/RoboStack conda binaries can load the host dynamic linker:
-
-```nix
-programs.nix-ld.enable = true;
-```
+**Update** opens a screen listing each component and repo. The checkbox colour gives its state: green is installed, yellow has something to apply, red failed, grey is not installed. On a repo row, the bottom line shows its version and last update, Right enters its branch list and Up/Down picks a branch (for `lucy_ws`, Update checks it out first and restarts Lucy). The screen opens on `config/repos.json.local` and writes each branch and component choice to it straight away: `branch` and `enabled` on each repo. Update applies the file, so a choice made before Exit is still there, in yellow, next time. Simulation and Visualisation have no repo, so they stay in `.env` and are saved by Update. Pressing the Update button shows the steps next to the live logs in tmux, side by side or stacked to fit the window. Drag in the logs to copy them; the full log is saved to `log/update.log`.
 
 If you choose to install pixi beforehand, you will need to source it:
 ```
 export PATH="$HOME/.pixi/bin:$PATH"
 ```
 
-For Gazebo/RViz GL, also see the [NixOS notes](docs/developer_lucy_packages.md#platform-setup) in the developer guide.
+<details>
+<summary>NixOS</summary>
+
+Run `pixi run firmware-setup` or `pixi run setup-udev` — on NixOS it prints a **host-specific** snippet (absolute path to `config/udev/99-lucy-usb-serial.rules` + your username) to paste into `configuration.nix` / a flake module, then:
+
+```bash
+sudo nixos-rebuild switch
+```
+
+Re-login and unplug/replug USB boards. Until then, hold BOOTSEL while plugging for a one-shot UF2 flash.
+
+Also enable [nix-ld](https://github.com/nix-community/nix-ld) (`programs.nix-ld.enable = true;` — included in the printed snippet). Gazebo/RViz: nixGL (e.g. `nixGLIntel`) on `PATH`, or `/run/opengl-driver/lib`. Do not set `LUCY_NIX_GL=0`. See `.env.example` / `scripts/nix_gl_env.sh` for optional GL overrides.
+
+</details>
 
 ### Windows
 
@@ -78,7 +87,7 @@ Windows is **visualisation only** for now. `pixi run core` starts a `/joint_stat
 **Components you can enable:**
 
 - **Core** - base robot stack (`lucy_bringup`)
-- **Modifiers** - Simulator (Gazebo), **… headless** (server-only sim, under Simulator), Visualizer (RViz), Real Hardware
+- **Modifiers** - Simulator (Gazebo), **… headless** (server-only sim, under Simulator), Visualizer (RViz), Hardware
 - **Interfaces** - Control Panel (web UI), Lucy CLI
 - **Tools** - Console, rqt
 
@@ -99,7 +108,9 @@ Lucy selects the robot package with `robot_package:=…` or `LUCY_ROBOT_PACKAGE`
 |-------|---------|----------------------------|
 | SO-ARM101 | `so_arm101_urdf` | **[Hardware setup](src/so_arm101_urdf/docs/HARDWARE_SETUP.md)** - LeRobot calibrate, apply limits, regenerate, then `real:=true` |
 | InMoov | `inmoov_urdf` | Package docs under `src/inmoov_urdf/` |
+| InMoov i2 | `inmoov_i2_urdf` | Package docs under `src/inmoov_i2_urdf/` |
 | Thais | `thais_urdf` | Package docs under `src/thais_urdf/` |
+| Marty v2 | `marty_urdf` | Mock and Gazebo - [developer guide](src/marty_urdf/docs/DEVELOPER.md) |
 
 Example (SO-ARM101 after calibration):
 

@@ -47,28 +47,55 @@
     },
     {
       "id": "robot_inmoov",
+      "requires_component": "robot_inmoov",
       "name": "Robot: InMoov",
       "description": "(robot_package:=inmoov_urdf)",
       "type": "modifier",
       "dependencies": ["core"],
-      "conflicts": ["robot_thais", "robot_so_arm101"],
+      "conflicts": ["robot_thais", "robot_so_arm101", "robot_inmoov_i2", "robot_marty"],
       "command": "robot_package:=inmoov_urdf",
       "requires_pkg": "inmoov_urdf",
       "default_on": true
     },
     {
       "id": "robot_so_arm101",
+      "requires_component": "robot_so_arm101",
       "name": "Robot: SO-ARM101",
       "description": "(robot_package:=so_arm101_urdf)",
       "type": "modifier",
       "dependencies": ["core"],
-      "conflicts": ["robot_inmoov", "robot_thais"],
+      "conflicts": ["robot_inmoov", "robot_thais", "robot_inmoov_i2", "robot_marty"],
       "command": "robot_package:=so_arm101_urdf",
       "requires_pkg": "so_arm101_urdf",
       "default_on": false
     },
     {
+      "id": "robot_inmoov_i2",
+      "requires_component": "robot_inmoov_i2",
+      "name": "Robot: InMoov i2",
+      "description": "(robot_package:=inmoov_i2_urdf)",
+      "type": "modifier",
+      "dependencies": ["core"],
+      "conflicts": ["robot_inmoov", "robot_thais", "robot_so_arm101", "robot_marty"],
+      "command": "robot_package:=inmoov_i2_urdf",
+      "requires_pkg": "inmoov_i2_urdf",
+      "default_on": false
+    },
+    {
+      "id": "robot_marty",
+      "requires_component": "robot_marty",
+      "name": "Robot: Marty",
+      "description": "(robot_package:=marty_urdf)",
+      "type": "modifier",
+      "dependencies": ["core"],
+      "conflicts": ["robot_inmoov", "robot_thais", "robot_so_arm101", "robot_inmoov_i2"],
+      "command": "robot_package:=marty_urdf",
+      "requires_pkg": "marty_urdf",
+      "default_on": false
+    },
+    {
       "id": "gazebo",
+      "requires_component": "simulation",
       "name": "... with Simulator",
       "description": "(Gazebo)",
       "type": "modifier",
@@ -81,6 +108,7 @@
     },
     {
       "id": "headless",
+      "requires_component": "simulation",
       "name": "... headless",
       "description": "(server-only, no GUI)",
       "type": "modifier",
@@ -92,6 +120,7 @@
     },
     {
       "id": "rviz",
+      "requires_component": "visualisation",
       "name": "... with Visualizer",
       "description": "(RViz — use Control Panel 3D if OpenGL fails)",
       "type": "modifier",
@@ -104,18 +133,23 @@
     },
     {
       "id": "real",
-      "name": "... with Real Hardware",
+      "requires_component": "firmware",
+      "name": "... with Hardware",
       "description": "(Connect to physical robot)",
       "type": "modifier",
       "dependencies": ["core"],
       "conflicts": ["gazebo"],
       "command": "real:=true",
-      "readiness_check": "pgrep -f '[l]ucy-embedded-firmware-(mcu-bridge|linux)' >/dev/null 2>&1",
-      "readiness_timeout": 30,
+      "readiness_check": "bash scripts/real_hardware_ready.sh",
+      "exit_check": "cat /tmp/.lucy_real_hardware_status 2>/dev/null",
+      "error_check": "cat /tmp/.lucy_real_hardware_error 2>/dev/null",
+      "crash_log_window": "core",
+      "readiness_timeout": 180,
       "default_on": false
     },
     {
       "id": "control_panel",
+      "requires_component": "control_panel",
       "name": "Control Panel",
       "description": "Web-based UI",
       "url": "${LUCY_LCP_SCHEME}://localhost:${LUCY_LCP_PUBLISHED_HOST_PORT}",
@@ -128,6 +162,28 @@
       "readiness_check": "bash scripts/port_open.sh ${LUCY_LCP_PUBLISHED_HOST_PORT:-4004}",
       "readiness_timeout": 300,
       "default_on": false
+    },
+    {
+      "id": "panel_host_local",
+      "requires_component": "control_panel",
+      "name": "This computer only",
+      "description": "Only this computer can open the panel",
+      "type": "option",
+      "parent": "control_panel",
+      "conflicts": ["panel_host_network"],
+      "command": "--host 127.0.0.1",
+      "default_on": false
+    },
+    {
+      "id": "panel_host_network",
+      "requires_component": "control_panel",
+      "name": "Every network (0.0.0.0)",
+      "description": "Devices on your networks can open the panel",
+      "type": "option",
+      "parent": "control_panel",
+      "conflicts": ["panel_host_local"],
+      "command": "--host 0.0.0.0",
+      "default_on": true
     },
     {
       "id": "lucy_cli",
@@ -153,6 +209,7 @@
     },
     {
       "id": "rqt",
+      "requires_component": "visualisation",
       "name": "rqt GUI",
       "description": "Main ROS 2 GUI tool",
       "type": "tool",
