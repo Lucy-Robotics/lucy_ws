@@ -19,12 +19,6 @@
       "url_ssh": "git@github.com:Lucy-Robotics/lucy_embedded_firmware.git"
     },
     {
-      "name": "inmoov_urdf",
-      "branch": "aes/latest",
-      "url_https": "https://github.com/Lucy-Robotics/inmoov_urdf.git",
-      "url_ssh": "git@github.com:Lucy-Robotics/inmoov_urdf.git"
-    },
-    {
       "name": "so_arm101_urdf",
       "branch": "aes/poc-hardware-tested",
       "url_https": "https://github.com/Lucy-Robotics/so_arm101_urdf.git",
@@ -35,12 +29,6 @@
       "branch": "robot/poc",
       "url_https": "https://github.com/Lucy-Robotics/inmoov_i2_urdf.git",
       "url_ssh": "git@github.com:Lucy-Robotics/inmoov_i2_urdf.git"
-    },
-    {
-      "name": "marty_urdf",
-      "branch": "aes/marty-support",
-      "url_https": "https://github.com/Lucy-Robotics/marty_urdf.git",
-      "url_ssh": "git@github.com:Lucy-Robotics/marty_urdf.git"
     }
   ]
 }
