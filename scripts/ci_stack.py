@@ -138,3 +138,8 @@ def check_robot_identity(ros: Ros, robot: str) -> None:
         f"expected {robot}, got URDF {name.group(1) if name else None} "
         f"with joint states {sorted(ros.snapshot())[:5]}"
     )
+
+
+def path_outside(root, path: str) -> str:
+    prefix = str(root).lower()
+    return os.pathsep.join(entry for entry in path.split(os.pathsep) if not entry.lower().startswith(prefix))

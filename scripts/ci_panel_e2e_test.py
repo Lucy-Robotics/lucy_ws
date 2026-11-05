@@ -21,6 +21,7 @@ from ci_stack import (
     check_robot_identity,
     exit_skipping_ros_teardown,
     log,
+    path_outside,
     port_open,
 )
 
@@ -33,6 +34,7 @@ def start(pixi_args: str) -> subprocess.Popen:
     if os.name == "nt":
         return subprocess.Popen(
             f'cmd.exe /d /s /c "pixi run {pixi_args}"', cwd=ROOT,
+            env={**os.environ, "PATH": path_outside(ROOT, os.environ["PATH"])},
             creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
         )
     return subprocess.Popen([shutil.which("pixi"), "run", *pixi_args.split()], cwd=ROOT, start_new_session=True)
