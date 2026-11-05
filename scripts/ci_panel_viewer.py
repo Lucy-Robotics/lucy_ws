@@ -61,13 +61,17 @@ def check_viewer(page, model: dict, opened_at: float) -> None:
         f"({model['replies']} mesh/get replies) and shows no error")
 
 
+def grab(page, canvas) -> bytes:
+    return page.screenshot(clip=canvas.bounding_box(), timeout=FOLLOW_TIMEOUT_S * 1000)
+
+
 def check_viewer_follows(page, ros: Ros) -> None:
     canvas = max(page.locator("canvas").all(), key=lambda c: (lambda b: b["width"] * b["height"] if b else 0)(c.bounding_box()))
-    before = canvas.screenshot()
+    before = grab(page, canvas)
     page.get_by_role("button", name=re.compile(r"reset all", re.I)).first.click()
     ros.wait_settled()
     deadline = time.time() + FOLLOW_TIMEOUT_S
-    while canvas.screenshot() == before:
+    while grab(page, canvas) == before:
         if time.time() > deadline:
             raise CheckFailed(f"the 3D view did not change within {FOLLOW_TIMEOUT_S:.0f}s of RESET ALL moving the joints")
         page.wait_for_timeout(1000)
