@@ -47,6 +47,7 @@
     },
     {
       "id": "robot_inmoov",
+      "requires_component": "robot_inmoov",
       "name": "Robot: InMoov",
       "description": "(robot_package:=inmoov_urdf)",
       "type": "modifier",
@@ -58,6 +59,7 @@
     },
     {
       "id": "robot_so_arm101",
+      "requires_component": "robot_so_arm101",
       "name": "Robot: SO-ARM101",
       "description": "(robot_package:=so_arm101_urdf)",
       "type": "modifier",
@@ -69,6 +71,7 @@
     },
     {
       "id": "robot_inmoov_i2",
+      "requires_component": "robot_inmoov_i2",
       "name": "Robot: InMoov i2",
       "description": "(robot_package:=inmoov_i2_urdf)",
       "type": "modifier",
@@ -80,6 +83,7 @@
     },
     {
       "id": "gazebo",
+      "requires_component": "simulation",
       "name": "... with Simulator",
       "description": "(Gazebo)",
       "type": "modifier",
@@ -92,6 +96,7 @@
     },
     {
       "id": "headless",
+      "requires_component": "simulation",
       "name": "... headless",
       "description": "(server-only, no GUI)",
       "type": "modifier",
@@ -103,6 +108,7 @@
     },
     {
       "id": "rviz",
+      "requires_component": "visualisation",
       "name": "... with Visualizer",
       "description": "(RViz — use Control Panel 3D if OpenGL fails)",
       "type": "modifier",
@@ -115,6 +121,7 @@
     },
     {
       "id": "real",
+      "requires_component": "firmware",
       "name": "... with Real Hardware",
       "description": "(Connect to physical robot)",
       "type": "modifier",
@@ -127,6 +134,7 @@
     },
     {
       "id": "control_panel",
+      "requires_component": "control_panel",
       "name": "Control Panel",
       "description": "Web-based UI",
       "url": "${LUCY_LCP_SCHEME}://localhost:${LUCY_LCP_PUBLISHED_HOST_PORT}",
@@ -164,6 +172,7 @@
     },
     {
       "id": "rqt",
+      "requires_component": "visualisation",
       "name": "rqt GUI",
       "description": "Main ROS 2 GUI tool",
       "type": "tool",
