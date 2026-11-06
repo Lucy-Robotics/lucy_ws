@@ -107,6 +107,7 @@ test-only = "python scripts/ci_colcon_test.py --merge-install"
 [feature.panel.tasks]
 panel-install = { cmd = "yarn install", cwd = "src/lucy_control_panel" }
 panel-dev = { cmd = "yarn dev", cwd = "src/lucy_control_panel" }
+panel-test = { cmd = "yarn test", cwd = "src/lucy_control_panel" }
 panel-build = { cmd = "yarn build", cwd = "src/lucy_control_panel", inputs = [
   "src/lucy_control_panel/src",
   "src/lucy_control_panel/public",
