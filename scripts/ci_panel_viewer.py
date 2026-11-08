@@ -16,7 +16,9 @@ WEBGL_RENDERER = """() => {
     const info = gl && gl.getExtension('WEBGL_debug_renderer_info');
     return info ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL) : gl ? 'unknown' : 'none';
 }"""
-VIEWER_ERRORS = re.compile(r"No URDF received|Could not load any meshes|WebGL is not supported|Failed to load robot model")
+VIEWER_ERRORS = re.compile(
+    r"No URDF received|Could not load any meshes|WebGL is not supported|Failed to load robot model"
+)
 
 
 def watch_model(page) -> dict:
@@ -41,7 +43,11 @@ def watch_model(page) -> dict:
 def check_viewer(page, model: dict, opened_at: float) -> None:
     deadline = opened_at + MODEL_TIMEOUT_S
     seen, progressed_at = -1, time.time()
-    while "meshes" not in model and time.time() < deadline and time.time() - progressed_at < MODEL_STALL_S:
+    while (
+        "meshes" not in model
+        and time.time() < deadline
+        and time.time() - progressed_at < MODEL_STALL_S
+    ):
         if model["replies"] != seen:
             seen, progressed_at = model["replies"], time.time()
         page.wait_for_timeout(1000)
@@ -57,8 +63,10 @@ def check_viewer(page, model: dict, opened_at: float) -> None:
     shown = page.get_by_text(VIEWER_ERRORS)
     if shown.count():
         raise CheckFailed(f"the 3D view shows an error: {shown.first.inner_text()!r}")
-    log(f"3D view loaded all {total} meshes in {model['done_at'] - opened_at:.0f}s "
-        f"({model['replies']} mesh/get replies) and shows no error")
+    log(
+        f"3D view loaded all {total} meshes in {model['done_at'] - opened_at:.0f}s "
+        f"({model['replies']} mesh/get replies) and shows no error"
+    )
 
 
 def grab(page, canvas) -> bytes:
@@ -66,13 +74,20 @@ def grab(page, canvas) -> bytes:
 
 
 def check_viewer_follows(page, ros: Ros) -> None:
-    canvas = max(page.locator("canvas").all(), key=lambda c: (lambda b: b["width"] * b["height"] if b else 0)(c.bounding_box()))
+    canvas = max(
+        page.locator("canvas").all(),
+        key=lambda c: (lambda b: b["width"] * b["height"] if b else 0)(
+            c.bounding_box()
+        ),
+    )
     before = grab(page, canvas)
     page.get_by_role("button", name=re.compile(r"reset all", re.I)).first.click()
     ros.wait_settled()
     deadline = time.time() + FOLLOW_TIMEOUT_S
     while grab(page, canvas) == before:
         if time.time() > deadline:
-            raise CheckFailed(f"the 3D view did not change within {FOLLOW_TIMEOUT_S:.0f}s of RESET ALL moving the joints")
+            raise CheckFailed(
+                f"the 3D view did not change within {FOLLOW_TIMEOUT_S:.0f}s of RESET ALL moving the joints"
+            )
         page.wait_for_timeout(1000)
     log("3D view follows the joints")

@@ -14,16 +14,28 @@ import Lucy  # noqa: E402
 
 class _StubCurses:
     """Just the surface main_tui touches."""
+
     KEY_UP, KEY_DOWN = 259, 258
     A_BOLD, A_DIM, A_NORMAL = 1, 2, 0
     COLOR_CYAN = 6
 
-    def __init__(self): self.escdelay = None
-    def set_escdelay(self, ms): self.escdelay = ms
-    def curs_set(self, _): pass
-    def start_color(self): pass
-    def use_default_colors(self): pass
-    def init_pair(self, *_): pass
+    def __init__(self):
+        self.escdelay = None
+
+    def set_escdelay(self, ms):
+        self.escdelay = ms
+
+    def curs_set(self, _):
+        pass
+
+    def start_color(self):
+        pass
+
+    def use_default_colors(self):
+        pass
+
+    def init_pair(self, *_):
+        pass
 
 
 class _StubScreen:
@@ -32,13 +44,26 @@ class _StubScreen:
         self._size = size
         self.written = []
 
-    def getmaxyx(self): return self._size
-    def clear(self): pass
-    def refresh(self): pass
-    def nodelay(self, _): pass
-    def timeout(self, _): pass
-    def addstr(self, _y, _x, text, *_): self.written.append(text)
-    def getch(self): return self._keys.pop(0)
+    def getmaxyx(self):
+        return self._size
+
+    def clear(self):
+        pass
+
+    def refresh(self):
+        pass
+
+    def nodelay(self, _):
+        pass
+
+    def timeout(self, _):
+        pass
+
+    def addstr(self, _y, _x, text, *_):
+        self.written.append(text)
+
+    def getch(self):
+        return self._keys.pop(0)
 
 
 @pytest.fixture

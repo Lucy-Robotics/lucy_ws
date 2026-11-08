@@ -17,16 +17,16 @@ from rclpy.node import Node
 from sensor_msgs.msg import JointState
 from trajectory_msgs.msg import JointTrajectory
 
-OUTPUT_TOPIC = '/lucy/commanded_joint_states'
-COMMAND_SUFFIX = '/joint_trajectory'
-COMMAND_TYPE = 'trajectory_msgs/msg/JointTrajectory'
+OUTPUT_TOPIC = "/lucy/commanded_joint_states"
+COMMAND_SUFFIX = "/joint_trajectory"
+COMMAND_TYPE = "trajectory_msgs/msg/JointTrajectory"
 PUBLISH_HZ = 30.0
 DISCOVER_PERIOD_S = 2.0
 
 
 class JointCommandEcho(Node):
     def __init__(self) -> None:
-        super().__init__('lucy_joint_command_echo')
+        super().__init__("lucy_joint_command_echo")
         self._positions: dict[str, float] = {}
         self._subscriptions_by_topic: dict = {}
         self._pub = self.create_publisher(JointState, OUTPUT_TOPIC, 10)
@@ -43,7 +43,7 @@ class JointCommandEcho(Node):
                 self._subscriptions_by_topic[topic] = self.create_subscription(
                     JointTrajectory, topic, self._on_trajectory, 10
                 )
-                self.get_logger().info(f'following {topic}')
+                self.get_logger().info(f"following {topic}")
 
     def _on_trajectory(self, msg: JointTrajectory) -> None:
         if not msg.points:
@@ -75,5 +75,5 @@ def main() -> None:
         rclpy.try_shutdown()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

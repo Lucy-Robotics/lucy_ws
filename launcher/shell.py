@@ -171,7 +171,8 @@ def tmux_window_snapshot():
 def _pane_exit_status(pkg_id):
     """Exit code of the package's dead tmux pane, or None if it isn't dead.
     remain-on-exit keeps the dead pane (and its output) so we can read the code:
-    0 is a clean exit (STOPPED), anything else (incl. signal death) a crash (CRASHED)."""
+    0 is a clean exit (STOPPED), anything else (incl. signal death) a crash (CRASHED).
+    """
     out = subprocess.run(
         f"tmux list-panes -t {TMUX_SESSION}:{pkg_id} -F '#{{pane_dead}}:#{{pane_dead_status}}' 2>/dev/null",
         shell=True,

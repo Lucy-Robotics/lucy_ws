@@ -16,9 +16,11 @@ MIN_TERM_HEIGHT = 15
 MIN_TERM_WIDTH = 65
 INSTALL_ENV = {"LUCY_PIXI_AUTO_UPGRADE": "1"}
 
+
 def is_installed():
     """True when the workspace has been built (mirrors launch_lucy.sh's check)."""
     return any(os.path.isfile(f) for f in ("install/setup.bash", "install/setup.bat"))
+
 
 def get_dev_mode():
     if not os.path.exists(".env"):
@@ -28,6 +30,7 @@ def get_dev_mode():
             if line.strip().startswith("DEV="):
                 return line.strip().split("=")[1].lower() == "true"
     return False
+
 
 def set_dev_mode(is_enabled):
     lines = []
@@ -45,6 +48,7 @@ def set_dev_mode(is_enabled):
                 f.write(line)
         if not dev_found:
             f.write(f"DEV={str(is_enabled).lower()}\n")
+
 
 PIXI_TASKS = (
     ("pixi run core", "robot stack + rosbridge on 9090"),
@@ -90,12 +94,14 @@ def prepend_pixi_to_path():
         if pixi_bin not in parts:
             os.environ["PATH"] = pixi_bin + os.pathsep + path
 
+
 def check_prereqs():
     prepend_pixi_to_path()
     if shutil.which("pixi") is None:
         print("Missing pixi. Install: https://pixi.prefix.dev/latest/installation/")
         return False
     return True
+
 
 def run_command(command, extra_env=None):
     """Runs a command with standard IO inherited.
@@ -110,11 +116,14 @@ def run_command(command, extra_env=None):
     try:
         return subprocess.run(command, env=env).returncode
     except FileNotFoundError:
-        print(f"Error: Command '{command[0]}' not found. Make sure it's in your PATH and executable.")
+        print(
+            f"Error: Command '{command[0]}' not found. Make sure it's in your PATH and executable."
+        )
         return -1
     except Exception as e:
         print(f"An error occurred: {e}")
         return -1
+
 
 def use_responsive_escape():
     """ESC starts every arrow and function key sequence, so ncurses delays
@@ -152,7 +161,12 @@ def not_installed_screen(stdscr):
         dev_line = f"{checkbox} Developer Mode"
         stdscr.addstr(start + len(lines), max(0, (w - len(dev_line)) // 2), dev_line)
         hint_line = "(SSH clones during install; does not change Launch)"
-        stdscr.addstr(start + len(lines) + 1, max(0, (w - len(hint_line)) // 2), hint_line, curses.A_DIM)
+        stdscr.addstr(
+            start + len(lines) + 1,
+            max(0, (w - len(hint_line)) // 2),
+            hint_line,
+            curses.A_DIM,
+        )
 
         footer = [
             ("", curses.A_NORMAL),
@@ -160,20 +174,23 @@ def not_installed_screen(stdscr):
             ("Press Q or ESC to close", curses.A_DIM),
         ]
         for i, (text, attr) in enumerate(footer):
-            stdscr.addstr(start + len(lines) + 3 + i, max(0, (w - len(text)) // 2), text, attr)
+            stdscr.addstr(
+                start + len(lines) + 3 + i, max(0, (w - len(text)) // 2), text, attr
+            )
 
         stdscr.addstr(h - 2, 2, "Space: Toggle Developer Mode", curses.A_DIM)
         stdscr.refresh()
 
         key = stdscr.getch()
-        if key in (ord('\n'), ord('\r')):
+        if key in (ord("\n"), ord("\r")):
             set_dev_mode(is_dev_mode)
             return True
-        if key in (ord('q'), ord('Q'), 27):  # q / ESC
+        if key in (ord("q"), ord("Q"), 27):  # q / ESC
             return False
-        if key == ord(' '):
+        if key == ord(" "):
             is_dev_mode = not is_dev_mode
             set_dev_mode(is_dev_mode)
+
 
 def main_tui(stdscr):
     """The main curses TUI function. Returns the command to run."""
@@ -216,7 +233,7 @@ def main_tui(stdscr):
 
         key = stdscr.getch()
 
-        if key in (ord('q'), ord('Q'), ord('x'), ord('X'), 27):  # q / x / ESC
+        if key in (ord("q"), ord("Q"), ord("x"), ord("X"), 27):  # q / x / ESC
             return None
 
         if key == curses.KEY_UP:
@@ -227,7 +244,7 @@ def main_tui(stdscr):
             current_idx = (current_idx + 1) % len(options)
             if options[current_idx] == "---":
                 current_idx = (current_idx + 1) % len(options)
-        elif key in [ord(' '), ord('\n')]:
+        elif key in [ord(" "), ord("\n")]:
             selected_option = options[current_idx]
 
             if selected_option == "Developer Mode":
@@ -248,9 +265,14 @@ def main_tui(stdscr):
                 }
             elif selected_option == "Launch":
                 # Hands the terminal to the stack; the menu does not come back.
-                return {"cmd": ["./launch_lucy.sh"], "name": "Launch", "exits_menu": True}
+                return {
+                    "cmd": ["./launch_lucy.sh"],
+                    "name": "Launch",
+                    "exits_menu": True,
+                }
             elif selected_option == "Exit":
                 return None
+
 
 if __name__ == "__main__":
     # This initial check is done before curses.wrapper to provide a clean error message
@@ -267,7 +289,10 @@ if __name__ == "__main__":
 
     if not check_initial_size():
         print("Error: Terminal window is too small.", file=sys.stderr)
-        print(f"Please increase the terminal size to at least {MIN_TERM_WIDTH}x{MIN_TERM_HEIGHT} characters.", file=sys.stderr)
+        print(
+            f"Please increase the terminal size to at least {MIN_TERM_WIDTH}x{MIN_TERM_HEIGHT} characters.",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     # First run: nothing built yet — offer to install before showing the menu.
@@ -279,7 +304,10 @@ if __name__ == "__main__":
             sys.exit(0)
         except curses.error as e:
             print(f"A terminal error occurred: {e}", file=sys.stderr)
-            print("This might be due to resizing the window. Please restart.", file=sys.stderr)
+            print(
+                "This might be due to resizing the window. Please restart.",
+                file=sys.stderr,
+            )
             sys.exit(1)
         if not wants_install:
             sys.exit(0)
@@ -305,13 +333,19 @@ if __name__ == "__main__":
             sys.exit(0)
         except curses.error as e:
             print(f"A terminal error occurred: {e}", file=sys.stderr)
-            print("This might be due to resizing the window. Please restart.", file=sys.stderr)
+            print(
+                "This might be due to resizing the window. Please restart.",
+                file=sys.stderr,
+            )
             sys.exit(1)
 
         if isinstance(task, str) and task == "TerminalTooSmall":
-             # This case is handled by the pre-check, but as a fallback.
+            # This case is handled by the pre-check, but as a fallback.
             print("Error: Terminal window is too small.", file=sys.stderr)
-            print(f"Please increase the terminal size to at least {MIN_TERM_WIDTH}x{MIN_TERM_HEIGHT} characters.", file=sys.stderr)
+            print(
+                f"Please increase the terminal size to at least {MIN_TERM_WIDTH}x{MIN_TERM_HEIGHT} characters.",
+                file=sys.stderr,
+            )
             sys.exit(1)
 
         if not task:

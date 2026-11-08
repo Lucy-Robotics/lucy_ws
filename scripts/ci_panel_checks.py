@@ -6,7 +6,12 @@ import os
 import re
 import time
 
-from ci_panel_viewer import WEBGL_RENDERER, check_viewer, check_viewer_follows, watch_model
+from ci_panel_viewer import (
+    WEBGL_RENDERER,
+    check_viewer,
+    check_viewer_follows,
+    watch_model,
+)
 from ci_stack import PANEL_PORT, ROOT, Ros, diff, log
 
 MOVED_RAD = 0.05
@@ -65,9 +70,9 @@ def drive_panel(page, ros: Ros) -> None:
     save_pose(page, "ci_b")
 
     modal = poses_modal(page)
-    modal.locator(".ant-list-item").filter(has=page.get_by_label("Rename pose ci_a")).get_by_role(
-        "button", name="LOAD"
-    ).click()
+    modal.locator(".ant-list-item").filter(
+        has=page.get_by_label("Rename pose ci_a")
+    ).get_by_role("button", name="LOAD").click()
     ros.wait_for("pose ci_a after LOAD", lambda s: diff(pose_a, s) < SAME_RAD)
     log("loading ci_a restored its joints")
 
@@ -77,11 +82,17 @@ def drive_panel(page, ros: Ros) -> None:
     modal.get_by_role("button", name="plus ci_a", exact=True).click()
     modal.get_by_role("button", name="Loop: OFF").click()
     modal.get_by_role("button", name="SAVE ANIMATION").click()
-    modal.locator(".ant-list-item").filter(has_text="ci_anim").get_by_role("button", name="PLAY").click()
+    modal.locator(".ant-list-item").filter(has_text="ci_anim").get_by_role(
+        "button", name="PLAY"
+    ).click()
     halfway = diff(pose_a, pose_b) / 2
     ros.wait_for("the animation heading to ci_b", lambda s: diff(pose_a, s) > halfway)
     ros.wait_for("the animation ending on ci_a", lambda s: diff(pose_a, s) < SAME_RAD)
-    expect(page.get_by_role("button", name=re.compile(r"^(stop )?stop( animation)?$", re.I))).to_have_count(0)
+    expect(
+        page.get_by_role(
+            "button", name=re.compile(r"^(stop )?stop( animation)?$", re.I)
+        )
+    ).to_have_count(0)
     log("animation went to ci_b and back to ci_a")
     modal.get_by_role("button", name="CLOSE", exact=True).click()
 
@@ -94,7 +105,9 @@ def exercise_panel(ros: Ros, robot: str) -> None:
 
     shot = ROOT / "log" / f"panel_e2e_{robot}.png"
     with sync_playwright() as pw:
-        browser = pw.chromium.launch(executable_path=os.environ.get("LUCY_E2E_BROWSER") or None)
+        browser = pw.chromium.launch(
+            executable_path=os.environ.get("LUCY_E2E_BROWSER") or None
+        )
         page = browser.new_page(viewport={"width": 1600, "height": 1000})
         page.on("console", lambda m: m.type == "error" and log(f"browser: {m.text}"))
         try:

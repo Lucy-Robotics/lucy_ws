@@ -123,7 +123,9 @@ def get_logger() -> FirmwareLogger:
         logging.setLoggerClass(previous)
 
     if not isinstance(logger, FirmwareLogger):
-        raise TypeError(f"logger {_LOGGER_NAME!r} is {type(logger).__name__}, not FirmwareLogger")
+        raise TypeError(
+            f"logger {_LOGGER_NAME!r} is {type(logger).__name__}, not FirmwareLogger"
+        )
 
     if logger.handlers:
         return logger

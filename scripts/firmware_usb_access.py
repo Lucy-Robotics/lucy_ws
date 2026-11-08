@@ -105,8 +105,13 @@ def udev_rules_installed() -> bool:
     """True when every config/udev rule is already in /etc/udev/rules.d, unchanged (no sudo needed to check)."""
     rules = sorted(UDEV_SOURCE_DIR.glob("*.rules"))
     try:
-        return bool(rules) and not OBSOLETE_RULE.exists() and all(
-            filecmp.cmp(src, UDEV_TARGET_DIR / src.name, shallow=False) for src in rules
+        return (
+            bool(rules)
+            and not OBSOLETE_RULE.exists()
+            and all(
+                filecmp.cmp(src, UDEV_TARGET_DIR / src.name, shallow=False)
+                for src in rules
+            )
         )
     except OSError:
         return False
@@ -123,7 +128,9 @@ def prime_sudo() -> None:
         or udev_rules_installed()
     ):
         return
-    log.info("USB udev rules need installing: sudo will ask for your password once, now.")
+    log.info(
+        "USB udev rules need installing: sudo will ask for your password once, now."
+    )
     subprocess.run(["sudo", "-v"], check=False)
 
 
@@ -136,18 +143,27 @@ def install_udev_rules(*, allow_prompt: bool) -> bool:
 
     for src in rules:
         dest = UDEV_TARGET_DIR / src.name
-        result = _sudo(["install", "-m", "0644", str(src), str(dest)], allow_prompt=allow_prompt)
+        result = _sudo(
+            ["install", "-m", "0644", str(src), str(dest)], allow_prompt=allow_prompt
+        )
         if result.returncode != 0:
-            log.warning(f"could not install {src.name}: {result.stderr.strip() or result.stdout.strip()}")
+            log.warning(
+                f"could not install {src.name}: {result.stderr.strip() or result.stdout.strip()}"
+            )
             return False
         log.ok(f"installed {dest}")
 
-    if OBSOLETE_RULE.exists() or _sudo(["test", "-f", str(OBSOLETE_RULE)], allow_prompt=False).returncode == 0:
+    if (
+        OBSOLETE_RULE.exists()
+        or _sudo(["test", "-f", str(OBSOLETE_RULE)], allow_prompt=False).returncode == 0
+    ):
         _sudo(["rm", "-f", str(OBSOLETE_RULE)], allow_prompt=allow_prompt)
 
     if shutil.which("udevadm"):
         _sudo(["udevadm", "control", "--reload-rules"], allow_prompt=allow_prompt)
-        _sudo(["udevadm", "trigger", "--subsystem-match=tty"], allow_prompt=allow_prompt)
+        _sudo(
+            ["udevadm", "trigger", "--subsystem-match=tty"], allow_prompt=allow_prompt
+        )
     return True
 
 
@@ -228,7 +244,9 @@ def ensure_usb_access(*, allow_prompt: bool | None = None) -> None:
         log.ok(f"temporary access ready for {len(fixed)} device(s)")
     else:
         log.error("plugged Lucy USB device(s) found but not writable for this user")
-        log.info("   Fix: pixi run setup-udev   (or add your user to the dialout group)")
+        log.info(
+            "   Fix: pixi run setup-udev   (or add your user to the dialout group)"
+        )
 
 
 def main() -> int:

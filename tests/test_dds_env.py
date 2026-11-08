@@ -44,17 +44,25 @@ def _scope(monkeypatch, windows=False, **overrides):
         "cyclone": os.environ.get("CYCLONEDDS_URI", ""),
     }
 
+
 PROBE = (
     "source scripts/dds_env.sh; "
-    "echo \"range=${ROS_AUTOMATIC_DISCOVERY_RANGE-}\"; "
-    "echo \"peers=${ROS_STATIC_PEERS-}\"; "
-    "echo \"localhost_only=${ROS_LOCALHOST_ONLY-}\"; "
-    "echo \"cyclone=${CYCLONEDDS_URI:+set}\""
+    'echo "range=${ROS_AUTOMATIC_DISCOVERY_RANGE-}"; '
+    'echo "peers=${ROS_STATIC_PEERS-}"; '
+    'echo "localhost_only=${ROS_LOCALHOST_ONLY-}"; '
+    'echo "cyclone=${CYCLONEDDS_URI:+set}"'
 )
 
-CLEARED = ("CYCLONEDDS_URI", "LUCY_DDS_LOCALHOST", "LUCY_DDS_PEERS",
-           "LUCY_DDS_RANGE", "LUCY_DDS_INTERFACE", "ROS_STATIC_PEERS",
-           "ROS_AUTOMATIC_DISCOVERY_RANGE", "ROS_LOCALHOST_ONLY")
+CLEARED = (
+    "CYCLONEDDS_URI",
+    "LUCY_DDS_LOCALHOST",
+    "LUCY_DDS_PEERS",
+    "LUCY_DDS_RANGE",
+    "LUCY_DDS_INTERFACE",
+    "ROS_STATIC_PEERS",
+    "ROS_AUTOMATIC_DISCOVERY_RANGE",
+    "ROS_LOCALHOST_ONLY",
+)
 
 
 def _source(**overrides):
@@ -62,7 +70,9 @@ def _source(**overrides):
     cmd = ["env"] + [f"-u{name}" for name in CLEARED]
     cmd += [f"{k}={v}" for k, v in overrides.items()]
     cmd += ["bash", "-c", PROBE]
-    out = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, check=True).stdout
+    out = subprocess.run(
+        cmd, cwd=ROOT, capture_output=True, text=True, check=True
+    ).stdout
     return dict(line.split("=", 1) for line in out.strip().splitlines())
 
 
@@ -102,20 +112,24 @@ def test_python_entry_scopes_to_localhost_by_default(monkeypatch):
 
 def test_windows_keeps_the_loopback_pin_instead_of_the_localhost_range(monkeypatch):
     got = _scope(monkeypatch, windows=True, CYCLONEDDS_URI="<loopback/>")
-    assert got["range"] == "SUBNET", "rmw_cyclonedds's LOCALHOST mode discovers nothing on Windows"
+    assert (
+        got["range"] == "SUBNET"
+    ), "rmw_cyclonedds's LOCALHOST mode discovers nothing on Windows"
     assert got["cyclone"] == "<loopback/>"
 
 
 def test_windows_subnet_drops_the_loopback_pin(monkeypatch):
-    got = _scope(monkeypatch, windows=True, CYCLONEDDS_URI="<loopback/>", LUCY_DDS_LOCALHOST="0")
+    got = _scope(
+        monkeypatch, windows=True, CYCLONEDDS_URI="<loopback/>", LUCY_DDS_LOCALHOST="0"
+    )
     assert got["range"] == "SUBNET"
     assert got["cyclone"] == ""
 
 
 def test_windows_pins_cyclone_to_loopback_for_every_pixi_process():
     pixi = (ROOT / "pixi.toml").read_text()
-    windows = pixi[pixi.index("[target.win.activation]"):]
-    windows = windows[:windows.index("\n[", 1)]
+    windows = pixi[pixi.index("[target.win.activation]") :]
+    windows = windows[: windows.index("\n[", 1)]
     assert 'RMW_IMPLEMENTATION = "rmw_cyclonedds_cpp"' in windows
     assert '<NetworkInterface address="127.0.0.1" multicast="true"/>' in windows
 
@@ -145,17 +159,23 @@ def test_both_entry_points_agree_on_the_default():
     assert 'ROS_AUTOMATIC_DISCOVERY_RANGE="LOCALHOST"' in SCRIPT.read_text()
     source = (ROOT / "scripts" / "pixi_lucy_launch.py").read_text()
     assert '"ROS_AUTOMATIC_DISCOVERY_RANGE"] = "LOCALHOST"' in source
-    assert 'os.environ["ROS_LOCALHOST_ONLY"] =' not in source, (
-        "deprecated, and setting it makes rcl ignore the range"
-    )
+    assert (
+        'os.environ["ROS_LOCALHOST_ONLY"] =' not in source
+    ), "deprecated, and setting it makes rcl ignore the range"
 
 
 @posix_only
 def test_explicit_cyclone_config_is_left_alone():
     cmd = ["env"] + [f"-u{n}" for n in CLEARED if n != "CYCLONEDDS_URI"]
-    cmd += ["CYCLONEDDS_URI=<CycloneDDS/>", "bash", "-c",
-            "source scripts/dds_env.sh; echo \"$CYCLONEDDS_URI\""]
-    out = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, check=True).stdout
+    cmd += [
+        "CYCLONEDDS_URI=<CycloneDDS/>",
+        "bash",
+        "-c",
+        'source scripts/dds_env.sh; echo "$CYCLONEDDS_URI"',
+    ]
+    out = subprocess.run(
+        cmd, cwd=ROOT, capture_output=True, text=True, check=True
+    ).stdout
     assert out.strip() == "<CycloneDDS/>"
 
 

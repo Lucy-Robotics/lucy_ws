@@ -23,7 +23,8 @@ class LauncherState:
             p for p in config_data["packages"] if _pkg_visible(p, dev_mode)
         ]
         self.packages = [
-            Package(_pkg_for_mode(p, dev_mode), running_state["modifiers"]) for p in package_configs
+            Package(_pkg_for_mode(p, dev_mode), running_state["modifiers"])
+            for p in package_configs
         ]
         self.package_map = {p.id: p for p in self.packages}
 

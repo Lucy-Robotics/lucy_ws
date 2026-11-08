@@ -55,7 +55,11 @@ def rustup_init_url() -> str:
         return "https://win.rustup.rs/x86_64"
 
     if system == "Darwin":
-        triple = "aarch64-apple-darwin" if machine in ("arm64", "aarch64") else "x86_64-apple-darwin"
+        triple = (
+            "aarch64-apple-darwin"
+            if machine in ("arm64", "aarch64")
+            else "x86_64-apple-darwin"
+        )
     elif system == "Linux":
         if machine in ("aarch64", "arm64"):
             triple = "aarch64-unknown-linux-gnu"
@@ -94,7 +98,9 @@ def install_rustup(cargo_bin: Path) -> None:
     try:
         download(url, init_path)
         if not is_windows():
-            init_path.chmod(init_path.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+            init_path.chmod(
+                init_path.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
+            )
 
         log.info("Running rustup installer (this may take a few minutes)...")
         subprocess.run(
@@ -231,7 +237,9 @@ def main() -> None:
     if usb_mod is not None:
         try:
             usb_mod.ensure_usb_access()
-        except Exception as exc:  # pragma: no cover - never fail toolchain setup on USB ACL
+        except (
+            Exception
+        ) as exc:  # pragma: no cover - never fail toolchain setup on USB ACL
             log.warning(f"USB access step failed (toolchain still OK): {exc}")
 
     log.info("\n" + "=" * 60)

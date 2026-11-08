@@ -16,11 +16,23 @@ import scripts.firmware_flash_mega as mega  # noqa: E402
 
 
 def _ports(monkeypatch, *ports):
-    monkeypatch.setattr(mega.list_ports, "comports", lambda: [SimpleNamespace(**p) for p in ports])
+    monkeypatch.setattr(
+        mega.list_ports, "comports", lambda: [SimpleNamespace(**p) for p in ports]
+    )
 
 
-MEGA_A = {"device": "/dev/ttyACM0", "vid": 0x2341, "pid": 0x0042, "serial_number": "AAA"}
-MEGA_B = {"device": "/dev/ttyACM1", "vid": 0x2341, "pid": 0x0042, "serial_number": "BBB"}
+MEGA_A = {
+    "device": "/dev/ttyACM0",
+    "vid": 0x2341,
+    "pid": 0x0042,
+    "serial_number": "AAA",
+}
+MEGA_B = {
+    "device": "/dev/ttyACM1",
+    "vid": 0x2341,
+    "pid": 0x0042,
+    "serial_number": "BBB",
+}
 PICO = {"device": "/dev/ttyACM2", "vid": 0x2E8A, "pid": 0x0003, "serial_number": "BBB"}
 
 

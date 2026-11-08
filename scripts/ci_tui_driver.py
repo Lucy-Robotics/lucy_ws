@@ -21,12 +21,16 @@ def tmux(*args: str, outer: bool = False) -> str:
 
 
 def pids(pattern: str) -> set[int]:
-    out = subprocess.run(["pgrep", "-f", pattern], capture_output=True, text=True).stdout
+    out = subprocess.run(
+        ["pgrep", "-f", pattern], capture_output=True, text=True
+    ).stdout
     return {int(p) for p in out.split()}
 
 
 def cpu_seconds(pid: int) -> float:
-    out = subprocess.run(["ps", "-o", "time=", "-p", str(pid)], capture_output=True, text=True).stdout.strip()
+    out = subprocess.run(
+        ["ps", "-o", "time=", "-p", str(pid)], capture_output=True, text=True
+    ).stdout.strip()
     days, _, hms = out.rpartition("-")
     secs = 0.0
     for part in hms.split(":"):
@@ -52,8 +56,12 @@ def status(name: str) -> str | None:
 
 
 def robot_label(robot: str) -> str:
-    packages = json.loads((ROOT / "config" / "launcher_config.json").read_text())["packages"]
-    return next(p["name"] for p in packages if p.get("command") == f"robot_package:={robot}")
+    packages = json.loads((ROOT / "config" / "launcher_config.json").read_text())[
+        "packages"
+    ]
+    return next(
+        p["name"] for p in packages if p.get("command") == f"robot_package:={robot}"
+    )
 
 
 def wait_for(what: str, ok, timeout_s: float) -> None:
@@ -69,10 +77,17 @@ def select_robot(robot: str) -> bool:
     label = re.escape(robot_label(robot))
     for _ in range(40):
         lines = screen().splitlines()
-        row = next((i for i, line in enumerate(lines) if re.search(rf"\] {label} \[", line)), None)
-        cursor = next((i for i, line in enumerate(lines) if re.match(r"\s*> ", line)), None)
+        row = next(
+            (i for i, line in enumerate(lines) if re.search(rf"\] {label} \[", line)),
+            None,
+        )
+        cursor = next(
+            (i for i, line in enumerate(lines) if re.match(r"\s*> ", line)), None
+        )
         if row is None or cursor is None:
-            raise CheckFailed(f"no {robot_label(robot)} row or cursor in the TUI:\n{screen()}")
+            raise CheckFailed(
+                f"no {robot_label(robot)} row or cursor in the TUI:\n{screen()}"
+            )
         if row == cursor:
             if re.search(rf"\[x\] {label} \[", lines[row]):
                 return False

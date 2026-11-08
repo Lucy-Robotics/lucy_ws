@@ -13,7 +13,11 @@ def lucy_ws_branch(caller: str, caller_ref: str, master_side: bool) -> str:
 
 def pick(config: dict, caller: str, caller_ref: str, master_side: bool) -> dict:
     for repo in config["repos"]:
-        repo["branch"] = caller_ref if repo["name"] == caller else ("master" if master_side else "dev")
+        repo["branch"] = (
+            caller_ref
+            if repo["name"] == caller
+            else ("master" if master_side else "dev")
+        )
     return config
 
 

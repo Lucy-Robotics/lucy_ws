@@ -55,8 +55,12 @@ class Ros:
         self.node.create_subscription(JointState, "/joint_states", self._on_joints, 10)
         latched = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
         self.active_client: str | None = None
-        self.node.create_subscription(String, "/robot_description", self._on_description, latched)
-        self.node.create_subscription(String, "/lucy/active_client", self._on_active_client, latched)
+        self.node.create_subscription(
+            String, "/robot_description", self._on_description, latched
+        )
+        self.node.create_subscription(
+            String, "/lucy/active_client", self._on_active_client, latched
+        )
         self.executor = SingleThreadedExecutor()
         self.executor.add_node(self.node)
         self.stopping = threading.Event()
@@ -91,14 +95,18 @@ class Ros:
     def snapshot(self) -> dict[str, float]:
         return dict(self.latest)
 
-    def wait_for(self, what: str, ok, timeout_s: float = MOVE_TIMEOUT_S) -> dict[str, float]:
+    def wait_for(
+        self, what: str, ok, timeout_s: float = MOVE_TIMEOUT_S
+    ) -> dict[str, float]:
         deadline = time.time() + timeout_s
         while time.time() < deadline:
             snap = self.snapshot()
             if snap and ok(snap):
                 return snap
             time.sleep(0.2)
-        raise CheckFailed(f"/joint_states never showed {what} (last: {self.snapshot()})")
+        raise CheckFailed(
+            f"/joint_states never showed {what} (last: {self.snapshot()})"
+        )
 
     def wait_settled(self) -> dict[str, float]:
         prev = self.snapshot()
@@ -142,4 +150,8 @@ def check_robot_identity(ros: Ros, robot: str) -> None:
 
 def path_outside(root, path: str) -> str:
     prefix = str(root).lower()
-    return os.pathsep.join(entry for entry in path.split(os.pathsep) if not entry.lower().startswith(prefix))
+    return os.pathsep.join(
+        entry
+        for entry in path.split(os.pathsep)
+        if not entry.lower().startswith(prefix)
+    )

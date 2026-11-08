@@ -30,7 +30,9 @@ for r in data.get('repos', []):
 """
 
 
-def _parse_repos(config_path: Path, dev: bool = False) -> list[tuple[str, str, str, str]]:
+def _parse_repos(
+    config_path: Path, dev: bool = False
+) -> list[tuple[str, str, str, str]]:
     env = os.environ.copy()
     if dev:
         env["DEV"] = "true"

@@ -25,8 +25,7 @@ posix_only = pytest.mark.skipif(
 
 def _run_detect_jetson(env: dict | None = None) -> int:
     script = (
-        f"source {DETECT_JETSON_SH}; "
-        "if lucy_is_jetson; then exit 0; else exit 1; fi"
+        f"source {DETECT_JETSON_SH}; " "if lucy_is_jetson; then exit 0; else exit 1; fi"
     )
     merged = os.environ.copy()
     if env:
@@ -70,9 +69,7 @@ def test_is_jetson_from_tegra_release(monkeypatch, tmp_path):
     def fake_is_file(self):
         return self.as_posix() == "/etc/nv_tegra_release"
 
-    monkeypatch.setattr(
-        "launcher.platform.Path.is_file", fake_is_file
-    )
+    monkeypatch.setattr("launcher.platform.Path.is_file", fake_is_file)
     assert is_jetson() is True
 
 

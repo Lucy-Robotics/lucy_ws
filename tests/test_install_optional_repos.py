@@ -45,7 +45,9 @@ def test_mark_optional_colcon_ignore_skips_optional_repos(tmp_path, monkeypatch)
     assert not (ws / "src" / "required_pkg" / "COLCON_IGNORE").exists()
 
 
-def test_mark_optional_colcon_ignore_respects_build_optional_flag(tmp_path, monkeypatch):
+def test_mark_optional_colcon_ignore_respects_build_optional_flag(
+    tmp_path, monkeypatch
+):
     monkeypatch.setenv("LUCY_BUILD_OPTIONAL", "1")
     ws = _workspace(tmp_path, [OPTIONAL])
 
