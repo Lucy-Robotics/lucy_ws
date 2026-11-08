@@ -40,7 +40,6 @@ def log(msg: str) -> None:
     print(f"ci_core_bringup: {msg}", flush=True)
 
 
-
 def start_core() -> None:
     """Launch core through the launcher's own tmux+Pixi wrapper, so the test
     covers the path production uses."""
@@ -49,8 +48,9 @@ def start_core() -> None:
 
     load_workspace_env()
     subprocess.run(["tmux", "start-server"], check=False)
-    subprocess.run(["tmux", "kill-session", "-t", TMUX_SESSION], check=False,
-                   capture_output=True)
+    subprocess.run(
+        ["tmux", "kill-session", "-t", TMUX_SESSION], check=False, capture_output=True
+    )
     subprocess.run(
         ["tmux", "new-session", "-d", "-s", TMUX_SESSION, "-n", "Lucy", "sleep 900"],
         check=True,
@@ -62,14 +62,20 @@ def start_core() -> None:
 def stop_core() -> None:
     sys.path.insert(0, str(ROOT))
     try:
-        from launcher import LauncherState, load_config, load_workspace_env, stop_all_packages
+        from launcher import (
+            LauncherState,
+            load_config,
+            load_workspace_env,
+            stop_all_packages,
+        )
 
         load_workspace_env()
         stop_all_packages(LauncherState(load_config()))
     except Exception as exc:  # teardown must never mask the real failure
         log(f"warning: launcher teardown raised {exc!r}")
-    subprocess.run(["tmux", "kill-session", "-t", TMUX_SESSION], check=False,
-                   capture_output=True)
+    subprocess.run(
+        ["tmux", "kill-session", "-t", TMUX_SESSION], check=False, capture_output=True
+    )
 
 
 def dump_diagnostics() -> None:
@@ -77,7 +83,10 @@ def dump_diagnostics() -> None:
     log("--- diagnostics ---")
     for label, cmd in (
         ("tmux windows", ["tmux", "list-windows", "-t", TMUX_SESSION]),
-        ("core pane", ["tmux", "capture-pane", "-p", "-t", f"{TMUX_SESSION}:core", "-S", "-80"]),
+        (
+            "core pane",
+            ["tmux", "capture-pane", "-p", "-t", f"{TMUX_SESSION}:core", "-S", "-80"],
+        ),
     ):
         out = subprocess.run(cmd, capture_output=True, text=True)
         print(f"[{label}]\n{out.stdout or out.stderr}", flush=True)
@@ -110,12 +119,14 @@ def wait_for_bringup(node) -> None:
     )
 
 
-
 def check_single_robot_description_publisher(node) -> None:
     """More than one means another machine's robot joined this graph."""
     infos = node.get_publishers_info_by_topic("/robot_description")
     if len(infos) != 1:
-        who = ", ".join(f"{i.node_namespace.rstrip('/')}/{i.node_name}" for i in infos) or "none"
+        who = (
+            ", ".join(f"{i.node_namespace.rstrip('/')}/{i.node_name}" for i in infos)
+            or "none"
+        )
         raise CheckFailed(
             f"expected exactly 1 publisher of /robot_description, found {len(infos)}: {who}"
         )
@@ -141,10 +152,14 @@ def receive_urdf(node, timeout_s: float = 30.0) -> str:
     from std_msgs.msg import String
 
     got: list[str] = []
-    qos = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL,
-                     reliability=ReliabilityPolicy.RELIABLE)
-    sub = node.create_subscription(String, "/robot_description",
-                                   lambda m: got.append(m.data), qos)
+    qos = QoSProfile(
+        depth=1,
+        durability=DurabilityPolicy.TRANSIENT_LOCAL,
+        reliability=ReliabilityPolicy.RELIABLE,
+    )
+    sub = node.create_subscription(
+        String, "/robot_description", lambda m: got.append(m.data), qos
+    )
     try:
         deadline = time.time() + timeout_s
         while not got and time.time() < deadline:
@@ -171,7 +186,11 @@ def check_meshes_resolve_locally(urdf: str) -> None:
     for ref in sorted(set(refs)):
         if ref.startswith("package://"):
             continue  # resolved by the consumer's package lookup, not a path
-        path = Path(unquote(urlparse(ref).path)) if ref.startswith("file://") else Path(ref)
+        path = (
+            Path(unquote(urlparse(ref).path))
+            if ref.startswith("file://")
+            else Path(ref)
+        )
         if not path.is_absolute() or not path.exists():
             missing.append(ref)
             continue
@@ -202,9 +221,13 @@ def check_controllers_active() -> None:
 
     probe = Node("ci_controller_probe")
     try:
-        client = probe.create_client(ListControllers, "/controller_manager/list_controllers")
+        client = probe.create_client(
+            ListControllers, "/controller_manager/list_controllers"
+        )
         if not client.wait_for_service(timeout_sec=CONTROLLER_TIMEOUT_S):
-            raise CheckFailed("/controller_manager/list_controllers never became available")
+            raise CheckFailed(
+                "/controller_manager/list_controllers never became available"
+            )
 
         deadline = time.time() + CONTROLLER_TIMEOUT_S
         states: dict[str, str] = {}
@@ -214,7 +237,9 @@ def check_controllers_active() -> None:
             if future.done() and future.result() is not None:
                 states = {c.name: c.state for c in future.result().controller}
                 if states and all(st == "active" for st in states.values()):
-                    log(f"{len(states)} controller(s) active: {', '.join(sorted(states))}")
+                    log(
+                        f"{len(states)} controller(s) active: {', '.join(sorted(states))}"
+                    )
                     return
             time.sleep(2.0)
 
@@ -238,11 +263,15 @@ def check_urdf_reaches_a_websocket_client() -> None:
 
     async def fetch() -> str | None:
         conn = await websocket_connect(f"ws://127.0.0.1:{ROSBRIDGE_PORT}")
-        await conn.write_message(json.dumps({
-            "op": "subscribe",
-            "topic": "/robot_description",
-            "type": "std_msgs/msg/String",
-        }))
+        await conn.write_message(
+            json.dumps(
+                {
+                    "op": "subscribe",
+                    "topic": "/robot_description",
+                    "type": "std_msgs/msg/String",
+                }
+            )
+        )
         try:
             while True:
                 raw = await asyncio.wait_for(conn.read_message(), timeout=30.0)
@@ -274,7 +303,9 @@ def main() -> int:
     from rclpy.node import Node
 
     # Every assertion below is relative to this.
-    log(f"discovery range: {os.environ.get('ROS_AUTOMATIC_DISCOVERY_RANGE', '<unset>')}")
+    log(
+        f"discovery range: {os.environ.get('ROS_AUTOMATIC_DISCOVERY_RANGE', '<unset>')}"
+    )
     start_core()
     rclpy.init()
     node = Node("ci_core_bringup")

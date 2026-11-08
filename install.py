@@ -47,10 +47,14 @@ REQUIREMENT_DOCS = {
     "python": ("Python 3", "https://www.python.org/downloads/"),
     "git": ("Git", "https://git-scm.com/downloads"),
     "pixi": ("Pixi", "https://pixi.prefix.dev/latest/installation/"),
-    "msvc": ("Visual Studio Build Tools (Desktop development with C++)",
-             "https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022"),
+    "msvc": (
+        "Visual Studio Build Tools (Desktop development with C++)",
+        "https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022",
+    ),
     "workspace-path": ("Workspace path without spaces", ""),
-    "nix-ld": (" REQUIREMENT, MANUAL ACTION REQUIRED:\nPlease enable `programs.nix-ld.enable = true;` in your NixOS configuration and rebuild your system before continuing. See README.md for details."),
+    "nix-ld": (
+        " REQUIREMENT, MANUAL ACTION REQUIRED:\nPlease enable `programs.nix-ld.enable = true;` in your NixOS configuration and rebuild your system before continuing. See README.md for details."
+    ),
 }
 
 InstallMode = str  # "install" | "update" | "repair" | "build-only"
@@ -102,7 +106,9 @@ def env_flag(name: str, env: Optional[dict] = None) -> bool:
     return str(source.get(name, "")).strip().lower() in ("1", "true", "yes")
 
 
-def default_run_command(command: list[str], check: bool = True, cwd: Optional[str] = None) -> int:
+def default_run_command(
+    command: list[str], check: bool = True, cwd: Optional[str] = None
+) -> int:
     print(f"--- Running: {' '.join(command)} ---", flush=True)
     code = subprocess.run(command, cwd=cwd, check=False).returncode
     if check and code != 0:
@@ -111,7 +117,9 @@ def default_run_command(command: list[str], check: bool = True, cwd: Optional[st
 
 
 def run_quiet(cmd: list[str], timeout: int = 30) -> subprocess.CompletedProcess:
-    return subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, check=False)
+    return subprocess.run(
+        cmd, capture_output=True, text=True, timeout=timeout, check=False
+    )
 
 
 def command_ok(cmd: list[str]) -> bool:
@@ -185,12 +193,16 @@ def parse_repos(
         ssh = clean_str(repo.get("url_ssh"))
         url = (ssh or https) if developer else (https or ssh)
         if url:
-            repos.append({
-                "name": name,
-                "branch": clean_str(repo.get("branch")) or repos_branch or DEFAULT_REPOS_BRANCH,
-                "url": url,
-                "optional": bool(repo.get("optional")),
-            })
+            repos.append(
+                {
+                    "name": name,
+                    "branch": clean_str(repo.get("branch"))
+                    or repos_branch
+                    or DEFAULT_REPOS_BRANCH,
+                    "url": url,
+                    "optional": bool(repo.get("optional")),
+                }
+            )
     return repos
 
 
@@ -211,7 +223,9 @@ def mark_optional_colcon_ignore(
         repo_dir = root / "src" / repo["name"]
         if not repo.get("optional") or not repo_dir.is_dir():
             continue
-        log(f"install: skipping optional repo {repo['name']} (set LUCY_BUILD_OPTIONAL=1 to build)")
+        log(
+            f"install: skipping optional repo {repo['name']} (set LUCY_BUILD_OPTIONAL=1 to build)"
+        )
         (repo_dir / "COLCON_IGNORE").touch()
         ignored.append(repo["name"])
     return ignored
@@ -298,16 +312,33 @@ def find_vcvars() -> Optional[Path]:
     """Locate vcvars64.bat for the newest VS install carrying the C++ toolchain."""
     if sys.platform != "win32":
         return None
-    program_files = os.environ.get("ProgramFiles(x86)") or os.environ.get("ProgramFiles", "")
-    vswhere = Path(program_files) / "Microsoft Visual Studio" / "Installer" / "vswhere.exe"
+    program_files = os.environ.get("ProgramFiles(x86)") or os.environ.get(
+        "ProgramFiles", ""
+    )
+    vswhere = (
+        Path(program_files) / "Microsoft Visual Studio" / "Installer" / "vswhere.exe"
+    )
     if not vswhere.is_file():
         return None
 
-    found = run_quiet([
-        str(vswhere), "-latest", "-products", "*",
-        "-requires", VC_TOOLS_COMPONENT,
-        "-property", "installationPath", "-format", "value",
-    ]).stdout.strip().splitlines()
+    found = (
+        run_quiet(
+            [
+                str(vswhere),
+                "-latest",
+                "-products",
+                "*",
+                "-requires",
+                VC_TOOLS_COMPONENT,
+                "-property",
+                "installationPath",
+                "-format",
+                "value",
+            ]
+        )
+        .stdout.strip()
+        .splitlines()
+    )
     if not found:
         return None
     vcvars = Path(found[0]) / "VC" / "Auxiliary" / "Build" / "vcvars64.bat"
@@ -327,9 +358,7 @@ def msvc_environment() -> Optional[dict]:
     result = run_quiet(["cmd", "/c", str(vcvars), "&&", "set"], timeout=120)
     if result.returncode != 0:
         return None
-    env = dict(
-        line.split("=", 1) for line in result.stdout.splitlines() if "=" in line
-    )
+    env = dict(line.split("=", 1) for line in result.stdout.splitlines() if "=" in line)
     return env or None
 
 
@@ -370,9 +399,12 @@ def check_prerequisites(
     if not pixi_available():
         issues.append(requirement_issue("pixi", "pixi not found in PATH"))
     elif not pixi_version_ok():
-        issues.append(requirement_issue(
-            "pixi", f"pixi must be >= {min_pixi_version()} for multi-platform lock support"
-        ))
+        issues.append(
+            requirement_issue(
+                "pixi",
+                f"pixi must be >= {min_pixi_version()} for multi-platform lock support",
+            )
+        )
 
     if not git_available():
         issue = requirement_issue("git", "git not found in PATH")
@@ -386,8 +418,10 @@ def check_prerequisites(
     elif developer:
         warnings.extend(git_identity_warnings())
 
-    optional_checks = [workspace_path_issue(project_root) if project_root else None,
-                       msvc_issue() if require_build_tools else None]
+    optional_checks = [
+        workspace_path_issue(project_root) if project_root else None,
+        msvc_issue() if require_build_tools else None,
+    ]
     issues.extend(issue for issue in optional_checks if issue)
 
     return issues, warnings
@@ -447,11 +481,20 @@ def prepend_pixi_to_path() -> None:
 
 def pixi_install_command() -> list[str]:
     if sys.platform == "win32":
-        return ["powershell", "-NoProfile", "-ExecutionPolicy", "ByPass",
-                "-Command", f"irm -useb {PIXI_INSTALL_URL_WINDOWS} | iex"]
+        return [
+            "powershell",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "ByPass",
+            "-Command",
+            f"irm -useb {PIXI_INSTALL_URL_WINDOWS} | iex",
+        ]
     if shutil.which("curl") is None:
-        fail("pixi", f"curl is required to install pixi. Install curl, or install pixi "
-                     f"manually: {REQUIREMENT_DOCS['pixi'][1]}")
+        fail(
+            "pixi",
+            f"curl is required to install pixi. Install curl, or install pixi "
+            f"manually: {REQUIREMENT_DOCS['pixi'][1]}",
+        )
     return ["sh", "-c", f"curl -fsSL {PIXI_INSTALL_URL_POSIX} | bash"]
 
 
@@ -484,8 +527,7 @@ def confirm_install(
 def is_nix_environment() -> bool:
     """Return True if the current process appears to be running in a Nix environment."""
     return any(
-        os.environ.get(name)
-        for name in ("IN_NIX_SHELL", "NIX_PATH", "NIX_PROFILES")
+        os.environ.get(name) for name in ("IN_NIX_SHELL", "NIX_PATH", "NIX_PROFILES")
     )
 
 
@@ -518,13 +560,30 @@ def ensure_pixi(run_command: Callable = default_run_command, log: Log = print) -
         return
 
     if env_flag("LUCY_SKIP_PIXI_UPGRADE"):
-        fail("pixi", f"pixi {current} is older than required {minimum}" if current else "pixi not found")
+        fail(
+            "pixi",
+            (
+                f"pixi {current} is older than required {minimum}"
+                if current
+                else "pixi not found"
+            ),
+        )
 
-    log(f"install: pixi {current} is older than {minimum} - installing latest ..." if current
-        else "install: pixi not found - installing via pixi.sh ...")
-    log("install: (LUCY_SKIP_PIXI_UPGRADE=1 to abort; LUCY_PIXI_AUTO_UPGRADE=1 to skip prompt)")
+    log(
+        f"install: pixi {current} is older than {minimum} - installing latest ..."
+        if current
+        else "install: pixi not found - installing via pixi.sh ..."
+    )
+    log(
+        "install: (LUCY_SKIP_PIXI_UPGRADE=1 to abort; LUCY_PIXI_AUTO_UPGRADE=1 to skip prompt)"
+    )
 
-    if confirm_install("pixi", "Install/upgrade pixi via https://pixi.sh?", "LUCY_PIXI_AUTO_UPGRADE", default=True):
+    if confirm_install(
+        "pixi",
+        "Install/upgrade pixi via https://pixi.sh?",
+        "LUCY_PIXI_AUTO_UPGRADE",
+        default=True,
+    ):
         run_command(pixi_install_command())
     else:
         fail("pixi", "pixi install/upgrade cancelled by user")
@@ -532,8 +591,11 @@ def ensure_pixi(run_command: Callable = default_run_command, log: Log = print) -
 
     current = pixi_version()
     if not current:
-        fail("pixi", "pixi install finished but pixi is not on PATH. Add one of "
-                     f"{', '.join(str(d) for d in pixi_bin_dirs())} to PATH and re-run.")
+        fail(
+            "pixi",
+            "pixi install finished but pixi is not on PATH. Add one of "
+            f"{', '.join(str(d) for d in pixi_bin_dirs())} to PATH and re-run.",
+        )
     if not version_at_least(current, minimum):
         fail("pixi", f"pixi {current} still below {minimum} after install.")
 
@@ -544,9 +606,14 @@ MSVC_WINGET_OVERRIDE = f"--quiet --wait --norestart --add {VC_TOOLS_COMPONENT}"
 
 def msvc_install_command() -> list[str]:
     return [
-        "winget", "install", "--id", MSVC_WINGET_ID,
-        "--accept-source-agreements", "--accept-package-agreements",
-        "--override", MSVC_WINGET_OVERRIDE,
+        "winget",
+        "install",
+        "--id",
+        MSVC_WINGET_ID,
+        "--accept-source-agreements",
+        "--accept-package-agreements",
+        "--override",
+        MSVC_WINGET_OVERRIDE,
     ]
 
 
@@ -561,18 +628,32 @@ def ensure_msvc(run_command: Callable = default_run_command, log: Log = print) -
     if env_flag("LUCY_SKIP_MSVC_INSTALL"):
         fail("msvc", "MSVC build tools not found and LUCY_SKIP_MSVC_INSTALL is set.")
     if shutil.which("winget") is None:
-        fail("msvc", "winget not found, so the build tools cannot be installed automatically.")
+        fail(
+            "msvc",
+            "winget not found, so the build tools cannot be installed automatically.",
+        )
 
-    log("install: MSVC build tools not found - installing via winget (roughly 1.5 GB) ...")
-    log("install: (LUCY_SKIP_MSVC_INSTALL=1 to abort; LUCY_MSVC_AUTO_INSTALL=1 to skip prompt)")
-    if confirm_install("msvc", "Install the Visual Studio Build Tools C++ compiler?", "LUCY_MSVC_AUTO_INSTALL"):
+    log(
+        "install: MSVC build tools not found - installing via winget (roughly 1.5 GB) ..."
+    )
+    log(
+        "install: (LUCY_SKIP_MSVC_INSTALL=1 to abort; LUCY_MSVC_AUTO_INSTALL=1 to skip prompt)"
+    )
+    if confirm_install(
+        "msvc",
+        "Install the Visual Studio Build Tools C++ compiler?",
+        "LUCY_MSVC_AUTO_INSTALL",
+    ):
         run_command(msvc_install_command())
     else:
         fail("msvc", "MSVC install cancelled by user")
 
     if not msvc_available():
-        fail("msvc", "winget finished but the C++ toolchain is still not detectable. "
-                     "Open a new terminal, or install the workload from the Visual Studio Installer.")
+        fail(
+            "msvc",
+            "winget finished but the C++ toolchain is still not detectable. "
+            "Open a new terminal, or install the workload from the Visual Studio Installer.",
+        )
     log("install: MSVC build tools ready.")
 
 
@@ -624,8 +705,13 @@ def fetch_repo_zip(repo_name: str, url: str, branch: str, dest: str, log: Log) -
 
 
 def fetch_repo_git(
-    repo_name: str, url: str, branch: str, dest: str,
-    mode: str, run_command: Callable, log: Log,
+    repo_name: str,
+    url: str,
+    branch: str,
+    dest: str,
+    mode: str,
+    run_command: Callable,
+    log: Log,
 ) -> None:
     if mode == "repair" or not os.path.isdir(os.path.join(dest, ".git")):
         safe_rmtree(dest)
@@ -650,8 +736,16 @@ def fetch_repo_git(
 
 
 def fetch_repo(
-    repo_name: str, url: str, branch: str, dest: str, *,
-    mode: str, fetch_method: str, developer: bool, run_command: Callable, log: Log,
+    repo_name: str,
+    url: str,
+    branch: str,
+    dest: str,
+    *,
+    mode: str,
+    fetch_method: str,
+    developer: bool,
+    run_command: Callable,
+    log: Log,
 ) -> str:
     """Fetch one repo; returns the method actually used ('git' or 'zip')."""
     use_git = fetch_method == "git" and git_available()
@@ -700,9 +794,15 @@ def install_repos(
             log(f"Repair: removing src/{repo['name']} ...")
             remove_workspace_src_repo(root, repo["name"])
         used = fetch_repo(
-            repo["name"], repo["url"], repo["branch"], str(root / "src" / repo["name"]),
-            mode=mode, fetch_method=effective, developer=developer,
-            run_command=run_command, log=log,
+            repo["name"],
+            repo["url"],
+            repo["branch"],
+            str(root / "src" / repo["name"]),
+            mode=mode,
+            fetch_method=effective,
+            developer=developer,
+            run_command=run_command,
+            log=log,
         )
         if used == "zip":
             effective = "zip"
@@ -721,7 +821,9 @@ def pixi_run(project_root: Path | str, args: list[str], run_command: Callable) -
     return run_command(["pixi", *args], cwd=str(project_root))
 
 
-def ensure_windows_libexec_shims(project_root: Path | str, log: Log = print) -> list[str]:
+def ensure_windows_libexec_shims(
+    project_root: Path | str, log: Log = print
+) -> list[str]:
     """Give conda ROS packages the Windows launcher stubs they ship without.
 
     RoboStack installs its Python nodes as extensionless Unix scripts, which
@@ -737,7 +839,10 @@ def ensure_windows_libexec_shims(project_root: Path | str, log: Log = print) -> 
             shim = script.with_suffix(".bat")
             if script.suffix or not script.is_file() or shim.exists():
                 continue
-            if script.with_suffix(".exe").exists() or script.with_suffix(".cmd").exists():
+            if (
+                script.with_suffix(".exe").exists()
+                or script.with_suffix(".cmd").exists()
+            ):
                 continue
             try:
                 if not script.open("rb").readline().startswith(b"#!"):
@@ -751,8 +856,10 @@ def ensure_windows_libexec_shims(project_root: Path | str, log: Log = print) -> 
             created.append(f"{script.parent.name}/{script.name}")
 
     if created:
-        log(f"Windows: added {len(created)} launcher stubs for conda ROS nodes "
-            f"(e.g. {', '.join(created[:3])})")
+        log(
+            f"Windows: added {len(created)} launcher stubs for conda ROS nodes "
+            f"(e.g. {', '.join(created[:3])})"
+        )
     return created
 
 
@@ -769,7 +876,9 @@ ROSBRIDGE_SIGNAL_PATCHED = """    for sig in (signal.SIGINT, signal.SIGTERM):
 """
 
 
-def patch_windows_rosbridge_signals(project_root: Path | str, log: Log = print) -> list[str]:
+def patch_windows_rosbridge_signals(
+    project_root: Path | str, log: Log = print
+) -> list[str]:
     """Stop rosbridge crashing on startup under Windows.
 
     rosbridge_suite 2.6.0 calls loop.add_signal_handler(), unimplemented on
@@ -781,25 +890,34 @@ def patch_windows_rosbridge_signals(project_root: Path | str, log: Log = print) 
 
     patched = []
     for env_dir in sorted((Path(project_root) / ".pixi" / "envs").glob("*")):
-        script = env_dir / "Library" / "lib" / "rosbridge_server" / "rosbridge_websocket"
+        script = (
+            env_dir / "Library" / "lib" / "rosbridge_server" / "rosbridge_websocket"
+        )
         if not script.is_file():
             continue
         source = script.read_text(encoding="utf-8")
         if ROSBRIDGE_SIGNAL_ORIGINAL not in source:
             continue
         script.write_text(
-            source.replace(ROSBRIDGE_SIGNAL_ORIGINAL, ROSBRIDGE_SIGNAL_PATCHED), encoding="utf-8"
+            source.replace(ROSBRIDGE_SIGNAL_ORIGINAL, ROSBRIDGE_SIGNAL_PATCHED),
+            encoding="utf-8",
         )
         patched.append(str(script))
 
     if patched:
-        log("Windows: guarded rosbridge's asyncio signal handlers "
-            "(upstream rosbridge_suite crashes on Windows without this)")
+        log(
+            "Windows: guarded rosbridge's asyncio signal handlers "
+            "(upstream rosbridge_suite crashes on Windows without this)"
+        )
     return patched
 
 
-RPYUTILS_DLL_ORIGINAL = "@contextmanager\ndef add_dll_directories_from_env(env_name: str):\n"
-RPYUTILS_DLL_UNLOCKED = "@contextmanager\ndef _add_dll_directories_from_env_unlocked(env_name: str):\n"
+RPYUTILS_DLL_ORIGINAL = (
+    "@contextmanager\ndef add_dll_directories_from_env(env_name: str):\n"
+)
+RPYUTILS_DLL_UNLOCKED = (
+    "@contextmanager\ndef _add_dll_directories_from_env_unlocked(env_name: str):\n"
+)
 RPYUTILS_DLL_LOCKED = """
 
 import threading
@@ -814,7 +932,9 @@ def add_dll_directories_from_env(env_name: str):
 """
 
 
-def patch_windows_rpyutils_dll_lock(project_root: Path | str, log: Log = print) -> list[str]:
+def patch_windows_rpyutils_dll_lock(
+    project_root: Path | str, log: Log = print
+) -> list[str]:
     """Stop concurrent ROS type imports failing with WinError 206 under Windows.
 
     rosbridge serves calls on threads; each first import of a type adds every
@@ -826,26 +946,33 @@ def patch_windows_rpyutils_dll_lock(project_root: Path | str, log: Log = print) 
 
     patched = []
     for env_dir in sorted((Path(project_root) / ".pixi" / "envs").glob("*")):
-        module = env_dir / "Lib" / "site-packages" / "rpyutils" / "add_dll_directories.py"
+        module = (
+            env_dir / "Lib" / "site-packages" / "rpyutils" / "add_dll_directories.py"
+        )
         if not module.is_file():
             continue
         source = module.read_text(encoding="utf-8")
         if RPYUTILS_DLL_UNLOCKED in source or RPYUTILS_DLL_ORIGINAL not in source:
             continue
         module.write_text(
-            source.replace(RPYUTILS_DLL_ORIGINAL, RPYUTILS_DLL_UNLOCKED) + RPYUTILS_DLL_LOCKED,
+            source.replace(RPYUTILS_DLL_ORIGINAL, RPYUTILS_DLL_UNLOCKED)
+            + RPYUTILS_DLL_LOCKED,
             encoding="utf-8",
         )
         patched.append(str(module))
 
     if patched:
-        log("Windows: serialised rpyutils DLL directory changes "
-            "(concurrent ROS type imports overflow the DLL search path without this)")
+        log(
+            "Windows: serialised rpyutils DLL directory changes "
+            "(concurrent ROS type imports overflow the DLL search path without this)"
+        )
     return patched
 
 
 def pixi_install(
-    project_root: Path | str, run_command: Callable = default_run_command, log: Log = print
+    project_root: Path | str,
+    run_command: Callable = default_run_command,
+    log: Log = print,
 ) -> None:
     if not (Path(project_root) / "pixi.lock").is_file():
         log("No pixi.lock - running pixi lock (solves every platform in pixi.toml) ...")
@@ -858,14 +985,18 @@ def pixi_install(
 
 
 def build_local_realsense_optional(
-    project_root: Path | str, run_command: Callable = default_run_command, log: Log = print
+    project_root: Path | str,
+    run_command: Callable = default_run_command,
+    log: Log = print,
 ) -> None:
     """Optional local librealsense build (Linux-targeted shell script)."""
     if not env_flag("LUCY_BUILD_REALSENSE"):
         log("RealSense: local build when needed: scripts/build_local_realsense.sh")
         return
     if sys.platform == "win32":
-        log("RealSense: LUCY_BUILD_REALSENSE set but the local build is Linux-only; skipping.")
+        log(
+            "RealSense: LUCY_BUILD_REALSENSE set but the local build is Linux-only; skipping."
+        )
         return
     log("LUCY_BUILD_REALSENSE enabled - building librealsense locally ...")
     script = Path(project_root) / "scripts" / "build_local_realsense.sh"
@@ -890,7 +1021,9 @@ def build_workspace(
 
 
 def setup_firmware_toolchain(
-    project_root: Path | str, run_command: Callable = default_run_command, log: Log = print
+    project_root: Path | str,
+    run_command: Callable = default_run_command,
+    log: Log = print,
 ) -> None:
     """Install Rust/RP2040 toolchain into the Pixi env (idempotent), then build the host
     firmware binaries (linux, mcu_bridge) so an update never leaves a stale bridge talking an
@@ -934,7 +1067,9 @@ def run_flow(
 
     if is_nix_environment():
         if not is_nix_ld_enabled():
-            raise NixLdError("Please enable `programs.nix-ld.enable = true;` in your NixOS configuration and rebuild your system before continuing. See README.md for details.")
+            raise NixLdError(
+                "Please enable `programs.nix-ld.enable = true;` in your NixOS configuration and rebuild your system before continuing. See README.md for details."
+            )
 
     if not skip_build:
         ensure_msvc(run_command, log)
@@ -947,8 +1082,13 @@ def run_flow(
         remove_build_artifacts(root, log)
 
     effective = install_repos(
-        root, mode, developer=developer, repos_branch=repos_branch,
-        fetch_method=fetch_method, run_command=run_command, log=log,
+        root,
+        mode,
+        developer=developer,
+        repos_branch=repos_branch,
+        fetch_method=fetch_method,
+        run_command=run_command,
+        log=log,
     )
 
     if mode == "repair":
@@ -962,7 +1102,12 @@ def run_flow(
     else:
         build_workspace(root, run_command, log, developer=developer)
 
-    return {"mode": mode, "developer": developer, "fetch_method": effective, "skip_build": skip_build}
+    return {
+        "mode": mode,
+        "developer": developer,
+        "fetch_method": effective,
+        "skip_build": skip_build,
+    }
 
 
 def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
@@ -970,23 +1115,48 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
         prog="install.py",
         description="Lucy workspace setup (clone sub-repos, pixi install, colcon build).",
     )
-    parser.add_argument("mode", nargs="?", default=None,
-                        choices=["install", "update", "repair", "build-only"],
-                        help="Install operation (default: install)")
-    parser.add_argument("--update", action="store_true", help="Same as the default install")
-    parser.add_argument("--repair", action="store_true",
-                        help="Wipe build/install/log, re-clone src, re-lock")
-    parser.add_argument("--build-only", action="store_true", help="Skip git; pixi install + build")
-    parser.add_argument("--skip-build", action="store_true", help="Clone/pull only (CI)")
-    parser.add_argument("--developer", action="store_true",
-                        help="Developer install (SSH clones, requires git)")
-    parser.add_argument("--repos-branch", default=None,
-                        help="Fallback branch for repos without one set")
-    parser.add_argument("--fetch-method", choices=["git", "zip", "auto"], default="auto",
-                        help="How to fetch repositories (default: auto)")
+    parser.add_argument(
+        "mode",
+        nargs="?",
+        default=None,
+        choices=["install", "update", "repair", "build-only"],
+        help="Install operation (default: install)",
+    )
+    parser.add_argument(
+        "--update", action="store_true", help="Same as the default install"
+    )
+    parser.add_argument(
+        "--repair",
+        action="store_true",
+        help="Wipe build/install/log, re-clone src, re-lock",
+    )
+    parser.add_argument(
+        "--build-only", action="store_true", help="Skip git; pixi install + build"
+    )
+    parser.add_argument(
+        "--skip-build", action="store_true", help="Clone/pull only (CI)"
+    )
+    parser.add_argument(
+        "--developer",
+        action="store_true",
+        help="Developer install (SSH clones, requires git)",
+    )
+    parser.add_argument(
+        "--repos-branch", default=None, help="Fallback branch for repos without one set"
+    )
+    parser.add_argument(
+        "--fetch-method",
+        choices=["git", "zip", "auto"],
+        default="auto",
+        help="How to fetch repositories (default: auto)",
+    )
     args = parser.parse_args(argv)
 
-    for flag, mode in (("repair", "repair"), ("build_only", "build-only"), ("update", "update")):
+    for flag, mode in (
+        ("repair", "repair"),
+        ("build_only", "build-only"),
+        ("update", "update"),
+    ):
         if getattr(args, flag) and not args.mode:
             args.mode = mode
             break
@@ -998,7 +1168,8 @@ def main(argv: Optional[list[str]] = None) -> int:
     args = parse_args(argv)
     try:
         run_flow(
-            ROOT, args.mode,
+            ROOT,
+            args.mode,
             developer=True if args.developer else None,
             repos_branch=args.repos_branch,
             fetch_method=args.fetch_method,

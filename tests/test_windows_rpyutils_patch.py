@@ -28,7 +28,16 @@ def add_dll_directories_from_env(env_name: str):
 
 
 def _rpyutils(tmp_path: Path) -> Path:
-    module = tmp_path / ".pixi" / "envs" / "default" / "Lib" / "site-packages" / "rpyutils" / "add_dll_directories.py"
+    module = (
+        tmp_path
+        / ".pixi"
+        / "envs"
+        / "default"
+        / "Lib"
+        / "site-packages"
+        / "rpyutils"
+        / "add_dll_directories.py"
+    )
     module.parent.mkdir(parents=True)
     module.write_text(UPSTREAM, encoding="utf-8")
     return module
@@ -38,7 +47,9 @@ def test_patch_locks_once_and_keeps_the_context_manager_working(tmp_path, monkey
     monkeypatch.setattr(install.sys, "platform", "win32")
     module = _rpyutils(tmp_path)
 
-    assert install.patch_windows_rpyutils_dll_lock(tmp_path, log=lambda _: None) == [str(module)]
+    assert install.patch_windows_rpyutils_dll_lock(tmp_path, log=lambda _: None) == [
+        str(module)
+    ]
     patched = module.read_text(encoding="utf-8")
     assert install.patch_windows_rpyutils_dll_lock(tmp_path, log=lambda _: None) == []
     assert module.read_text(encoding="utf-8") == patched

@@ -152,9 +152,9 @@ def test_controllers_probe_caches_a_result_slower_than_its_ttl(tmp_path):
 
     started = time.time()
     subprocess.run(["bash", script], cwd=ROOT, env=env, capture_output=True)
-    assert time.time() - started < 1.5, (
-        "a probe slower than the TTL was not cached; every caller re-runs it"
-    )
+    assert (
+        time.time() - started < 1.5
+    ), "a probe slower than the TTL was not cached; every caller re-runs it"
 
 
 def _fake_pixi(tmp_path, body):
@@ -197,9 +197,9 @@ def test_probe_caches_the_count_so_two_thresholds_do_not_collide(tmp_path):
     )
     # Ask the strict question first; its answer must not become the cached verdict.
     assert _controllers_active(env, "2") != 0, "2 active reported, only 1 is"
-    assert _controllers_active(env, "1") == 0, (
-        "the cached answer to a stricter threshold was reused for a looser one"
-    )
+    assert (
+        _controllers_active(env, "1") == 0
+    ), "the cached answer to a stricter threshold was reused for a looser one"
     assert _controllers_active(env, "0") == 0
 
 
@@ -244,9 +244,9 @@ def test_timed_out_probe_leaves_no_orphaned_node(tmp_path):
     )
 
     child_pid = int(child_pid_file.read_text().strip())
-    assert _wait_for(lambda: not _alive(child_pid), timeout=5.0), (
-        f"pid {child_pid} outlived the probe that spawned it"
-    )
+    assert _wait_for(
+        lambda: not _alive(child_pid), timeout=5.0
+    ), f"pid {child_pid} outlived the probe that spawned it"
 
 
 def _alive(pid):

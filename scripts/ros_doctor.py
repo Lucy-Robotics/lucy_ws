@@ -22,7 +22,9 @@ def main() -> int:
     env = {**os.environ, **LOCALHOST_ENV}
     command = ["ros2", "doctor", "--report", *sys.argv[1:]]
     try:
-        return subprocess.run(command, env=env, timeout=TIMEOUT_S, check=False).returncode
+        return subprocess.run(
+            command, env=env, timeout=TIMEOUT_S, check=False
+        ).returncode
     except subprocess.TimeoutExpired:
         print(
             f"ros2 doctor did not finish within {TIMEOUT_S:.0f}s even with discovery "

@@ -48,6 +48,23 @@ jobs:
       lucy_ws_branch: ${{ needs.installer-branches.outputs.lucy_ws }}
       repos_json: ${{ needs.installer-branches.outputs.repos }}
 
+  lint:
+    name: Lint (black)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          repository: Lucy-Robotics/lucy_ws
+          ref: ${{ github.event.repository.name != 'lucy_ws' && (github.base_ref == 'master' && 'master' || 'dev') || '' }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install black==24.10.0
+
+      - run: black --check --diff .
+
   pixi-install-build-test:
     name: Pixi install & build (${{ matrix.runner }})
     concurrency:
@@ -91,6 +108,19 @@ jobs:
       - name: Workspace unit tests
         shell: bash
         run: pixi run workspace-test
+
+      - name: Workspace coverage
+        if: matrix.pixi_platform == 'linux-64'
+        shell: bash
+        run: pixi run workspace-coverage
+
+      - uses: codecov/codecov-action@v4
+        if: matrix.pixi_platform == 'linux-64'
+        with:
+          files: coverage.xml
+          flags: lucy_ws
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
 
       - name: Drop workspace .env if present
         shell: bash

@@ -13,7 +13,7 @@ from pathlib import Path
 # ============================================================
 
 REPO_URL = "https://github.com/Lucy-Robotics/lucy_ws.git"
-REPO_NAME = "lucy_ws"          # Name of the folder the repo is cloned into.
+REPO_NAME = "lucy_ws"  # Name of the folder the repo is cloned into.
 INSTALL_SCRIPT = "install.py"
 DEFAULT_BRANCH = "master"
 
@@ -74,15 +74,9 @@ def enable_ansi():
 
         mode = ctypes.c_ulong()
 
-        if kernel32.GetConsoleMode(
-            stdout_handle,
-            ctypes.byref(mode)
-        ):
+        if kernel32.GetConsoleMode(stdout_handle, ctypes.byref(mode)):
             # ENABLE_VIRTUAL_TERMINAL_PROCESSING
-            kernel32.SetConsoleMode(
-                stdout_handle,
-                mode.value | 0x0004
-            )
+            kernel32.SetConsoleMode(stdout_handle, mode.value | 0x0004)
 
     except Exception:
         pass
@@ -115,47 +109,20 @@ def show_cursor():
 # Header
 # ============================================================
 
+
 def print_header():
-    print(color(
-        "  ██╗     ██╗   ██╗ ██████╗██╗   ██╗",
-        BRIGHT_GREEN
-    ))
-    print(color(
-        "  ██║     ██║   ██║██╔════╝╚██╗ ██╔╝",
-        BRIGHT_GREEN
-    ))
-    print(color(
-        "  ██║     ██║   ██║██║      ╚████╔╝ ",
-        BRIGHT_GREEN
-    ))
-    print(color(
-        "  ██║     ██║   ██║██║       ╚██╔╝  ",
-        BRIGHT_GREEN
-    ))
-    print(color(
-        "  ███████╗╚██████╔╝╚██████╗   ██║   ",
-        BRIGHT_GREEN
-    ))
-    print(color(
-        "  ╚══════╝ ╚═════╝  ╚═════╝   ╚═╝   ",
-        BRIGHT_GREEN
-    ))
+    print(color("  ██╗     ██╗   ██╗ ██████╗██╗   ██╗", BRIGHT_GREEN))
+    print(color("  ██║     ██║   ██║██╔════╝╚██╗ ██╔╝", BRIGHT_GREEN))
+    print(color("  ██║     ██║   ██║██║      ╚████╔╝ ", BRIGHT_GREEN))
+    print(color("  ██║     ██║   ██║██║       ╚██╔╝  ", BRIGHT_GREEN))
+    print(color("  ███████╗╚██████╔╝╚██████╗   ██║   ", BRIGHT_GREEN))
+    print(color("  ╚══════╝ ╚═════╝  ╚═════╝   ╚═╝   ", BRIGHT_GREEN))
 
     print()
 
-    print(
-        color(
-            "  LUCY WORKSPACE INSTALLER",
-            BOLD + WHITE
-        )
-    )
+    print(color("  LUCY WORKSPACE INSTALLER", BOLD + WHITE))
 
-    print(
-        color(
-            "  " + "─" * 42,
-            BRIGHT_BLACK
-        )
-    )
+    print(color("  " + "─" * 42, BRIGHT_BLACK))
 
     print()
 
@@ -164,14 +131,12 @@ def print_header():
 # Errors
 # ============================================================
 
+
 def die(message):
     show_cursor()
 
     print()
-    print(
-        color("[ ERROR ]", RED),
-        message
-    )
+    print(color("[ ERROR ]", RED), message)
 
     sys.exit(1)
 
@@ -179,6 +144,7 @@ def die(message):
 # ============================================================
 # Dependencies
 # ============================================================
+
 
 def check_dependencies():
     if shutil.which("git") is None:
@@ -192,11 +158,9 @@ def check_dependencies():
 # Git branch discovery
 # ============================================================
 
+
 def get_branches():
-    print(
-        color("  [*]", BRIGHT_CYAN),
-        "Fetching available branches..."
-    )
+    print(color("  [*]", BRIGHT_CYAN), "Fetching available branches...")
 
     result = subprocess.run(
         [
@@ -212,10 +176,7 @@ def get_branches():
     if result.returncode != 0:
         error = result.stderr.strip()
 
-        die(
-            "Unable to fetch repository branches."
-            + (f"\n{error}" if error else "")
-        )
+        die("Unable to fetch repository branches." + (f"\n{error}" if error else ""))
 
     branches = []
 
@@ -228,7 +189,7 @@ def get_branches():
         ref = parts[1]
 
         if ref.startswith("refs/heads/"):
-            branch = ref[len("refs/heads/"):]
+            branch = ref[len("refs/heads/") :]
 
             if branch not in branches:
                 branches.append(branch)
@@ -250,6 +211,7 @@ def get_branches():
 # ============================================================
 # Keyboard input
 # ============================================================
+
 
 def read_key_windows():
     key = msvcrt.getwch()
@@ -322,11 +284,7 @@ def read_key_unix():
         return key
 
     finally:
-        termios.tcsetattr(
-            sys.stdin,
-            termios.TCSADRAIN,
-            old_settings
-        )
+        termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
 
 
 def read_key():
@@ -340,6 +298,7 @@ def read_key():
 # Branch selector
 # ============================================================
 
+
 def select_branch(branches):
     selected = 0
 
@@ -350,49 +309,28 @@ def select_branch(branches):
             clear_screen()
             print_header()
 
-            print(
-                color(
-                    "  Select a branch",
-                    BOLD + WHITE
-                )
-            )
+            print(color("  Select a branch", BOLD + WHITE))
 
             print()
 
             for index, branch in enumerate(branches):
 
                 if index == selected:
-                    pointer = color(
-                        "  >",
-                        BRIGHT_GREEN
-                    )
+                    pointer = color("  >", BRIGHT_GREEN)
 
-                    branch_text = color(
-                        branch,
-                        BOLD + BRIGHT_GREEN
-                    )
+                    branch_text = color(branch, BOLD + BRIGHT_GREEN)
 
                 else:
                     pointer = "   "
 
-                    branch_text = color(
-                        branch,
-                        WHITE
-                    )
+                    branch_text = color(branch, WHITE)
 
                 if branch == DEFAULT_BRANCH:
-                    suffix = color(
-                        " [default]",
-                        DIM + BRIGHT_BLACK
-                    )
+                    suffix = color(" [default]", DIM + BRIGHT_BLACK)
                 else:
                     suffix = ""
 
-                print(
-                    f"{pointer} "
-                    f"{branch_text}"
-                    f"{suffix}"
-                )
+                print(f"{pointer} " f"{branch_text}" f"{suffix}")
 
             print()
 
@@ -410,14 +348,10 @@ def select_branch(branches):
             key = read_key()
 
             if key == "UP":
-                selected = (
-                    selected - 1
-                ) % len(branches)
+                selected = (selected - 1) % len(branches)
 
             elif key == "DOWN":
-                selected = (
-                    selected + 1
-                ) % len(branches)
+                selected = (selected + 1) % len(branches)
 
             elif key == "ENTER":
                 return branches[selected]
@@ -433,6 +367,7 @@ def select_branch(branches):
 # Installation
 # ============================================================
 
+
 def install(branch):
     clear_screen()
     print_header()
@@ -443,38 +378,19 @@ def install(branch):
     base_dir = Path.cwd().resolve()
     install_dir = base_dir / REPO_NAME
 
-    print(
-        color(
-            "  Installation",
-            BOLD + WHITE
-        )
-    )
+    print(color("  Installation", BOLD + WHITE))
 
     print()
 
-    print(
-        color("  Repository  ", BRIGHT_BLACK),
-        REPO_URL
-    )
+    print(color("  Repository  ", BRIGHT_BLACK), REPO_URL)
 
-    print(
-        color("  Branch      ", BRIGHT_BLACK),
-        color(branch, BRIGHT_GREEN)
-    )
+    print(color("  Branch      ", BRIGHT_BLACK), color(branch, BRIGHT_GREEN))
 
-    print(
-        color("  Location    ", BRIGHT_BLACK),
-        str(install_dir)
-    )
+    print(color("  Location    ", BRIGHT_BLACK), str(install_dir))
 
     print()
 
-    print(
-        color(
-            "  " + "─" * 42,
-            BRIGHT_BLACK
-        )
-    )
+    print(color("  " + "─" * 42, BRIGHT_BLACK))
 
     print()
 
@@ -497,18 +413,13 @@ def install(branch):
         try:
             install_dir.mkdir(parents=True)
         except OSError as exc:
-            die(
-                f"Unable to create installation directory:\n{exc}"
-            )
+            die(f"Unable to create installation directory:\n{exc}")
 
     # --------------------------------------------------------
     # Clone
     # --------------------------------------------------------
 
-    print(
-        color("  [1/2]", BRIGHT_CYAN),
-        "Cloning repository..."
-    )
+    print(color("  [1/2]", BRIGHT_CYAN), "Cloning repository...")
 
     result = subprocess.run(
         [
@@ -527,10 +438,7 @@ def install(branch):
 
     print()
 
-    print(
-        color("  [ OK ]", BRIGHT_GREEN),
-        "Repository cloned."
-    )
+    print(color("  [ OK ]", BRIGHT_GREEN), "Repository cloned.")
 
     # --------------------------------------------------------
     # Run install.py from the cloned workspace
@@ -539,26 +447,15 @@ def install(branch):
     install_script = install_dir / INSTALL_SCRIPT
 
     if not install_script.exists():
-        die(
-            f"'{INSTALL_SCRIPT}' was not found "
-            f"in branch '{branch}'."
-        )
+        die(f"'{INSTALL_SCRIPT}' was not found " f"in branch '{branch}'.")
 
     print()
 
-    print(
-        color("  [2/2]", BRIGHT_CYAN),
-        "Running installation script..."
-    )
+    print(color("  [2/2]", BRIGHT_CYAN), "Running installation script...")
 
     print()
 
-    print(
-        color(
-            "  " + "─" * 42,
-            BRIGHT_BLACK
-        )
-    )
+    print(color("  " + "─" * 42, BRIGHT_BLACK))
 
     print()
 
@@ -573,38 +470,23 @@ def install(branch):
     print()
 
     if result.returncode != 0:
-        die(
-            "Installation script failed "
-            f"with exit code {result.returncode}."
-        )
+        die("Installation script failed " f"with exit code {result.returncode}.")
 
     # --------------------------------------------------------
     # Done
     # --------------------------------------------------------
 
-    print(
-        color(
-            "  " + "─" * 42,
-            BRIGHT_BLACK
-        )
-    )
+    print(color("  " + "─" * 42, BRIGHT_BLACK))
 
     print()
 
     print(
-        color("  [ OK ]", BRIGHT_GREEN),
-        color(
-            "Installation complete.",
-            BOLD + GREEN
-        )
+        color("  [ OK ]", BRIGHT_GREEN), color("Installation complete.", BOLD + GREEN)
     )
 
     print()
 
-    print(
-        color("  Installed to ", BRIGHT_BLACK),
-        str(install_dir)
-    )
+    print(color("  Installed to ", BRIGHT_BLACK), str(install_dir))
 
     print()
 
@@ -613,13 +495,12 @@ def install(branch):
 # Main
 # ============================================================
 
+
 def main():
     enable_ansi()
 
     if not sys.stdin.isatty():
-        die(
-            "This installer requires an interactive terminal."
-        )
+        die("This installer requires an interactive terminal.")
 
     check_dependencies()
 
@@ -630,31 +511,18 @@ def main():
 
     print()
 
-    print(
-        color("  [ OK ]", BRIGHT_GREEN),
-        f"Found {len(branches)} branch(es)."
-    )
+    print(color("  [ OK ]", BRIGHT_GREEN), f"Found {len(branches)} branch(es).")
 
     print()
 
-    input(
-        color(
-            "  Press ENTER to continue...",
-            DIM + WHITE
-        )
-    )
+    input(color("  Press ENTER to continue...", DIM + WHITE))
 
     branch = select_branch(branches)
 
     if branch is None:
         clear_screen()
 
-        print(
-            color(
-                "\n  Installation cancelled.\n",
-                YELLOW
-            )
-        )
+        print(color("\n  Installation cancelled.\n", YELLOW))
 
         return
 
@@ -672,12 +540,7 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         show_cursor()
 
-        print(
-            color(
-                "\n\n  Installation cancelled.",
-                YELLOW
-            )
-        )
+        print(color("\n\n  Installation cancelled.", YELLOW))
 
         print()
 
@@ -687,12 +550,7 @@ if __name__ == "__main__":
     except Exception as exc:
         show_cursor()
 
-        print(
-            color(
-                f"\n  Unexpected error: {exc}",
-                RED
-            )
-        )
+        print(color(f"\n  Unexpected error: {exc}", RED))
 
         print()
 

@@ -34,8 +34,16 @@ from firmware_log import get_logger
 log = get_logger()
 
 WORKSPACE_ROOT = Path(__file__).resolve().parents[1]
-MEGA_CRATE = WORKSPACE_ROOT / "src" / "lucy_embedded_firmware" / "firmwares" / "arduino_mega"
-MEGA_ELF = MEGA_CRATE / "target" / "avr-none" / "release" / "lucy-embedded-firmware-arduino-mega.elf"
+MEGA_CRATE = (
+    WORKSPACE_ROOT / "src" / "lucy_embedded_firmware" / "firmwares" / "arduino_mega"
+)
+MEGA_ELF = (
+    MEGA_CRATE
+    / "target"
+    / "avr-none"
+    / "release"
+    / "lucy-embedded-firmware-arduino-mega.elf"
+)
 # Same place the config pipeline keeps generated tables and ELFs.
 MEGA_ARTIFACTS = MEGA_CRATE / "target" / "lucy"
 # Must match firmwares/mcu_bridge and config/udev.
@@ -49,9 +57,13 @@ def load_board(robot: str, board_id: str) -> tuple[dict, dict]:
     board = boards.get(board_id)
     if board is None:
         megas = [b for b, d in boards.items() if d.get("board_class") == "i2c_pwm_only"]
-        raise SystemExit(f"{board_id!r} is not a board of {path}; Mega boards: {', '.join(megas) or 'none'}")
+        raise SystemExit(
+            f"{board_id!r} is not a board of {path}; Mega boards: {', '.join(megas) or 'none'}"
+        )
     if board.get("board_class") != "i2c_pwm_only":
-        raise SystemExit(f"{board_id} is {board.get('board_class')!r}, not an Arduino Mega (i2c_pwm_only) board")
+        raise SystemExit(
+            f"{board_id} is {board.get('board_class')!r}, not an Arduino Mega (i2c_pwm_only) board"
+        )
     return data, board
 
 
@@ -69,12 +81,18 @@ def find_port(serial_id: str) -> str:
     if len(megas) != 1:
         raise SystemExit(
             "serial_id is empty and "
-            + (f"{len(megas)} Megas are plugged in: " + ", ".join(f"{p.device}={p.serial_number}" for p in megas)
-               if megas else "no Mega is plugged in")
+            + (
+                f"{len(megas)} Megas are plugged in: "
+                + ", ".join(f"{p.device}={p.serial_number}" for p in megas)
+                if megas
+                else "no Mega is plugged in"
+            )
             + ". Set the board's serial_id, or pass --port."
         )
-    log.warning(f"serial_id is empty: using the only Mega, {megas[0].device}. "
-                f"Set serial_id: {megas[0].serial_number} in the YAML to pin this board.")
+    log.warning(
+        f"serial_id is empty: using the only Mega, {megas[0].device}. "
+        f"Set serial_id: {megas[0].serial_number} in the YAML to pin this board."
+    )
     return megas[0].device
 
 
@@ -106,21 +124,36 @@ def run(cmd: list[str], cwd: Path | None = None) -> None:
 
 def main() -> int:
     enable_ansi()
-    parser = argparse.ArgumentParser(description="Build and flash one Arduino Mega board")
+    parser = argparse.ArgumentParser(
+        description="Build and flash one Arduino Mega board"
+    )
     parser.add_argument("board", help="board id in the hardware YAML, e.g. mega_right")
-    parser.add_argument("--robot", default=os.environ.get("LUCY_ROBOT_PACKAGE", "inmoov_i2_urdf"),
-                        help="robot package under src/ (default: $LUCY_ROBOT_PACKAGE or inmoov_i2_urdf)")
-    parser.add_argument("--port", help="serial port to flash, instead of matching serial_id")
-    parser.add_argument("--build-only", action="store_true", help="build without flashing")
+    parser.add_argument(
+        "--robot",
+        default=os.environ.get("LUCY_ROBOT_PACKAGE", "inmoov_i2_urdf"),
+        help="robot package under src/ (default: $LUCY_ROBOT_PACKAGE or inmoov_i2_urdf)",
+    )
+    parser.add_argument(
+        "--port", help="serial port to flash, instead of matching serial_id"
+    )
+    parser.add_argument(
+        "--build-only", action="store_true", help="build without flashing"
+    )
     args = parser.parse_args()
 
     data, board = load_board(args.robot, args.board)
     for tool in ("avr-gcc", "avrdude"):
         if shutil.which(tool) is None:
-            raise SystemExit(f"{tool} not found: install it on the host (e.g. dnf/apt install avr-gcc avrdude)")
+            raise SystemExit(
+                f"{tool} not found: install it on the host (e.g. dnf/apt install avr-gcc avrdude)"
+            )
 
     # Resolve the port first: a missing board should not wait for a build.
-    port = None if args.build_only else args.port or find_port(str(board.get("serial_id") or "").strip())
+    port = (
+        None
+        if args.build_only
+        else args.port or find_port(str(board.get("serial_id") or "").strip())
+    )
 
     try:
         from lucy_config_generator.generate import render_firmware_mega
@@ -144,8 +177,22 @@ def main() -> int:
 
     # Same programmer settings ravedude uses for mega2560 (stk500v2 bootloader at 115200).
     with flash_lock(str(board.get("serial_id") or "").strip()):
-        run(["avrdude", "-p", "atmega2560", "-c", "wiring", "-P", port, "-b", "115200", "-D",
-             "-U", f"flash:w:{MEGA_ELF}:e"])
+        run(
+            [
+                "avrdude",
+                "-p",
+                "atmega2560",
+                "-c",
+                "wiring",
+                "-P",
+                port,
+                "-b",
+                "115200",
+                "-D",
+                "-U",
+                f"flash:w:{MEGA_ELF}:e",
+            ]
+        )
     log.info(f"Flashed {args.board} on {port}")
     return 0
 

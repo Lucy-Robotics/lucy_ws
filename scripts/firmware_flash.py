@@ -20,7 +20,9 @@ def main():
     enable_ansi()
     parser = argparse.ArgumentParser(description="Flash Lucy firmware to RP2040 boards")
     parser.add_argument("--board", help="Specific board ID to flash (e.g., left_arm)")
-    parser.add_argument("--no-verify", action="store_true", help="Skip Modbus verification after flash")
+    parser.add_argument(
+        "--no-verify", action="store_true", help="Skip Modbus verification after flash"
+    )
     args = parser.parse_args()
 
     log.info("=" * 60)

@@ -31,7 +31,9 @@ def node_argv(package: str, executable: str) -> list[str]:
     lib_dir = Path(get_package_prefix(package)) / "lib" / package
     matches = sorted(
         (p for p in lib_dir.glob("*") if p.is_file() and p.stem == executable),
-        key=lambda p: 0 if not p.suffix or p.suffix.lower() in WINDOWS_EXEC_SUFFIXES else 1,
+        key=lambda p: (
+            0 if not p.suffix or p.suffix.lower() in WINDOWS_EXEC_SUFFIXES else 1
+        ),
     )
     if not matches:
         raise RuntimeError(f"{package}/{executable} not found in {lib_dir}")
@@ -93,7 +95,12 @@ def configure_windows_dll_search_path() -> None:
         if not entry:
             continue
         lower = entry.lower()
-        if "miniconda" in lower or "anaconda" in lower or "opt\\ros" in lower or "opt/ros" in lower:
+        if (
+            "miniconda" in lower
+            or "anaconda" in lower
+            or "opt\\ros" in lower
+            or "opt/ros" in lower
+        ):
             continue
         current_entries.append(entry)
 
@@ -156,7 +163,9 @@ def _start_joint_state_fallback():
         [sys.executable, str(ROOT / "scripts" / "joint_command_echo.py")],
         [
             *node_argv("joint_state_publisher", "joint_state_publisher"),
-            "--ros-args", "-p", f"source_list:=['{JOINT_COMMAND_TOPIC}']",
+            "--ros-args",
+            "-p",
+            f"source_list:=['{JOINT_COMMAND_TOPIC}']",
         ],
     ]
     started = []
@@ -173,6 +182,7 @@ def _start_joint_state_fallback_when_needed(started: list) -> threading.Thread:
 
     A second publisher makes the panel alternate between the two poses.
     """
+
     def wait_then_start() -> None:
         cancelled.wait(FALLBACK_DELAY_S)
         if cancelled.is_set():
@@ -235,7 +245,10 @@ def apply_dds_scope(windows: bool = os.name == "nt") -> None:
     LOCALHOST mode probes a port per participant index, and Windows UDP sockets
     fail on the ICMP replies from the unused ones, so nothing is discovered.
     """
-    localhost = os.environ.get("LUCY_DDS_LOCALHOST", "1").strip().lower() not in DDS_LOCALHOST_OFF
+    localhost = (
+        os.environ.get("LUCY_DDS_LOCALHOST", "1").strip().lower()
+        not in DDS_LOCALHOST_OFF
+    )
     if windows and not localhost:
         os.environ.pop("CYCLONEDDS_URI", None)
     if os.environ.get("LUCY_DDS_RANGE"):

@@ -42,9 +42,11 @@ def _ros2_invocations(path: Path):
             continue
         head = node.elts[0]
         if isinstance(head, ast.Constant) and head.value == "ros2":
-            verb = node.elts[1].value if len(node.elts) > 1 and isinstance(
-                node.elts[1], ast.Constant
-            ) else "?"
+            verb = (
+                node.elts[1].value
+                if len(node.elts) > 1 and isinstance(node.elts[1], ast.Constant)
+                else "?"
+            )
             yield verb, node.lineno
 
 

@@ -33,11 +33,16 @@ PREVIOUS_STACK_TIMEOUT_S = 30.0
 def start(pixi_args: str) -> subprocess.Popen:
     if os.name == "nt":
         return subprocess.Popen(
-            f'cmd.exe /d /s /c "pixi run {pixi_args}"', cwd=ROOT,
+            f'cmd.exe /d /s /c "pixi run {pixi_args}"',
+            cwd=ROOT,
             env={**os.environ, "PATH": path_outside(ROOT, os.environ["PATH"])},
             creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
         )
-    return subprocess.Popen([shutil.which("pixi"), "run", *pixi_args.split()], cwd=ROOT, start_new_session=True)
+    return subprocess.Popen(
+        [shutil.which("pixi"), "run", *pixi_args.split()],
+        cwd=ROOT,
+        start_new_session=True,
+    )
 
 
 def stop(proc: subprocess.Popen) -> None:
@@ -49,7 +54,9 @@ def stop(proc: subprocess.Popen) -> None:
             proc.wait(timeout=15)
         except subprocess.TimeoutExpired:
             pass
-        subprocess.run(["taskkill", "/T", "/F", "/PID", str(proc.pid)], capture_output=True)
+        subprocess.run(
+            ["taskkill", "/T", "/F", "/PID", str(proc.pid)], capture_output=True
+        )
         return
     os.killpg(proc.pid, signal.SIGINT)
     try:
@@ -100,7 +107,9 @@ def main() -> int:
         procs = {"core": start(f"core robot_package:={robot}")}
         wait_for_port(ROSBRIDGE_PORT, procs)
         procs["control-panel"] = start("control-panel")
-        log(f"started pixi run core robot_package:={robot}, then pixi run control-panel")
+        log(
+            f"started pixi run core robot_package:={robot}, then pixi run control-panel"
+        )
         wait_for_stack(ros, procs)
         check_robot_identity(ros, robot)
         exercise_panel(ros, robot)

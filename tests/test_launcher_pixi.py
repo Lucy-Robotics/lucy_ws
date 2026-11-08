@@ -65,7 +65,9 @@ def test_gui_env_exports_forwards_display():
 
 
 def test_tmux_new_pixi_window_wraps_in_bash_lc():
-    cmd = _tmux_new_pixi_window("core", "ros2 launch pkg launch.py", remain_on_exit=True)
+    cmd = _tmux_new_pixi_window(
+        "core", "ros2 launch pkg launch.py", remain_on_exit=True
+    )
     assert "tmux new-window" in cmd
     assert "-n core" in cmd
     assert "bash -lc" in cmd
@@ -112,7 +114,9 @@ def test_is_lucy_orphan_cmdline_requires_workspace():
 
 
 def test_is_lucy_orphan_gz_sim_server_via_workspace_markers(monkeypatch):
-    monkeypatch.setattr(launcher, "_process_workspace_markers", lambda pid: pid == 1120406)
+    monkeypatch.setattr(
+        launcher, "_process_workspace_markers", lambda pid: pid == 1120406
+    )
     assert is_lucy_orphan(1120406, "gz sim server")
     assert not is_lucy_orphan(999, "gz sim server")
 
@@ -214,9 +218,7 @@ def test_stop_all_packages_single_finish_teardown(monkeypatch):
 
     monkeypatch.setattr(launcher, "_stop_tmux_window", lambda _w: None)
     monkeypatch.setattr(launcher, "_stop_core_tmux", lambda: None)
-    monkeypatch.setattr(
-        launcher, "_finish_teardown", lambda: finish_count.append(1)
-    )
+    monkeypatch.setattr(launcher, "_finish_teardown", lambda: finish_count.append(1))
     monkeypatch.setattr(launcher, "save_state", lambda _data: None)
 
     stop_all_packages(FakeState())
@@ -308,9 +310,7 @@ def test_stop_all_packages_skips_tmux_on_windows(monkeypatch):
     monkeypatch.setattr(
         launcher, "run_shell_command", lambda cmd: shell_calls.append(cmd)
     )
-    monkeypatch.setattr(
-        launcher, "_finish_teardown", lambda: finish_calls.append(True)
-    )
+    monkeypatch.setattr(launcher, "_finish_teardown", lambda: finish_calls.append(True))
 
     class FakeCore:
         id = "core"
@@ -392,7 +392,9 @@ def test_apply_changes_modifier_restart_preserves_control_panel(monkeypatch):
     finish_args = []
 
     class FakePkg:
-        def __init__(self, pid, ptype, selected, running, command="", readiness_check=None):
+        def __init__(
+            self, pid, ptype, selected, running, command="", readiness_check=None
+        ):
             self.id = pid
             self.type = ptype
             self.selected = selected
@@ -427,7 +429,9 @@ def test_apply_changes_modifier_restart_preserves_control_panel(monkeypatch):
         packages = [core, gazebo, control_panel]
 
         def get_by_id(self, pid):
-            return {"core": core, "gazebo": gazebo, "control_panel": control_panel}.get(pid)
+            return {"core": core, "gazebo": gazebo, "control_panel": control_panel}.get(
+                pid
+            )
 
     monkeypatch.setattr(launcher, "_stop_core_tmux", lambda: None)
     monkeypatch.setattr(
@@ -448,7 +452,9 @@ def test_apply_changes_stopping_core_preserves_running_control_panel(monkeypatch
     preserve_calls = []
 
     class FakePkg:
-        def __init__(self, pid, ptype, selected, running, command="", readiness_check=None):
+        def __init__(
+            self, pid, ptype, selected, running, command="", readiness_check=None
+        ):
             self.id = pid
             self.type = ptype
             self.selected = selected
@@ -462,7 +468,9 @@ def test_apply_changes_stopping_core_preserves_running_control_panel(monkeypatch
         def is_complex_command(self):
             return False
 
-    core = FakePkg("core", "core", False, True, "ros2 launch lucy_bringup lucy.launch.py")
+    core = FakePkg(
+        "core", "core", False, True, "ros2 launch lucy_bringup lucy.launch.py"
+    )
     control_panel = FakePkg(
         "control_panel",
         "interface",
@@ -495,7 +503,9 @@ def test_apply_changes_stopping_core_preserves_running_control_panel(monkeypatch
 
 def test_finish_teardown_clears_pending_preserve(monkeypatch):
     launcher.set_orphan_preserve_windows(["control_panel"], protect_vite=True)
-    monkeypatch.setattr(launcher, "cleanup_lucy_orphan_processes", lambda **kwargs: None)
+    monkeypatch.setattr(
+        launcher, "cleanup_lucy_orphan_processes", lambda **kwargs: None
+    )
     monkeypatch.setattr(launcher, "wait_for_orphans_gone", lambda **kwargs: None)
 
     launcher._finish_teardown()
@@ -520,7 +530,9 @@ def test_orphan_signature_covers_latching_and_locking_nodes():
     assert _matches_orphan_signature(
         f"{ws}/.pixi/envs/default/lib/controller_manager/spawner joint_state_broadcaster"
     )
-    assert _matches_orphan_signature(f"{ws}/install/lucy_config_pipeline/lib/config_pipeline_node")
+    assert _matches_orphan_signature(
+        f"{ws}/install/lucy_config_pipeline/lib/config_pipeline_node"
+    )
     # The launcher itself must never match, or it would reap its own process.
     assert not _matches_orphan_signature(f"python -m launcher")
     assert not _matches_orphan_signature(f"{ws}/Lucy.py")
@@ -566,7 +578,7 @@ def test_modifier_with_exit_check_reports_crash_when_exit_code_present(tmp_path)
             "readiness_check": "false",
             "exit_check": (
                 f'"{sys.executable}" -c "import pathlib, sys; '
-                f'p = pathlib.Path(sys.argv[1]); '
+                f"p = pathlib.Path(sys.argv[1]); "
                 f'sys.stdout.write(p.read_text().strip()) if p.is_file() else None" '
                 f'"{status_file}"'
             ),
@@ -657,6 +669,3 @@ def test_real_hardware_stays_loading_until_microcontroller_ready_file_exists(tmp
     finally:
         _intended_running.discard("real")
         _pkg_start_times.pop("real", None)
-
-
-

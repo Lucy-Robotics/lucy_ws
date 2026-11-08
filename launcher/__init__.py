@@ -1,6 +1,11 @@
 """Lucy workspace launcher — modular package with backward-compatible exports."""
 
-from .apply import apply_changes, default_robot_selection, restore_selection, stop_all_packages
+from .apply import (
+    apply_changes,
+    default_robot_selection,
+    restore_selection,
+    stop_all_packages,
+)
 from .config import (
     get_dev_mode,
     load_config,

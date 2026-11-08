@@ -6,7 +6,11 @@ import sys
 import pytest
 
 from launcher import guard_single_stack
-from launcher.preflight import ALLOW_MULTIPLE_ENV, FORCE_STOP_ENV, describe_running_stack
+from launcher.preflight import (
+    ALLOW_MULTIPLE_ENV,
+    FORCE_STOP_ENV,
+    describe_running_stack,
+)
 
 PROCS = [(4242, "/path/ros2_control_node --ros-args"), (4243, "gz sim -r world.sdf")]
 
@@ -15,8 +19,15 @@ posix_only = pytest.mark.skipif(
 )
 
 
-def _guard(processes=(), windows=(), answer=True, stop_ok=True, interactive=True,
-           launcher_pid=None, **kw):
+def _guard(
+    processes=(),
+    windows=(),
+    answer=True,
+    stop_ok=True,
+    interactive=True,
+    launcher_pid=None,
+    **kw
+):
     """Run the guard against injected state; returns (proceed, stopped, output)."""
     calls = {"stopped": False}
 
@@ -172,7 +183,9 @@ def test_pidfile_ignores_a_reused_pid(tmp_path, monkeypatch):
     pidfile = tmp_path / ".lucy_launcher.pid"
     pidfile.write_text(str(os.getppid()))
     monkeypatch.setattr(preflight, "LAUNCHER_PIDFILE", pidfile)
-    monkeypatch.setattr(preflight, "_cmdline_of", lambda _p: "/usr/bin/some-unrelated-daemon")
+    monkeypatch.setattr(
+        preflight, "_cmdline_of", lambda _p: "/usr/bin/some-unrelated-daemon"
+    )
     assert preflight.another_launcher_pid() is None
 
 

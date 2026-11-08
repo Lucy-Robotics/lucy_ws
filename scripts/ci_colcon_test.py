@@ -30,13 +30,9 @@ BASE_SKIP = [
     "camera_ros",
 ]
 
-FAILURE_PATTERN = re.compile(
-    r"FAILED|ERROR|Failed|Traceback|NO TESTS RAN"
-)
+FAILURE_PATTERN = re.compile(r"FAILED|ERROR|Failed|Traceback|NO TESTS RAN")
 
-CTEST_FAILURE_PATTERN = re.compile(
-    r"Failed|FAILED"
-)
+CTEST_FAILURE_PATTERN = re.compile(r"Failed|FAILED")
 
 
 def run(command: list[str], *, check: bool = False) -> subprocess.CompletedProcess[str]:
@@ -49,7 +45,9 @@ def run(command: list[str], *, check: bool = False) -> subprocess.CompletedProce
     )
 
 
-WINDOWS_IGNORE = ["--packages-ignore", "lucy_ros2_control"] if sys.platform == "win32" else []
+WINDOWS_IGNORE = (
+    ["--packages-ignore", "lucy_ros2_control"] if sys.platform == "win32" else []
+)
 
 
 def get_skipped_packages() -> list[str]:
@@ -84,11 +82,7 @@ def get_tested_packages(skip: list[str]) -> list[str]:
     if result.returncode != 0:
         return []
 
-    return [
-        line.strip()
-        for line in result.stdout.splitlines()
-        if line.strip()
-    ]
+    return [line.strip() for line in result.stdout.splitlines() if line.strip()]
 
 
 def tail_file(path: Path, lines: int) -> None:

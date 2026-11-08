@@ -44,7 +44,11 @@ def test_latest_symlink_is_left_alone(tmp_path):
     link = tmp_path / "latest"
     link.symlink_to(target)
     _age(target, 30)
-    os.utime(link, (time.time() - 30 * 86400, time.time() - 30 * 86400), follow_symlinks=False)
+    os.utime(
+        link,
+        (time.time() - 30 * 86400, time.time() - 30 * 86400),
+        follow_symlinks=False,
+    )
 
     prune_ros_logs(retention_days=7, root=tmp_path)
     assert link.is_symlink(), "ros2's latest pointer must survive"

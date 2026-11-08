@@ -87,7 +87,9 @@ def test_non_robot_modifiers_still_toggle_off(monkeypatch):
     assert not state.get_by_id("gazebo").selected
 
 
-@pytest.mark.skipif(sys.platform == "win32", reason="read-only blocks os.replace on Windows")
+@pytest.mark.skipif(
+    sys.platform == "win32", reason="read-only blocks os.replace on Windows"
+)
 def test_save_selection_replaces_unwritable_file(monkeypatch, tmp_path):
     from launcher import config
 
