@@ -1,5 +1,12 @@
 # Lucy ROS 2 workspace (Jazzy)
 
+[![CI: dev](https://github.com/Lucy-Robotics/lucy_ws/actions/workflows/install-and-launch.yml/badge.svg?branch=dev)](https://github.com/Lucy-Robotics/lucy_ws/actions/workflows/install-and-launch.yml?query=branch%3Adev)
+[![CI: master](https://github.com/Lucy-Robotics/lucy_ws/actions/workflows/install-and-launch.yml/badge.svg?branch=master)](https://github.com/Lucy-Robotics/lucy_ws/actions/workflows/install-and-launch.yml?query=branch%3Amaster)
+[![codecov](https://codecov.io/gh/Lucy-Robotics/lucy_ws/branch/master/graph/badge.svg)](https://codecov.io/gh/Lucy-Robotics/lucy_ws)
+[![release](https://img.shields.io/github/v/release/Lucy-Robotics/lucy_ws)](https://github.com/Lucy-Robotics/lucy_ws/releases)
+[![license](https://img.shields.io/github/license/Lucy-Robotics/lucy_ws)](LICENSE)
+[![Discord](https://img.shields.io/discord/1272611839775084564?label=Discord&logo=discord&logoColor=white&color=5865F2)](https://discord.com/invite/g4KNZ3eeBd)
+
 Workspace bringup for the Lucy / InMoov humanoid. ROS 2 Jazzy, Gazebo, RViz, and the web control panel run **natively** via [Pixi](https://pixi.prefix.dev/) and [RoboStack](https://robostack.github.io/).
 
 ## Requirements
