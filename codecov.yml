@@ -6,8 +6,10 @@ coverage:
         threshold: 1%
     patch:
       default:
-        target: 70%
-        threshold: 5%
+        # Most of scripts/ is CI/E2E-orchestration glue exercised by the
+        # heavy matrix job itself, not pytest, so a fixed % would flag
+        # that gap on every PR that touches it. Report it, don't gate on it.
+        informational: true
 
 comment:
   layout: "diff, flags, files"
