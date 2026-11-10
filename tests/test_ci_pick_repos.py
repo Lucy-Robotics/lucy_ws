@@ -50,3 +50,42 @@ def test_lucy_ws_override_pins_the_workspace_and_leaves_sub_repos_on_dev():
     picked = m.pick(_config(), "lucy_ws", "dev", master_side=False, overrides="lucy_ws=aes/fix-tui")
     assert {r["branch"] for r in picked["repos"]} == {"dev"}
     assert m.lucy_ws_branch("lucy_ws", "dev", False, "lucy_ws=aes/fix-tui") == "aes/fix-tui"
+
+
+def _has(*pairs):
+    return lambda url, branch: (url, branch) in pairs
+
+
+def test_sub_repos_with_a_branch_of_the_same_name_build_it():
+    config = {
+        "repos": [
+            {"name": "inmoov_i2_urdf", "url_https": "i2.git"},
+            {"name": "lucy_control_panel", "url_https": "lcp.git"},
+        ]
+    }
+    picked = _module().pick(config, "lucy_ws", "aes/latest", False, has_branch=_has(("i2.git", "aes/latest")))
+    assert {r["name"]: r["branch"] for r in picked["repos"]} == {
+        "inmoov_i2_urdf": "aes/latest",
+        "lucy_control_panel": "dev",
+    }
+
+
+def test_master_side_ignores_branches_of_the_same_name():
+    config = {"repos": [{"name": "inmoov_i2_urdf", "url_https": "i2.git"}]}
+    picked = _module().pick(config, "lucy_ws", "master", True, has_branch=lambda url, branch: True)
+    assert picked["repos"][0]["branch"] == "master"
+
+
+def test_lucy_ws_follows_a_sub_repo_branch_it_also_has():
+    m = _module()
+    has = _has((m.LUCY_WS_URL, "aes/latest"))
+    assert m.lucy_ws_branch("lucy_control_panel", "aes/latest", False, has_branch=has) == "aes/latest"
+    assert m.lucy_ws_branch("lucy_control_panel", "aes/other", False, has_branch=has) == "dev"
+
+
+def test_overrides_win_over_branches_of_the_same_name():
+    config = {"repos": [{"name": "inmoov_i2_urdf", "url_https": "i2.git"}]}
+    picked = _module().pick(
+        config, "lucy_ws", "aes/latest", False, "inmoov_i2_urdf=aes/fix", has_branch=lambda url, branch: True
+    )
+    assert picked["repos"][0]["branch"] == "aes/fix"
