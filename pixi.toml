@@ -46,6 +46,7 @@ ros-jazzy-rosbridge-suite = "*"
 ros-jazzy-ros2-control = "*"
 ros-jazzy-ros2-controllers = "*"
 ros-jazzy-backward-ros = "*"
+ros-jazzy-cv-bridge = "*"
 
 [feature.viz.dependencies]
 ros-jazzy-desktop = "*"
