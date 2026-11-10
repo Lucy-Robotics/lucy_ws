@@ -41,7 +41,7 @@ jobs:
           CALLER: ${{ github.event.repository.name }}
           CALLER_REF: ${{ github.head_ref || github.ref_name }}
           BRANCHES: ${{ inputs.branches }}
-          MASTER_SIDE: ${{ github.base_ref == 'master' || github.ref_name == 'master' || startsWith(github.ref, 'refs/tags/') }}
+          MASTER_SIDE: ${{ github.event.repository.name != '.github' && (github.base_ref == 'master' || github.ref_name == 'master' || startsWith(github.ref, 'refs/tags/')) }}
         run: |
           python3 scripts/ci_pick_repos.py | tee picked.txt
           echo "lucy_ws=$(awk '$1 == "lucy_ws" { print $2 }' picked.txt)" >> "$GITHUB_OUTPUT"
