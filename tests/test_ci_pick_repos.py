@@ -43,3 +43,10 @@ def test_unknown_or_malformed_override_stops_the_run():
     for overrides in ("lucy_panel=aes/x", "lucy_control_panel", "lucy_control_panel="):
         with pytest.raises(SystemExit):
             _module().pick(_config(), "lucy_ws", "dev", master_side=False, overrides=overrides)
+
+
+def test_lucy_ws_override_pins_the_workspace_and_leaves_sub_repos_on_dev():
+    m = _module()
+    picked = m.pick(_config(), "lucy_ws", "dev", master_side=False, overrides="lucy_ws=aes/fix-tui")
+    assert {r["branch"] for r in picked["repos"]} == {"dev"}
+    assert m.lucy_ws_branch("lucy_ws", "dev", False, "lucy_ws=aes/fix-tui") == "aes/fix-tui"
