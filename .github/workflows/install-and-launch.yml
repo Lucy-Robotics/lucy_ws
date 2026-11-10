@@ -5,6 +5,12 @@ name: Install, Build & Test
 
 on:
   workflow_dispatch:
+    inputs:
+      branches:
+        description: 'Sub-repo branches, e.g. "lucy_control_panel=aes/#12/x lucy_ros_packages=fix/y"'
+        required: false
+        default: ''
+        type: string
   push:
     branches: [master, dev]
     tags:
@@ -34,6 +40,7 @@ jobs:
         env:
           CALLER: ${{ github.event.repository.name }}
           CALLER_REF: ${{ github.head_ref || github.ref_name }}
+          BRANCHES: ${{ inputs.branches }}
           MASTER_SIDE: ${{ github.base_ref == 'master' || github.ref_name == 'master' || startsWith(github.ref, 'refs/tags/') }}
         run: |
           python3 scripts/ci_pick_repos.py | tee picked.txt
@@ -51,7 +58,7 @@ jobs:
   pixi-install-build-test:
     name: Pixi install & build (${{ matrix.runner }})
     concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.runner }}
+      group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.branches }}-${{ matrix.runner }}
       cancel-in-progress: true
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 120
@@ -101,6 +108,7 @@ jobs:
         env:
           CALLER: ${{ github.event.repository.name }}
           CALLER_REF: ${{ github.head_ref || github.ref_name }}
+          BRANCHES: ${{ inputs.branches }}
           MASTER_SIDE: ${{ github.base_ref == 'master' || github.ref_name == 'master' || startsWith(github.ref, 'refs/tags/') }}
         run: python3 scripts/ci_pick_repos.py
 
