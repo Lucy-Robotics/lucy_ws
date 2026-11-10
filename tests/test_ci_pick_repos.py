@@ -1,6 +1,8 @@
 import importlib.util
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -30,3 +32,21 @@ def test_lucy_ws_branch_is_the_ref_under_test():
     assert m.lucy_ws_branch("lucy_ws", "aes/ci", master_side=False) == "aes/ci"
     assert m.lucy_ws_branch("lucy_control_panel", "aes/fix", master_side=False) == "dev"
     assert m.lucy_ws_branch("lucy_control_panel", "master", master_side=True) == "master"
+
+
+def test_overrides_pin_the_named_repos_and_leave_the_rest_on_dev():
+    picked = _module().pick(_config(), "lucy_ws", "dev", master_side=False, overrides="lucy_control_panel=aes/#12/x")
+    assert {r["name"]: r["branch"] for r in picked["repos"]} == {"lucy_ros_packages": "dev", "lucy_control_panel": "aes/#12/x"}
+
+
+def test_unknown_or_malformed_override_stops_the_run():
+    for overrides in ("lucy_panel=aes/x", "lucy_control_panel", "lucy_control_panel="):
+        with pytest.raises(SystemExit):
+            _module().pick(_config(), "lucy_ws", "dev", master_side=False, overrides=overrides)
+
+
+def test_lucy_ws_override_pins_the_workspace_and_leaves_sub_repos_on_dev():
+    m = _module()
+    picked = m.pick(_config(), "lucy_ws", "dev", master_side=False, overrides="lucy_ws=aes/fix-tui")
+    assert {r["branch"] for r in picked["repos"]} == {"dev"}
+    assert m.lucy_ws_branch("lucy_ws", "dev", False, "lucy_ws=aes/fix-tui") == "aes/fix-tui"
