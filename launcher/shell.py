@@ -8,6 +8,7 @@ import threading
 from .constants import (
     DDS_ENV_SCRIPT,
     GUI_ENV_KEYS,
+    INSTANCE_ENV_KEYS,
     NIX_GL_ENV_SCRIPT,
     TMUX_SESSION,
     WORKSPACE_ROOT,
@@ -17,7 +18,7 @@ from .process import _schedule_orphan_cleanup
 
 def _gui_env_exports() -> str:
     parts = []
-    for key in GUI_ENV_KEYS:
+    for key in GUI_ENV_KEYS + INSTANCE_ENV_KEYS:
         val = os.environ.get(key)
         if val:
             parts.append(f"export {key}={shlex.quote(val)}")

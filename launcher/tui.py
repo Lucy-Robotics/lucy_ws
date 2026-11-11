@@ -10,9 +10,17 @@ except ImportError:
 from .apply import apply_changes, default_robot_selection, restore_selection
 from .autostart import autostart
 from .config import get_dev_mode, load_config, save_selection
+from .constants import (
+    DEFAULT_TMUX_SESSION,
+    MIN_TERM_HEIGHT,
+    MIN_TERM_WIDTH,
+    REDRAW_INTERVAL_MS,
+    TMUX_SESSION,
+)
+from .domain import export_domain_id
+from .instance import claim_domains, other_instance_domains
 from .robot_switch import take_robot_request
 from .stack_status import write_stack_status
-from .constants import MIN_TERM_HEIGHT, MIN_TERM_WIDTH, REDRAW_INTERVAL_MS
 from .state import (
     LauncherState,
     StatusPoller,
@@ -104,6 +112,40 @@ def _draw_pkg_row(
             pass
 
 
+# display_list entry for the ROS domain counter row (not a package).
+DOMAIN_ROW = object()
+
+
+def domain_step(key):
+    """How much a keypress moves the domain counter (0: not a counter key)."""
+    if key in (curses.KEY_RIGHT, ord("+"), ord("=")):
+        return 1
+    if key in (curses.KEY_LEFT, ord("-")):
+        return -1
+    return 0
+
+
+def _draw_domain_row(stdscr, y, x, state, current):
+    prefix = "> " if current else "  "
+    base = f"{prefix}    ROS domain ID: < {state.domain_id} >"
+    stdscr.addstr(y, x, base, curses.A_BOLD if current else curses.A_NORMAL)
+    if state.domain_restart_pending():
+        hint, attr = (
+            f" core runs on {state.running_domain_id}, Enter restarts it",
+            curses.color_pair(1),
+        )
+    elif current:
+        hint, attr = " Left/Right to change", curses.A_DIM
+    else:
+        return
+    room = stdscr.getmaxyx()[1] - (x + len(base)) - 1
+    if room > 1:
+        try:
+            stdscr.addstr(y, x + len(base), hint[:room], attr)
+        except curses.error:
+            pass
+
+
 def confirm_exit_action(key):
     """What a keypress means while the exit prompt is up.
 
@@ -144,6 +186,8 @@ def draw_tui(
 
     stdscr.erase()
     title = "Lucy Control Center"
+    if TMUX_SESSION != DEFAULT_TMUX_SESSION:
+        title += f" ({TMUX_SESSION})"
     stdscr.addstr(0, max(0, (w - len(title)) // 2), title, curses.A_BOLD)
     stdscr.addstr(
         h - 1,
@@ -179,7 +223,7 @@ def draw_tui(
     ]
     interfaces = [p for p in state.packages if p.type == "interface"]
     tools = [p for p in state.packages if p.type == "tool"]
-    display_list = cores_and_mods + robots + interfaces + tools
+    display_list = cores_and_mods + [DOMAIN_ROW] + robots + interfaces + tools
 
     def draw_section(title, color, items, offset, gap=1, indent_all=False):
         nonlocal row
@@ -218,10 +262,15 @@ def draw_tui(
         row += len(items) + 1
 
     row = 2
+    # gap=1 (not 2) pays for the domain row, keeping MIN_TERM_HEIGHT valid.
     draw_section(
-        "Primary Launch Targets", curses.color_pair(1), cores_and_mods, 0, gap=2
+        "Primary Launch Targets", curses.color_pair(1), cores_and_mods, 0, gap=1
     )
     offset = len(cores_and_mods)
+    # draw_section left a blank line after the targets; the counter takes it.
+    _draw_domain_row(stdscr, row - 1, 4, state, current_idx == offset)
+    row += 1
+    offset += 1
     if robots:
         draw_section(
             "Robot", curses.color_pair(1), robots, offset, gap=1, indent_all=True
@@ -251,6 +300,9 @@ def main(stdscr):
     state = LauncherState(load_config())
     restore_selection(state)
     default_robot_selection(state)
+    state.avoid_domains(other_instance_domains())
+    export_domain_id(state.domain_id)
+    claim_domains(state.claimed_domains())
     status_msg = autostart(state, get_dev_mode())
     status_msg_until = time.time() + 3.0 if status_msg else 0.0
 
@@ -333,16 +385,23 @@ def _event_loop(stdscr, state, poller, status_msg=None, status_msg_until=0.0):
                     confirm_exit = False
                     continue
 
+            on_domain = display_list[current_idx] is DOMAIN_ROW
             if key == curses.KEY_UP:
                 current_idx = (current_idx - 1) % len(display_list)
             elif key == curses.KEY_DOWN:
                 current_idx = (current_idx + 1) % len(display_list)
+            elif on_domain and (step := domain_step(key)):
+                state.step_domain(step, other_instance_domains())
+                claim_domains(state.claimed_domains())
             elif key == ord(" "):
-                pkg_to_toggle = display_list[current_idx]
-                error_msg = state.toggle(pkg_to_toggle.id)
+                if not on_domain:
+                    error_msg = state.toggle(display_list[current_idx].id)
             elif key == ord("\n"):
                 apply_changes(state)
-                save_selection({p.id for p in state.packages if p.selected})
+                claim_domains(state.claimed_domains())
+                save_selection(
+                    {p.id for p in state.packages if p.selected}, state.domain_id
+                )
                 status_msg = "Configuration Applied!"
                 status_msg_until = time.time() + 2.0
                 poller.request_refresh()

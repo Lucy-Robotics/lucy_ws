@@ -271,7 +271,7 @@ change per commit when practical.
 | Controller won’t load | Joint name mismatch / stale `controllers.yaml` |
 | Schema error on `servo_type` | Must be `180`/`270`/`300` |
 | Bringup loads wrong URDF | Missing/incorrect `config/control.launch.yaml` `urdf_path`, or stale bringup that ignored it |
-| Gazebo + real HW | Mutually exclusive (`gazebo:=true` vs `real:=true`) |
+| Gazebo + real HW | One `mode:=` at a time (`mock`, `sim` or `real`) |
 | Blue dots stuck on slider | Expected open-loop command echo |
 
 ---

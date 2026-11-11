@@ -9,7 +9,7 @@
       "dependencies": [],
       "conflicts": [],
       "command": "ros2 launch lucy_bringup lucy.launch.py",
-      "readiness_check": "pgrep -f '[r]osbridge_websocket' >/dev/null 2>&1",
+      "readiness_check": "bash scripts/instance_pgrep.sh -f '[r]osbridge_websocket' >/dev/null 2>&1",
       "readiness_timeout": 60,
       "default_on": false
     },
@@ -52,9 +52,9 @@
       "description": "(Gazebo)",
       "type": "modifier",
       "dependencies": ["core"],
-      "conflicts": ["real"],
-      "command": "gazebo:=true",
-      "readiness_check": "pgrep -f '[g]z sim' >/dev/null 2>&1",
+      "conflicts": ["real_linux", "real_mcu_bridge"],
+      "command": "mode:=sim",
+      "readiness_check": "bash scripts/instance_pgrep.sh -f '[g]z sim' >/dev/null 2>&1",
       "readiness_timeout": 120,
       "default_on": false
     },
@@ -77,18 +77,28 @@
       "dependencies": ["core"],
       "conflicts": [],
       "command": "rviz:=true",
-      "readiness_check": "pgrep -x rviz2 >/dev/null 2>&1",
+      "readiness_check": "bash scripts/instance_pgrep.sh -x rviz2 >/dev/null 2>&1",
       "readiness_timeout": 60,
       "default_on": false
     },
     {
-      "id": "real",
-      "name": "... with Real Hardware",
-      "description": "(Connect to physical robot)",
+      "id": "real_linux",
+      "name": "... with Real Hardware (USB servos)",
+      "description": "(host drives the servos: mode:=real bridge:=linux)",
       "type": "modifier",
       "dependencies": ["core"],
-      "conflicts": ["gazebo"],
-      "command": "real:=true",
+      "conflicts": ["gazebo", "real_mcu_bridge"],
+      "command": "mode:=real bridge:=linux",
+      "default_on": false
+    },
+    {
+      "id": "real_mcu_bridge",
+      "name": "... with Real Hardware (MCU boards)",
+      "description": "(host relays to the boards: mode:=real bridge:=mcu_bridge)",
+      "type": "modifier",
+      "dependencies": ["core"],
+      "conflicts": ["gazebo", "real_linux"],
+      "command": "mode:=real bridge:=mcu_bridge",
       "default_on": false
     },
     {
@@ -100,9 +110,9 @@
       "dependencies": [],
       "conflicts": [],
       "command": "pixi run panel-prod --port ${LUCY_LCP_PUBLISHED_HOST_PORT:-4004} --strictPort",
-      "dev_command": "pixi run panel-dev",
+      "dev_command": "pixi run panel-dev --port ${LUCY_LCP_PUBLISHED_HOST_PORT:-4004} --strictPort",
       "command_win": "pixi run panel-prod --port 4004 --strictPort",
-      "readiness_check": "pgrep -f '[v]ite' >/dev/null 2>&1",
+      "readiness_check": "bash scripts/instance_pgrep.sh -f '[v]ite' >/dev/null 2>&1",
       "readiness_timeout": 300,
       "default_on": false
     },
@@ -114,7 +124,7 @@
       "dependencies": ["core"],
       "conflicts": [],
       "command": "ros2 run lucy_cli tui",
-      "readiness_check": "test -f /tmp/lucy_cli.ready",
+      "readiness_check": "test -f ${LUCY_CLI_READY_FILE:-/tmp/lucy_cli.ready}",
       "nav_hint": "Ctrl-B W",
       "default_on": false
     },

@@ -13,7 +13,7 @@ Installs rustup + thumbv6m-none-eabi + elf2uf2-rs into the **active Pixi env**
 On Linux, also installs USB-serial udev rules (Pico + Feetech) when sudo is
 available, and applies a temporary chmod on already-plugged matching TTYs so
 host firmwares can open the port without dialout. Skip with
-``LUCY_SKIP_USB_ACCESS=1``. Host binaries: ``pixi run firmware-build-linux``.
+``LUCY_SKIP_USB_ACCESS=1``. Firmwares are colcon packages: ``pixi run build`` compiles them.
 
 Do not run the whole script as root; sudo is only used for udev/chmod.
 """
@@ -239,8 +239,10 @@ def main() -> None:
         log.ok("Firmware toolchain setup complete!")
         log.info("   Tools live inside the Pixi env. No shell config needed.")
         log.info("\nNext:")
-        log.info("  pixi run firmware-build         # RP2040 UF2")
-        log.info("  pixi run firmware-build-linux   # host linux + mcu_bridge")
+        log.info("  pixi run build                      # whole workspace, firmwares included")
+        log.info("  pixi run firmware-build-linux       # host linux only (Feetech SHM consumer)")
+        log.info("  pixi run firmware-build-mcu-bridge  # host mcu_bridge only")
+        log.info("  pixi run firmware-build-rp2040      # RP2040 UF2 + host mcu_bridge")
         log.info("  pixi run firmware-flash")
     else:
         log.error("Setup incomplete")

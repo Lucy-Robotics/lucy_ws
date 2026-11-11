@@ -85,7 +85,7 @@ Pixi installs RoboStack Jazzy; `colcon build --symlink-install` builds `src/`; `
 | `python3 install.py --build-only` | Skip git; `pixi install` + colcon + panel yarn |
 | `python3 install.py --skip-build` | Clone/pull only (CI) |
 
-After the colcon/panel build, install runs **`pixi run firmware-setup`** (rustup, `thumbv6m-none-eabi`, `elf2uf2-rs`, and Raspberry Pi **`picotool`** into the Pixi env, plus `libusb`). It then builds the host firmware binaries (**`pixi run firmware-build-linux`**: linux, mcu_bridge), so an update never runs a stale bridge. Skip both with **`LUCY_SKIP_FIRMWARE_SETUP=1`**. Verify anytime with **`pixi run firmware-check`**. Linux udev for Pico USB is still deferred when the shell is non-interactive. Restart **Core** after a first-time setup so the config pipeline node picks up `picotool` on `PATH`.
+Before the colcon build, install runs **`pixi run firmware-setup`** (rustup, `thumbv6m-none-eabi`, `elf2uf2-rs`, and Raspberry Pi **`picotool`** into the Pixi env, plus `libusb`). colcon then builds the firmwares under `src/lucy_embedded_firmware/firmwares/` like any other package (`lucy_embedded_firmware_linux`, `lucy_embedded_firmware_mcu_bridge`, `lucy_embedded_firmware_rp2040`), so an update never runs a stale bridge. Without the toolchain they are skipped with a CMake warning. Rebuild one with **`pixi run firmware-build-linux`** / **`firmware-build-mcu-bridge`** / **`firmware-build-rp2040`** (the latter also builds mcu_bridge; its UF2 lands in `install/lucy_embedded_firmware_rp2040/share/lucy_embedded_firmware_rp2040/firmware/`). There is no Cargo workspace: **`pixi run firmware-test`** runs `cargo test` per crate. Skip the toolchain with **`LUCY_SKIP_FIRMWARE_SETUP=1`**. Linux udev for Pico USB is still deferred when the shell is non-interactive. Restart **Core** after a first-time setup so the config pipeline node picks up `picotool` on `PATH`.
 
 **Do not use `rosdep`** - it bypasses Pixi/RoboStack. Add deps via `pixi.toml` or clone into `src/`. See [`docs/pixi_setup.md`](pixi_setup.md).
 
@@ -169,7 +169,7 @@ For manual Gazebo launches outside `pixi run sim*`, source GL env when needed (e
 
 ```bash
 source scripts/nix_gl_env.sh
-ros2 launch lucy_bringup lucy.launch.py gazebo:=true
+ros2 launch lucy_bringup lucy.launch.py mode:=sim
 ```
 
 ### TUI ↔ Pixi CLI
@@ -184,18 +184,22 @@ ros2 launch lucy_bringup lucy.launch.py gazebo:=true
 | Clean build dirs | `pixi run clean` |
 | Workspace tests | `pixi run workspace-test` |
 
-### `ros2 launch` modifiers
+### `ros2 launch` arguments
 
-`lucy_bringup` brings up rosbridge and `/config/*` via `web_ros_api`:
+`lucy_bringup` brings up rosbridge and `/config/*` via `web_ros_api`. `mode:=` picks the stack:
 
-| Goal | Command |
-|------|---------|
-| Default dev stack (mock hardware) | `ros2 launch lucy_bringup lucy.launch.py` |
-| Jetson / real hardware | `… real:=true` |
-| Real + RViz | `… real:=true rviz:=true` |
-| Gazebo headless | `pixi run sim-headless` or `… gazebo:=true headless:=true` |
+| Goal | Pixi | `ros2 launch lucy_bringup lucy.launch.py …` |
+|------|------|------|
+| Mock hardware (default) | `pixi run core` | *(nothing)* or `mode:=mock` |
+| Mock + RViz | `pixi run rviz` | `rviz:=true` |
+| Gazebo headless | `pixi run sim-headless` | `mode:=sim headless:=true` |
+| Real robot, USB-serial servos driven from the host (SO-ARM101) | `pixi run real-linux` | `mode:=real bridge:=linux` |
+| Real robot, microcontroller boards (Mega / rp2040) | `pixi run real-mcu-bridge` | `mode:=real bridge:=mcu_bridge` |
+| Another robot on the same network | `pixi run core -- domain_id:=3` | `domain_id:=3` |
 
-`gazebo:=true` cannot be combined with `real:=true`. With Gazebo, `rviz` is forwarded to the robot package's `gazebo.launch.py`.
+- `bridge:=` is required with `mode:=real` and rejected otherwise; `headless:=true` needs `mode:=sim`. Invalid combinations stop the launch with the command to use.
+- In `mode:=real`, `lucy_control_supervisor` starts the host firmware of the chosen bridge (`lucy_embedded_firmware_<bridge>` colcon package, resolved like `ros2 run`) and restarts it with the stack: `linux` once per ros2_control node, `mcu_bridge` once per Mega board of the active hardware YAML.
+- `domain_id:=` (default `$ROS_DOMAIN_ID`, else `0`) sets `ROS_DOMAIN_ID` for every process of the launch. Give each robot its own domain; tools started beside it (`ros2 topic`, rqt, lucy-cli) need `ROS_DOMAIN_ID=<n>` in their environment. In the launcher TUI, the **ROS domain ID** row does this for core, its windows and its readiness checks (see [launcher_packages.md](launcher_packages.md#ros-domain-id)).
 
 ### Control panel: SIMULATION ONLY + RELOAD
 
