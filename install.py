@@ -878,6 +878,8 @@ def build_workspace(
     log: Log = print,
     developer: bool = False,
 ) -> None:
+    # colcon builds the Rust firmwares too, so cargo must exist first.
+    setup_firmware_toolchain(project_root, run_command, log)
     log("Building ROS workspace (colcon) ...")
     pixi_run(project_root, ["run", "build"], run_command)
     log("Installing control panel dependencies (yarn) ...")
@@ -886,26 +888,23 @@ def build_workspace(
         log("Building the control panel for production ...")
         pixi_run(project_root, ["run", "panel-build"], run_command)
     build_local_realsense_optional(project_root, run_command, log)
-    setup_firmware_toolchain(project_root, run_command, log)
 
 
 def setup_firmware_toolchain(
     project_root: Path | str, run_command: Callable = default_run_command, log: Log = print
 ) -> None:
-    """Install Rust/RP2040 toolchain into the Pixi env (idempotent), then build the host
-    firmware binaries (linux, mcu_bridge) so an update never leaves a stale bridge talking an
-    old protocol to freshly flashed boards.
+    """Install the Rust/RP2040 toolchain into the Pixi env (idempotent).
 
-    Runs ``pixi run firmware-setup`` and ``pixi run firmware-build-linux``.
-    Skip with ``LUCY_SKIP_FIRMWARE_SETUP=1``.
+    Runs ``pixi run firmware-setup`` before the colcon build, which compiles the host
+    firmwares (linux, mcu_bridge) and the rp2040 image, so an update never leaves a stale
+    bridge talking an old protocol to freshly flashed boards. Without the toolchain colcon
+    skips those packages with a warning. Skip with ``LUCY_SKIP_FIRMWARE_SETUP=1``.
     """
     if env_flag("LUCY_SKIP_FIRMWARE_SETUP"):
         log("Firmware toolchain: LUCY_SKIP_FIRMWARE_SETUP set — skipping")
         return
     log("Firmware toolchain (pixi run firmware-setup) ...")
     pixi_run(project_root, ["run", "firmware-setup"], run_command)
-    log("Host firmware binaries (pixi run firmware-build-linux) ...")
-    pixi_run(project_root, ["run", "firmware-build-linux"], run_command)
 
 
 # --- flow --------------------------------------------------------------------

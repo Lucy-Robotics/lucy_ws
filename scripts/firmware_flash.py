@@ -15,6 +15,16 @@ from firmware_log import get_logger
 
 log = get_logger()
 
+RP2040_PACKAGE = "lucy_embedded_firmware_rp2040"
+UF2_DIR = (
+    Path(__file__).resolve().parents[1]
+    / "install"
+    / RP2040_PACKAGE
+    / "share"
+    / RP2040_PACKAGE
+    / "firmware"
+)
+
 
 def main():
     enable_ansi()
@@ -31,17 +41,14 @@ def main():
     log.info("  For now, manually copy .uf2 files to RP2040 in BOOTSEL mode")
     log.info("")
 
-    uf2_dir = Path("src/lucy_embedded_firmware/target/thumbv6m-none-eabi/release")
-    if uf2_dir.exists():
-        uf2_files = list(uf2_dir.glob("*.uf2"))
-        if uf2_files:
-            log.info("Built firmware files:")
-            for uf2 in uf2_files:
-                log.info(f"  - {uf2}")
-        else:
-            log.warning("No .uf2 files found. Run 'pixi run firmware-build' first.")
+    # Installed by colcon (pixi run build / firmware-build-rp2040), not read from cargo's target/.
+    uf2_files = sorted(UF2_DIR.glob("*.uf2")) if UF2_DIR.is_dir() else []
+    if uf2_files:
+        log.info("Built firmware files:")
+        for uf2 in uf2_files:
+            log.info(f"  - {uf2}")
     else:
-        log.warning("Build directory not found. Run 'pixi run firmware-build' first.")
+        log.warning(f"No .uf2 files in {UF2_DIR}. Run 'pixi run firmware-build-rp2040' first.")
 
     log.info("")
     log.info("=" * 60)

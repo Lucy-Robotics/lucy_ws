@@ -164,15 +164,21 @@ requests = "*"                # for rustup automatic download (if needed)
 # Zero-touch: installs rustup+elf2uf2 into $CONDA_PREFIX/{cargo,rustup}.
 # firmware_cargo_env.py points cargo/rustc at that layout (multi-platform).
 firmware-setup = "python scripts/firmware_setup.py"
-firmware-build = { cmd = "python $PIXI_PROJECT_ROOT/scripts/firmware_cargo_env.py cargo build --release --target thumbv6m-none-eabi", cwd = "src/lucy_embedded_firmware/firmwares/rp2040", depends-on = ["firmware-setup"] }
+# Host firmwares and rp2040 are colcon packages (src/lucy_embedded_firmware/firmwares/*), also built by
+# `pixi run build`. Run them with `ros2 run lucy_embedded_firmware_<linux|mcu_bridge> ...`.
 # Host Feetech SHM consumer (so101) and mcu_bridge need serialport → libudev on Linux.
-firmware-build-linux = { cmd = "python scripts/firmware_cargo_env.py cargo build --release -p lucy-embedded-firmware-linux -p lucy-embedded-firmware-mcu-bridge --manifest-path src/lucy_embedded_firmware/Cargo.toml", cwd = ".", depends-on = ["firmware-setup"] }
-firmware-flash = { cmd = "python scripts/firmware_flash.py", depends-on = ["firmware-build"] }
+firmware-build-linux = { cmd = "colcon build --symlink-install --packages-select lucy_embedded_firmware_linux --cmake-args -GNinja -DCMAKE_BUILD_TYPE=Release -Wno-dev", depends-on = ["firmware-setup"] }
+firmware-build-mcu-bridge = { cmd = "colcon build --symlink-install --packages-select lucy_embedded_firmware_mcu_bridge --cmake-args -GNinja -DCMAKE_BUILD_TYPE=Release -Wno-dev", depends-on = ["firmware-setup"] }
+# The RP2040 talks to the host through mcu_bridge, so build both.
+# UF2 lands in install/lucy_embedded_firmware_rp2040/share/lucy_embedded_firmware_rp2040/firmware/.
+firmware-build-rp2040 = { cmd = "colcon build --symlink-install --packages-select lucy_embedded_firmware_rp2040 lucy_embedded_firmware_mcu_bridge --cmake-args -GNinja -DCMAKE_BUILD_TYPE=Release -Wno-dev", depends-on = ["firmware-setup"] }
+firmware-flash = { cmd = "python scripts/firmware_flash.py", depends-on = ["firmware-build-rp2040"] }
 # Arduino Mega boards: `pixi run firmware-flash-mega mega_right [--robot pkg] [--port dev] [--build-only]`.
 # Needs host avr-gcc + avrdude (not on conda-forge).
 firmware-flash-mega = { cmd = "python scripts/firmware_flash_mega.py", depends-on = ["firmware-setup"] }
-firmware-clean = "python scripts/firmware_cargo_env.py cargo clean --manifest-path src/lucy_embedded_firmware/Cargo.toml"
-firmware-test = { cmd = "python scripts/firmware_cargo_env.py cargo test --manifest-path src/lucy_embedded_firmware/Cargo.toml", depends-on = ["firmware-setup"] }
+# No Cargo workspace: cargo test/clean walk each crate and firmware package.
+firmware-clean = "python scripts/firmware_cargo_each.py clean"
+firmware-test = { cmd = "python scripts/firmware_cargo_each.py test", depends-on = ["firmware-setup"] }
 
 # --- platform-specific host packages ---
 [target.linux.dependencies]
