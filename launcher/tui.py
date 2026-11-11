@@ -153,6 +153,27 @@ def draw_too_small_message(stdscr, min_height):
     stdscr.refresh()
 
 
+def launch_sections(state):
+    robots = [p for p in state.packages if p.type == "modifier" and p.requires_pkg] + [
+        ADD_ROBOT
+    ]
+    cores = [p for p in state.packages if p.type == "core"]
+    mods = [
+        p
+        for p in state.packages
+        if p.type == "modifier" and not p.requires_pkg and p.section != "tools"
+    ]
+    interfaces = [p for p in state.packages if p.type == "interface"] + [ADD_INTERFACE]
+    tools = [p for p in state.packages if p.type == "tool" or p.section == "tools"]
+    titled = [
+        (SectionRow("Robot", 1), robots),
+        (SectionRow("Control Interfaces", 3), interfaces),
+        (SectionRow("Tools", 3), tools),
+        (SectionRow("Options", 3), [DOMAIN_ROW]),
+    ]
+    return cores + mods, titled
+
+
 def draw_tui(
     stdscr,
     state,
@@ -163,25 +184,7 @@ def draw_tui(
     confirm_exit=False,
     folded=frozenset(),
 ):
-    robots = [p for p in state.packages if p.type == "modifier" and p.requires_pkg] + [
-        ADD_ROBOT
-    ]
-    cores = [p for p in state.packages if p.type == "core"]
-    mods = [
-        p
-        for p in state.packages
-        if p.type == "modifier" and not p.requires_pkg and p.section != "tools"
-    ]
-    cores_and_mods = cores + mods
-    interfaces = [p for p in state.packages if p.type == "interface"] + [ADD_INTERFACE]
-    tools = [p for p in state.packages if p.type == "tool" or p.section == "tools"]
-    options = [DOMAIN_ROW]
-    titled = [
-        (SectionRow("Robot", 1), robots),
-        (SectionRow("Control Interfaces", 3), interfaces),
-        (SectionRow("Tools", 3), tools),
-        (SectionRow("Options", 3), options),
-    ]
+    cores_and_mods, titled = launch_sections(state)
     h, w = stdscr.getmaxyx()
     all_folded = {section.title for section, _ in titled}
     min_height = rows_needed(cores_and_mods, titled, all_folded)
@@ -235,7 +238,7 @@ def draw_tui(
                 attr |= curses.A_BOLD
             if p.subitem:
                 indent = "        "
-            elif p in mods:
+            elif x == 0 and p.type == "modifier":
                 indent = "    "
             else:
                 indent = ""
@@ -314,6 +317,7 @@ def _event_loop(stdscr, state, poller, status_msg=None, status_msg_until=0.0):
     snapshots so no keystroke ever waits on a readiness probe."""
     current_idx = 0
     error_msg = None
+    error_until = 0.0
     confirm_exit = False
     folded = set()
 
@@ -342,7 +346,8 @@ def _event_loop(stdscr, state, poller, status_msg=None, status_msg_until=0.0):
                 confirm_exit,
                 folded,
             )
-            error_msg = None
+            if error_msg and time.time() >= error_until:
+                error_msg = None
             if display_list is not None:
                 current_idx = min(current_idx, len(display_list) - 1)
 
@@ -367,7 +372,7 @@ def _event_loop(stdscr, state, poller, status_msg=None, status_msg_until=0.0):
             # Statuses also age on their own (LOADING and STOPPING both expire on
             # a clock), so redraw on a short tick whenever anything is live. The
             # redraw is cheap: erase() leaves curses sending only what changed.
-            if _intended_running or _pkg_stop_times or status_msg:
+            if _intended_running or _pkg_stop_times or status_msg or error_msg:
                 stdscr.nodelay(1)
                 stdscr.timeout(REDRAW_INTERVAL_MS)
             else:
@@ -387,14 +392,19 @@ def _event_loop(stdscr, state, poller, status_msg=None, status_msg_until=0.0):
 
             current = display_list[current_idx]
             on_domain = current is DOMAIN_ROW
-            fold = (
-                fold_change(key, current.title in folded)
-                if isinstance(current, SectionRow)
-                else None
-            )
-            if fold is not None:
-                (folded.add if fold else folded.discard)(current.title)
-                continue
+            if isinstance(current, SectionRow):
+                top, titled = launch_sections(state)
+                height = stdscr.getmaxyx()[0]
+                shown = fold_to_fit(top, titled, folded, height)
+                fold = fold_change(key, current.title in shown)
+                if fold is not None:
+                    (folded.add if fold else folded.discard)(current.title)
+                    if not fold and current.title in fold_to_fit(
+                        top, titled, folded, height
+                    ):
+                        error_msg = f"Terminal too small to open {current.title}"
+                        error_until = time.time() + 3.0
+                    continue
             if key == curses.KEY_UP:
                 current_idx = (current_idx - 1) % len(display_list)
             elif key == curses.KEY_DOWN:
@@ -408,6 +418,7 @@ def _event_loop(stdscr, state, poller, status_msg=None, status_msg_until=0.0):
             elif key == ord(" "):
                 if not on_domain:
                     error_msg = state.toggle(current.id)
+                    error_until = time.time() + 3.0
             elif key == ord("\n"):
                 apply_changes(state)
                 claim_domains(state.claimed_domains())
