@@ -58,6 +58,11 @@ def _fit(text, room):
     return (stripped[: max(0, room - 3)].rstrip(" .") + "...")[:room]
 
 
+FOOTER = "Enter: Apply | Space: Toggle | Q/X/Esc: Stop All & Exit"
+SHORT_FOOTER = "Enter Apply | Space Toggle | Q Exit"
+UNAPPLIED = "Unapplied changes — press Enter to apply"
+
+
 def _draw_pkg_row(
     stdscr,
     y,
@@ -72,9 +77,6 @@ def _draw_pkg_row(
     url="",
     stage="",
 ):
-    base = f"{prefix}{indent}{checkbox} {name}"
-    stdscr.addstr(y, x, base, attr)
-    col = x + len(base)
     labels = {
         "running": (" [RUNNING]", curses.color_pair(4)),
         "loading": (" [LOADING]", curses.color_pair(1)),
@@ -83,6 +85,11 @@ def _draw_pkg_row(
         "stopped": (" [STOPPED]", curses.A_DIM),
     }
     status_str, status_attr = labels.get(status, ("", curses.A_DIM))
+    head = f"{prefix}{indent}{checkbox} "
+    room = stdscr.getmaxyx()[1] - x - len(head) - len(status_str) - 1
+    base = head + _fit(name, max(room, 0))
+    stdscr.addstr(y, x, base, attr)
+    col = x + len(base)
     try:
         stdscr.addstr(y, col, status_str, status_attr)
         col += len(status_str)
@@ -107,7 +114,7 @@ def _draw_pkg_row(
         except curses.error:
             pass
     if hint:
-        text = f" {hint}"
+        text = _fit(f" {hint}", stdscr.getmaxyx()[1] - col - 1)
         try:
             stdscr.addstr(y, col, text, curses.color_pair(3))
             col += len(text)
@@ -174,12 +181,8 @@ def draw_tui(
     if TMUX_SESSION != DEFAULT_TMUX_SESSION:
         title += f" ({TMUX_SESSION})"
     stdscr.addstr(0, max(0, (w - len(title)) // 2), title, curses.A_BOLD)
-    stdscr.addstr(
-        h - 1,
-        2,
-        "Enter: Apply | Space: Toggle | Q/X/Esc: Stop All & Exit",
-        curses.A_BOLD,
-    )
+    footer = FOOTER if len(FOOTER) + 3 <= w else SHORT_FOOTER
+    stdscr.addstr(h - 1, 2, footer, curses.A_BOLD)
 
     if confirm_exit:
         stdscr.addstr(
@@ -191,14 +194,11 @@ def draw_tui(
     elif status_msg:
         stdscr.addstr(h - 2, 2, _fit(status_msg, w - 3), curses.A_BOLD)
     elif error_msg:
-        stdscr.addstr(h - 2, 2, f"Warning: {error_msg}", curses.color_pair(2))
-    elif unapplied:
         stdscr.addstr(
-            h - 2,
-            2,
-            "Unapplied changes — press Enter to apply",
-            curses.color_pair(1),
+            h - 2, 2, _fit(f"Warning: {error_msg}", w - 3), curses.color_pair(2)
         )
+    elif unapplied:
+        stdscr.addstr(h - 2, 2, _fit(UNAPPLIED, w - 3), curses.color_pair(1))
 
     def draw_section(title, color, items, offset, x=4):
         nonlocal row

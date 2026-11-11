@@ -265,7 +265,7 @@ def test_every_core_stage_keeps_its_counter_at_the_minimum_width():
     """At MIN_TERM_WIDTH the stage gets ~25 columns, so labels are cut. The
     "n/N" and the verb may not be, or the row stops reading as progress."""
     core = _core_config()
-    base = len("  [x] ") + len(core["name"]) + len(" [LOADING]") + 4
+    base = len("> [x] ") + len(core["name"]) + len(" [LOADING]")
     room = MIN_TERM_WIDTH - base - 1
     total = len(core["readiness_stages"])
     for index, stage in enumerate(core["readiness_stages"], start=1):
