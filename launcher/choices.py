@@ -8,6 +8,10 @@ def is_last_choice(state, pkg):
     )
 
 
+def is_choice_default(state, pkg):
+    return next(p for p in state.packages if p.choice == pkg.choice) is pkg
+
+
 def _deps_selected(state, pkg):
     return all(
         state.get_by_id(dep) and state.get_by_id(dep).selected

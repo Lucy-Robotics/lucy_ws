@@ -76,7 +76,7 @@ Running `./launch_lucy.sh` while a Control Center is already shown in a terminal
 | rosbridge port | 9090 | 9091 | 9092 |
 | control panel port | 4004 | 4005 | 4006 |
 
-The TUI title shows the session of extra instances, e.g. *Lucy Control Center (lucy_ws_1)*; `tmux attach -t lucy_ws_1` gets back to it. Each instance has its own launcher files (`.lucy_launcher*.<session>.*`), ready markers and `GZ_PARTITION`, and its processes carry `LUCY_TMUX_SESSION=<session>`: readiness checks (`scripts/instance_pgrep.sh`), core teardown and orphan cleanup only look at their own instance, so quitting one leaves the others running. `LUCY_TMUX_SESSION=<name> ./launch_lucy.sh` pins the session.
+The TUI title shows the session of extra instances, e.g. *Lucy Launch Screen (lucy_ws_1)*; `tmux attach -t lucy_ws_1` gets back to it. Each instance has its own launcher files (`.lucy_launcher*.<session>.*`), ready markers and `GZ_PARTITION`, and its processes carry `LUCY_TMUX_SESSION=<session>`: readiness checks (`scripts/instance_pgrep.sh`), core teardown and orphan cleanup only look at their own instance, so quitting one leaves the others running. `LUCY_TMUX_SESSION=<name> ./launch_lucy.sh` pins the session.
 
 Processes started by hand (`pixi run core`) belong to the first instance. Local `launcher_config.json.local` files should use `bash scripts/instance_pgrep.sh` instead of `pgrep` in their readiness checks.
 

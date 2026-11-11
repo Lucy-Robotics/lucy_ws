@@ -59,8 +59,8 @@
     },
     {
       "id": "gazebo",
-      "name": "Physics simulator",
-      "description": "(Gazebo: mode:=sim)",
+      "name": "Physics Simulator (Gazebo)",
+      "description": "(mode:=sim)",
       "type": "modifier",
       "dependencies": ["core"],
       "conflicts": [],
@@ -149,8 +149,8 @@
     },
     {
       "id": "rviz",
-      "name": "Visualizer",
-      "description": "(RViz — use Control Panel 3D if OpenGL fails)",
+      "name": "Visualizer (RViz)",
+      "description": "(use Control Panel 3D if OpenGL fails)",
       "type": "modifier",
       "dependencies": ["core"],
       "conflicts": [],

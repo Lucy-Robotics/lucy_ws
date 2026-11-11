@@ -5,7 +5,12 @@ import threading
 import time
 
 from .constants import LOADING_TIMEOUT, STOPPING_TIMEOUT
-from .choices import is_last_choice, same_choice, settle_selection
+from .choices import (
+    is_choice_default,
+    is_last_choice,
+    same_choice,
+    settle_selection,
+)
 from .config import get_dev_mode, load_state
 from .domain import env_domain_id, parse_domain_id, step_domain_id
 from .package import Package, _pkg_for_mode, _pkg_visible
@@ -142,7 +147,7 @@ class LauncherState:
                 selected_robots = [r for r in self._robot_packages() if r.selected]
                 if len(selected_robots) <= 1:
                     return "One robot package required"
-            if is_last_choice(self, pkg):
+            if is_last_choice(self, pkg) and is_choice_default(self, pkg):
                 return f"One {pkg.choice} required"
             self._disable_with_dependents(pkg)
         settle_selection(self)

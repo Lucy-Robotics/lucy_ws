@@ -1,25 +1,11 @@
-import json
-from pathlib import Path
-
 import pytest
 
 from launcher.choices import settle_selection
-from launcher.state import LauncherState
-
-CONFIG = json.loads(
-    (
-        Path(__file__).resolve().parents[1] / "config" / "launcher_config.json"
-    ).read_text()
-)
 
 
 @pytest.fixture
-def state(monkeypatch):
-    monkeypatch.setattr("launcher.state.load_state", lambda: {"modifiers": []})
-    monkeypatch.setattr("launcher.state.get_dev_mode", lambda: False)
-    monkeypatch.setattr("launcher.package._ros_pkg_installed", lambda _name: True)
-    monkeypatch.setattr("launcher.package._pane_exit_status", lambda _pkg_id: None)
-    return LauncherState(CONFIG)
+def state(isolated_state):
+    return isolated_state
 
 
 def _on(state):
@@ -55,17 +41,43 @@ def test_ticking_usb_servos_switches_hardware_type(state):
     assert "real_mcu_bridge" not in _on(state)
 
 
-def test_unticking_only_mode_is_refused(state):
+def test_unticking_default_simulator_is_refused(state):
     state.toggle("core")
     assert state.toggle("simulator") == "One launch mode required"
     assert state.get_by_id("simulator").selected
 
 
-def test_unticking_only_hardware_type_is_refused(state):
+def test_unticking_default_micro_controllers_is_refused(state):
     state.toggle("core")
     state.toggle("hardware")
     assert state.toggle("real_mcu_bridge") == "One hardware type required"
     assert state.get_by_id("real_mcu_bridge").selected
+
+
+def test_unticking_physics_simulator_ticks_simulator_and_clears_headless(state):
+    state.toggle("core")
+    state.toggle("gazebo")
+    state.toggle("headless")
+    assert state.toggle("gazebo") is None
+    assert "simulator" in _on(state)
+    assert not _on(state) & {"gazebo", "headless"}
+
+
+def test_unticking_hardware_ticks_simulator_and_clears_bridge(state):
+    state.toggle("core")
+    state.toggle("hardware")
+    assert state.toggle("hardware") is None
+    assert "simulator" in _on(state)
+    assert not _on(state) & {"hardware", "real_mcu_bridge"}
+
+
+def test_unticking_usb_servos_ticks_micro_controllers(state):
+    state.toggle("core")
+    state.toggle("hardware")
+    state.toggle("real_linux")
+    assert state.toggle("real_linux") is None
+    assert {"hardware", "real_mcu_bridge"} <= _on(state)
+    assert "real_linux" not in _on(state)
 
 
 def test_switching_to_hardware_unticks_headless(state):

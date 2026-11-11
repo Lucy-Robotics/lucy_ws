@@ -19,6 +19,7 @@ from .constants import (
     TMUX_SESSION,
 )
 from .domain import export_domain_id
+from .domain_field import DOMAIN_ROW, domain_step, draw_domain_row
 from .instance import claim_domains, other_instance_domains
 from .robot_switch import take_robot_request
 from .stack_status import write_stack_status
@@ -113,40 +114,6 @@ def _draw_pkg_row(
             pass
 
 
-# display_list entry for the ROS domain counter row (not a package).
-DOMAIN_ROW = object()
-
-
-def domain_step(key):
-    """How much a keypress moves the domain counter (0: not a counter key)."""
-    if key in (curses.KEY_RIGHT, ord("+"), ord("=")):
-        return 1
-    if key in (curses.KEY_LEFT, ord("-")):
-        return -1
-    return 0
-
-
-def _draw_domain_row(stdscr, y, x, state, current):
-    prefix = "> " if current else "  "
-    base = f"{prefix}    ROS domain ID: < {state.domain_id} >"
-    stdscr.addstr(y, x, base, curses.A_BOLD if current else curses.A_NORMAL)
-    if state.domain_restart_pending():
-        hint, attr = (
-            f" core runs on {state.running_domain_id}, Enter restarts it",
-            curses.color_pair(1),
-        )
-    elif current:
-        hint, attr = " Left/Right to change", curses.A_DIM
-    else:
-        return
-    room = stdscr.getmaxyx()[1] - (x + len(base)) - 1
-    if room > 1:
-        try:
-            stdscr.addstr(y, x + len(base), hint[:room], attr)
-        except curses.error:
-            pass
-
-
 def confirm_exit_action(key):
     """What a keypress means while the exit prompt is up.
 
@@ -187,19 +154,22 @@ def draw_tui(
         for p in state.packages
         if p.type == "modifier" and not p.requires_pkg and p.section != "tools"
     ]
-    cores_and_mods = cores + [DOMAIN_ROW] + mods
+    cores_and_mods = cores + mods
     interfaces = [p for p in state.packages if p.type == "interface"]
     tools = [p for p in state.packages if p.type == "tool" or p.section == "tools"]
-    display_list = cores_and_mods + robots + interfaces + tools
-    sections = [cores_and_mods, interfaces, tools] + ([robots] if robots else [])
-    min_height = max(MIN_TERM_HEIGHT, sum(len(s) + 2 for s in sections) + 3)
+    options = [DOMAIN_ROW]
+    display_list = cores_and_mods + robots + interfaces + tools + options
+    sections = [cores_and_mods, interfaces, tools, options] + (
+        [robots] if robots else []
+    )
+    min_height = max(MIN_TERM_HEIGHT, sum(len(s) + 2 for s in sections) + 2)
     h, w = stdscr.getmaxyx()
     if h < min_height or w < MIN_TERM_WIDTH:
         draw_too_small_message(stdscr, min_height)
         return None
 
     stdscr.erase()
-    title = "Lucy Control Center"
+    title = "Lucy Launch Screen"
     if TMUX_SESSION != DEFAULT_TMUX_SESSION:
         title += f" ({TMUX_SESSION})"
     stdscr.addstr(0, max(0, (w - len(title)) // 2), title, curses.A_BOLD)
@@ -231,12 +201,13 @@ def draw_tui(
 
     def draw_section(title, color, items, offset, gap=1, indent_all=False):
         nonlocal row
-        stdscr.addstr(row, 2, title, curses.A_BOLD | color)
-        row += gap
+        if title:
+            stdscr.addstr(row, 2, title, curses.A_BOLD | color)
+            row += gap
         for i, p in enumerate(items):
             list_idx = offset + i
             if p is DOMAIN_ROW:
-                _draw_domain_row(stdscr, row + i, 4, state, current_idx == list_idx)
+                draw_domain_row(stdscr, row + i, 4, state, current_idx == list_idx)
                 continue
             prefix = "> " if current_idx == list_idx else "  "
             checkbox = "[x]" if p.selected else "[ ]"
@@ -269,18 +240,18 @@ def draw_tui(
         row += len(items) + 1
 
     row = 2
-    draw_section(
-        "Primary Launch Targets", curses.color_pair(1), cores_and_mods, 0, gap=1
-    )
+    draw_section(None, 0, cores_and_mods, 0)
     offset = len(cores_and_mods)
     if robots:
         draw_section(
             "Robot", curses.color_pair(1), robots, offset, gap=1, indent_all=True
         )
         offset += len(robots)
-    draw_section("Interfaces", curses.color_pair(3), interfaces, offset, gap=1)
+    draw_section("Control Interfaces", curses.color_pair(3), interfaces, offset, gap=1)
     offset += len(interfaces)
     draw_section("Tools", curses.color_pair(3), tools, offset, gap=1)
+    offset += len(tools)
+    draw_section("Options", curses.color_pair(3), options, offset, gap=1)
 
     stdscr.refresh()
     return display_list
