@@ -52,8 +52,8 @@
       "description": "(Gazebo)",
       "type": "modifier",
       "dependencies": ["core"],
-      "conflicts": ["real"],
-      "command": "gazebo:=true",
+      "conflicts": ["real_linux", "real_mcu_bridge"],
+      "command": "mode:=sim",
       "readiness_check": "pgrep -f '[g]z sim' >/dev/null 2>&1",
       "readiness_timeout": 120,
       "default_on": false
@@ -82,13 +82,23 @@
       "default_on": false
     },
     {
-      "id": "real",
-      "name": "... with Real Hardware",
-      "description": "(Connect to physical robot)",
+      "id": "real_linux",
+      "name": "... with Real Hardware (USB servos)",
+      "description": "(host drives the servos: mode:=real bridge:=linux)",
       "type": "modifier",
       "dependencies": ["core"],
-      "conflicts": ["gazebo"],
-      "command": "real:=true",
+      "conflicts": ["gazebo", "real_mcu_bridge"],
+      "command": "mode:=real bridge:=linux",
+      "default_on": false
+    },
+    {
+      "id": "real_mcu_bridge",
+      "name": "... with Real Hardware (MCU boards)",
+      "description": "(host relays to the boards: mode:=real bridge:=mcu_bridge)",
+      "type": "modifier",
+      "dependencies": ["core"],
+      "conflicts": ["gazebo", "real_linux"],
+      "command": "mode:=real bridge:=mcu_bridge",
       "default_on": false
     },
     {

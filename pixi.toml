@@ -129,19 +129,23 @@ tui-launch-test = "python scripts/ci_tui_launch_test.py"
 shell = "bash scripts/pixi_dev_shell.sh"
 
 [feature.launcher.target.unix.tasks]
-# lucy_bringup stacks (scripts/pixi_lucy_launch.sh — NixOS GL via scripts/nix_gl_env.sh)
+# lucy_bringup stacks (scripts/pixi_lucy_launch.sh — NixOS GL via scripts/nix_gl_env.sh).
+# lucy.launch.py mode:=mock|sim|real; extra args pass through, e.g. `pixi run core -- domain_id:=3`.
 core = { cmd = "bash scripts/pixi_lucy_launch.sh" }
-sim = { cmd = "bash scripts/pixi_lucy_launch.sh gazebo:=true" }
-sim-headless = { cmd = "bash scripts/pixi_lucy_launch.sh gazebo:=true headless:=true" }
-sim-rviz = { cmd = "bash scripts/pixi_lucy_launch.sh gazebo:=true headless:=true rviz:=true" }
 rviz = { cmd = "bash scripts/pixi_lucy_launch.sh rviz:=true" }
+sim = { cmd = "bash scripts/pixi_lucy_launch.sh mode:=sim" }
+sim-headless = { cmd = "bash scripts/pixi_lucy_launch.sh mode:=sim headless:=true" }
+sim-rviz = { cmd = "bash scripts/pixi_lucy_launch.sh mode:=sim headless:=true rviz:=true" }
+# Real robot: host drives USB-serial servos (SO-ARM101) / host relays to microcontroller boards.
+real-linux = { cmd = "bash scripts/pixi_lucy_launch.sh mode:=real bridge:=linux" }
+real-mcu-bridge = { cmd = "bash scripts/pixi_lucy_launch.sh mode:=real bridge:=mcu_bridge" }
 
 [feature.launcher.target.win-64.tasks]
 rcl = { cmd = "python -c 'import rclpy; print(rclpy.__file__)'" } # TMP task for testing
 core = { cmd = "python scripts/pixi_lucy_launch.py" }
-sim = { cmd = "python scripts/pixi_lucy_launch.py gazebo:=true" }
-sim-headless = { cmd = "python scripts/pixi_lucy_launch.py gazebo:=true headless:=true" }
-sim-rviz = { cmd = "python scripts/pixi_lucy_launch.py gazebo:=true headless:=true rviz:=true" }
+sim = { cmd = "python scripts/pixi_lucy_launch.py mode:=sim" }
+sim-headless = { cmd = "python scripts/pixi_lucy_launch.py mode:=sim headless:=true" }
+sim-rviz = { cmd = "python scripts/pixi_lucy_launch.py mode:=sim headless:=true rviz:=true" }
 rviz = { cmd = "python scripts/pixi_lucy_launch.py rviz:=true" }
 # core starts this automatically; here for running it standalone.
 joint-states = "ros2 run joint_state_publisher joint_state_publisher"

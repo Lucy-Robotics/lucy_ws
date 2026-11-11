@@ -104,7 +104,7 @@ Lucy selects the robot package with `robot_package:=…` or `LUCY_ROBOT_PACKAGE`
 
 | Robot | Package | First-time / real hardware |
 |-------|---------|----------------------------|
-| SO-ARM101 | `so_arm101_urdf` | **[Hardware setup](src/so_arm101_urdf/docs/HARDWARE_SETUP.md)** - LeRobot calibrate, apply limits, regenerate, then `real:=true` |
+| SO-ARM101 | `so_arm101_urdf` | **[Hardware setup](src/so_arm101_urdf/docs/HARDWARE_SETUP.md)** - LeRobot calibrate, apply limits, regenerate, then `pixi run real-linux` |
 | InMoov | `inmoov_urdf` | Package docs under `src/inmoov_urdf/` |
 | InMoov i2 | `inmoov_i2_urdf` | Package docs under `src/inmoov_i2_urdf/` |
 | Thais | `thais_urdf` | Package docs under `src/thais_urdf/` |
@@ -112,7 +112,7 @@ Lucy selects the robot package with `robot_package:=…` or `LUCY_ROBOT_PACKAGE`
 Example (SO-ARM101 after calibration):
 
 ```bash
-LUCY_ROBOT_PACKAGE=so_arm101_urdf pixi run core -- real:=true
+LUCY_ROBOT_PACKAGE=so_arm101_urdf pixi run real-linux
 ```
 
 Adding a new robot package: [docs/adding_robot_packages.md](docs/adding_robot_packages.md) (when present).

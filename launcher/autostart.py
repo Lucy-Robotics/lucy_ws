@@ -21,7 +21,7 @@ def autostart(state, dev_mode):
     if not selected:
         return None
     apply_changes(state)
-    save_selection(selected)
+    save_selection(selected, state.domain_id)
     if dev_mode:
         return "Starting your saved launch configuration..."
     return "Starting default services for production mode..."
