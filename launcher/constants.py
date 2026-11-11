@@ -53,6 +53,8 @@ GUI_ENV_KEYS = (
     "LUCY_HEADLESS_RUNTIME_DIR",
     "GZ_RENDERING_PLUGIN_PATH",
     "GZ_RENDERING_RESOURCE_PATH",
+    # Not GUI, but tmux panes need it too: the domain the TUI selected.
+    "ROS_DOMAIN_ID",
 )
 
 # Back-compat aliases used by tests and internal modules.

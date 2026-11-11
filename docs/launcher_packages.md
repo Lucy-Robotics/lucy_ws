@@ -34,7 +34,7 @@ Every package entry in `config/launcher_config.json` uses the following fields t
 | `id` | `string` | A unique identifier for the package. Used internally for window names, resolving dependencies, and tracking the state. Must be unique. |
 | `name` | `string` | The display name shown in the launcher's terminal UI. |
 | `description` | `string` | A short description shown alongside the package name. |
-| `type` | `string` | The classification of the package. It defines how the launcher handles it. Must be one of: <br> - `"core"`: The primary process. Usually only one exists. Selecting it clears and launches a base command.<br> - `"modifier"`: Arguments appended to the `"core"` command when active (e.g. `gazebo:=true`).<br> - `"interface"`: A user interface process launched in its own dedicated tmux window (e.g. CLI tools or background web services).<br> - `"tool"`: A utility process launched in its own dedicated tmux window (e.g. ROS standard tools or terminal sessions). |
+| `type` | `string` | The classification of the package. It defines how the launcher handles it. Must be one of: <br> - `"core"`: The primary process. Usually only one exists. Selecting it clears and launches a base command.<br> - `"modifier"`: Arguments appended to the `"core"` command when active (e.g. `mode:=sim`).<br> - `"interface"`: A user interface process launched in its own dedicated tmux window (e.g. CLI tools or background web services).<br> - `"tool"`: A utility process launched in its own dedicated tmux window (e.g. ROS standard tools or terminal sessions). |
 | `dependencies` | `array` of `strings` | A list of `id`s that must be enabled before this package can be toggled on. The launcher will block you and show a warning if dependencies are missing. |
 | `conflicts` | `array` of `strings` | A list of `id`s that cannot run alongside this package. Toggling this package on will automatically toggle the conflicting packages off. |
 | `command` | `string` or `object` | The shell command to execute. <br> - **For `"core"`**: The base command (e.g. `ros2 launch ...`). <br> - **For `"modifier"`**: The argument string appended to the core command. <br> - **For `"interface"` / `"tool"`**: A simple string executed in a new tmux window, or a complex object containing `"start"`, `"stop"`, and `"is_running"` shell commands for custom background handling (like the web control panel). |
@@ -56,6 +56,13 @@ Package commands in other tmux windows are wrapped in `pixi run` so each pane ge
 When you apply changes in the launcher:
 - **Core + Modifiers:** The script takes the core command, appends all active modifier commands, and spins up a dedicated `core` tmux window.
 - **Interfaces / Tools:** The script spins up a new tmux window named after the package's `id` and executes its command via Pixi. Legacy complex `{start, stop, is_running}` objects are still supported for local overrides.
+
+### ROS domain ID
+
+The **ROS domain ID** row under the launch targets picks the DDS domain of the stack (multi-robot on one network: give each robot its own). Select it and press **Left/Right** (or **-/+**) to change it (0-101), then **Enter**:
+- core starts with `domain_id:=<n>`, and every tmux window, as well as the readiness checks, gets `ROS_DOMAIN_ID=<n>`;
+- if core is already running in another domain, the row says so and Enter restarts core, plus the running windows that depend on it (Lucy CLI, rqt), in the new domain;
+- the value is saved with the selection (`.lucy_launcher_state.json`); it defaults to `$ROS_DOMAIN_ID` (shell or `.env`), else 0.
 
 ### Stopping packages and exiting
 
