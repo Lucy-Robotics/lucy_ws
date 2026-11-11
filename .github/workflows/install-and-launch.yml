@@ -116,6 +116,12 @@ jobs:
           chmod +x launch_lucy.sh
           python3 install.py --skip-build
 
+      # colcon builds the Rust firmwares, so the toolchain goes first (as install.py does).
+      - name: "Linux/macOS: firmware toolchain"
+        if: runner.os != 'Windows'
+        shell: bash
+        run: pixi run firmware-setup
+
       - name: Build workspace (colcon)
         shell: bash
         run: pixi run build
@@ -123,11 +129,6 @@ jobs:
       - name: Install control panel (yarn)
         shell: bash
         run: pixi run panel-install
-
-      - name: "Linux/macOS: host firmware binaries (as Lucy.py Update builds them)"
-        if: runner.os != 'Windows'
-        shell: bash
-        run: pixi run firmware-build-linux
 
       - name: Run colcon tests
         shell: bash

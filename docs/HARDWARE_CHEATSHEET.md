@@ -4,15 +4,11 @@
 1. Linux Serial Port Access (one-time setup)
 pixi run setup-udev
 
-2. Build firmware
-cd src/lucy_embedded_firmware/firmwares/rp2040
-cargo build --release -p lucy_embedded_firmware_rp2040 --target thumbv6m-none-eabi
+2. Build firmware (colcon package, also builds the host mcu_bridge; `pixi run build` builds every firmware)
+pixi run firmware-build-rp2040
 
-3. Convert firmware to UF2
-elf2uf2-rs target/thumbv6m-none-eabi/release/lucy_embedded_firmware_rp2040 lucy_embedded_firmware_rp2040
-
-4. Flash rp2040
-sudo picotool load -fx lucy_embedded_firmware_rp2040.uf2
+3. Flash rp2040 (colcon installs the UF2 image)
+sudo picotool load -fx install/lucy_embedded_firmware_rp2040/share/lucy_embedded_firmware_rp2040/firmware/lucy-embedded-firmware-rp2040.uf2
 
 ## Run
 
