@@ -12,6 +12,7 @@ others skip them.
 
 import os
 import re
+import sys
 import tempfile
 
 from .constants import (
@@ -25,6 +26,8 @@ _PIDFILE_RE = re.compile(r"^\.lucy_launcher(?:\.(?P<session>.+))?\.pid$")
 
 
 def _pid_alive(pid):
+    if sys.platform == "win32":
+        return _windows_pid_alive(pid)
     try:
         os.kill(pid, 0)
     except ProcessLookupError:
@@ -32,6 +35,27 @@ def _pid_alive(pid):
     except PermissionError:
         pass  # alive, owned by someone else
     return True
+
+
+def _windows_pid_alive(pid):
+    """Ask Windows without touching the process.
+
+    Never os.kill there: any signal other than CTRL_C/CTRL_BREAK_EVENT calls
+    TerminateProcess, so os.kill(pid, 0) would end the process it checks."""
+    import ctypes
+
+    kernel32 = ctypes.windll.kernel32
+    query_limited_information, still_active = 0x1000, 259
+    handle = kernel32.OpenProcess(query_limited_information, False, pid)
+    if not handle:
+        return False
+    try:
+        code = ctypes.c_ulong()
+        return bool(kernel32.GetExitCodeProcess(handle, ctypes.byref(code))) and (
+            code.value == still_active
+        )
+    finally:
+        kernel32.CloseHandle(handle)
 
 
 def read_pidfile(path):

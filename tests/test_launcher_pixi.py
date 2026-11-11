@@ -559,9 +559,10 @@ def test_core_teardown_kills_rviz_before_sigint():
     from launcher.tmux import _core_teardown_shell
 
     teardown = _core_teardown_shell()
-    # Only this instance's rviz2 (instance_pgrep.sh), never another stack's.
-    kill = "instance_pgrep.sh -x rviz2); do kill -9"
-    assert kill in teardown
+    # Only this instance's rviz2 (instance_pgrep.sh), never another stack's. The
+    # script path is quoted, so on Windows a quote sits between it and its args.
+    kill = "-x rviz2); do kill -9"
+    assert "instance_pgrep.sh" in teardown[: teardown.index(kill)]
     assert "pkill" not in teardown
     assert teardown.index(kill) < teardown.index("C-c")
 
