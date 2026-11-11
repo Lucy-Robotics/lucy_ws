@@ -153,25 +153,25 @@ def draw_too_small_message(stdscr, min_height):
     stdscr.refresh()
 
 
+def _is_mode(p):
+    return p.type == "modifier" and not p.requires_pkg and p.section != "tools"
+
+
 def launch_sections(state):
     robots = [p for p in state.packages if p.type == "modifier" and p.requires_pkg] + [
         ADD_ROBOT
     ]
     cores = [p for p in state.packages if p.type == "core"]
-    mods = [
-        p
-        for p in state.packages
-        if p.type == "modifier" and not p.requires_pkg and p.section != "tools"
-    ]
+    modes = [p for p in state.packages if _is_mode(p)]
     interfaces = [p for p in state.packages if p.type == "interface"] + [ADD_INTERFACE]
     tools = [p for p in state.packages if p.type == "tool" or p.section == "tools"]
-    titled = [
+    return [
+        (SectionRow("Stack", 1), cores + modes),
         (SectionRow("Robot", 1), robots),
         (SectionRow("Control Interfaces", 3), interfaces),
         (SectionRow("Tools", 3), tools),
         (SectionRow("Options", 3), [DOMAIN_ROW]),
     ]
-    return cores + mods, titled
 
 
 def draw_tui(
@@ -184,12 +184,12 @@ def draw_tui(
     confirm_exit=False,
     folded=frozenset(),
 ):
-    cores_and_mods, titled = launch_sections(state)
+    titled = launch_sections(state)
     h, w = stdscr.getmaxyx()
     all_folded = {section.title for section, _ in titled}
-    min_height = rows_needed(cores_and_mods, titled, all_folded)
-    folded = fold_to_fit(cores_and_mods, titled, folded, h)
-    display_list = list(cores_and_mods)
+    min_height = rows_needed(titled, all_folded)
+    folded = fold_to_fit(titled, folded, h)
+    display_list = []
     for section, items in titled:
         display_list += [section] + ([] if section.title in folded else items)
     if h < min_height or w < MIN_TERM_WIDTH:
@@ -238,7 +238,7 @@ def draw_tui(
                 attr |= curses.A_BOLD
             if p.subitem:
                 indent = "        "
-            elif x == 0 and p.type == "modifier":
+            elif _is_mode(p):
                 indent = "    "
             else:
                 indent = ""
@@ -262,9 +262,8 @@ def draw_tui(
             )
         row += len(items)
 
-    row = 3
-    draw_items(cores_and_mods, 0, x=0)
-    offset = len(cores_and_mods)
+    row = 2
+    offset = 0
     for section, items in titled:
         row += 1
         is_folded = section.title in folded
@@ -336,6 +335,8 @@ def _event_loop(stdscr, state, poller, status_msg=None, status_msg_until=0.0):
                 poller.request_refresh()
             if status_msg and time.time() >= status_msg_until:
                 status_msg = None
+            height = stdscr.getmaxyx()[0]
+            folded = fold_to_fit(launch_sections(state), folded, height)
             display_list = draw_tui(
                 stdscr,
                 state,
@@ -393,17 +394,17 @@ def _event_loop(stdscr, state, poller, status_msg=None, status_msg_until=0.0):
             current = display_list[current_idx]
             on_domain = current is DOMAIN_ROW
             if isinstance(current, SectionRow):
-                top, titled = launch_sections(state)
-                height = stdscr.getmaxyx()[0]
-                shown = fold_to_fit(top, titled, folded, height)
-                fold = fold_change(key, current.title in shown)
-                if fold is not None:
-                    (folded.add if fold else folded.discard)(current.title)
-                    if not fold and current.title in fold_to_fit(
-                        top, titled, folded, height
-                    ):
+                fold = fold_change(key, current.title in folded)
+                if fold:
+                    folded.add(current.title)
+                elif fold is False:
+                    opened = folded - {current.title}
+                    if rows_needed(launch_sections(state), opened) > height:
                         error_msg = f"Terminal too small to open {current.title}"
                         error_until = time.time() + 3.0
+                    else:
+                        folded = opened
+                if fold is not None:
                     continue
             if key == curses.KEY_UP:
                 current_idx = (current_idx - 1) % len(display_list)

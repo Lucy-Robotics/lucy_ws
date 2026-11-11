@@ -20,17 +20,17 @@ def fold_change(key, folded):
     return None
 
 
-def rows_needed(top, titled, folded):
+def rows_needed(titled, folded):
     shown = sum(
         0 if section.title in folded else len(items) for section, items in titled
     )
-    return len(top) + 2 + 2 * len(titled) + shown + 3
+    return 2 * len(titled) + shown + 4
 
 
-def fold_to_fit(top, titled, folded, height):
+def fold_to_fit(titled, folded, height):
     fitted = set(folded)
     for section, _ in reversed(titled):
-        if rows_needed(top, titled, fitted) <= height:
+        if rows_needed(titled, fitted) <= height:
             break
         fitted.add(section.title)
     return fitted
