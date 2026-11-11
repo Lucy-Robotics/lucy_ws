@@ -9,6 +9,7 @@ except ImportError:
 
 from .apply import apply_changes, default_robot_selection, restore_selection
 from .autostart import autostart
+from .choices import settle_selection
 from .config import get_dev_mode, load_config, save_selection
 from .constants import (
     DEFAULT_TMUX_SESSION,
@@ -160,11 +161,11 @@ def confirm_exit_action(key):
     return "dismiss"
 
 
-def draw_too_small_message(stdscr):
+def draw_too_small_message(stdscr, min_height=MIN_TERM_HEIGHT):
     h, w = stdscr.getmaxyx()
     stdscr.erase()
     message = "Please increase terminal size"
-    message2 = f"({MIN_TERM_WIDTH}x{MIN_TERM_HEIGHT} required)"
+    message2 = f"({MIN_TERM_WIDTH}x{min_height} required)"
     stdscr.addstr(h // 2 - 1, max(0, (w - len(message)) // 2), message, curses.A_BOLD)
     stdscr.addstr(h // 2, max(0, (w - len(message2)) // 2), message2, curses.A_DIM)
     stdscr.refresh()
@@ -179,9 +180,22 @@ def draw_tui(
     unapplied=False,
     confirm_exit=False,
 ):
+    robots = [p for p in state.packages if p.type == "modifier" and p.requires_pkg]
+    cores = [p for p in state.packages if p.type == "core"]
+    mods = [
+        p
+        for p in state.packages
+        if p.type == "modifier" and not p.requires_pkg and p.section != "tools"
+    ]
+    cores_and_mods = cores + [DOMAIN_ROW] + mods
+    interfaces = [p for p in state.packages if p.type == "interface"]
+    tools = [p for p in state.packages if p.type == "tool" or p.section == "tools"]
+    display_list = cores_and_mods + robots + interfaces + tools
+    sections = [cores_and_mods, interfaces, tools] + ([robots] if robots else [])
+    min_height = max(MIN_TERM_HEIGHT, sum(len(s) + 2 for s in sections) + 3)
     h, w = stdscr.getmaxyx()
-    if h < MIN_TERM_HEIGHT or w < MIN_TERM_WIDTH:
-        draw_too_small_message(stdscr)
+    if h < min_height or w < MIN_TERM_WIDTH:
+        draw_too_small_message(stdscr, min_height)
         return None
 
     stdscr.erase()
@@ -215,22 +229,15 @@ def draw_tui(
             curses.color_pair(1),
         )
 
-    robots = [p for p in state.packages if p.type == "modifier" and p.requires_pkg]
-    cores_and_mods = [
-        p
-        for p in state.packages
-        if p.type in ("core", "modifier") and not p.requires_pkg
-    ]
-    interfaces = [p for p in state.packages if p.type == "interface"]
-    tools = [p for p in state.packages if p.type == "tool"]
-    display_list = cores_and_mods + [DOMAIN_ROW] + robots + interfaces + tools
-
     def draw_section(title, color, items, offset, gap=1, indent_all=False):
         nonlocal row
         stdscr.addstr(row, 2, title, curses.A_BOLD | color)
         row += gap
         for i, p in enumerate(items):
             list_idx = offset + i
+            if p is DOMAIN_ROW:
+                _draw_domain_row(stdscr, row + i, 4, state, current_idx == list_idx)
+                continue
             prefix = "> " if current_idx == list_idx else "  "
             checkbox = "[x]" if p.selected else "[ ]"
             can_enable = all(state.get_by_id(dep).selected for dep in p.dependencies)
@@ -239,7 +246,7 @@ def draw_tui(
                 attr |= curses.A_BOLD
             if p.subitem:
                 indent = "        "
-            elif indent_all or p.type == "modifier":
+            elif indent_all or (p.type == "modifier" and p.section != "tools"):
                 indent = "    "
             else:
                 indent = ""
@@ -262,15 +269,10 @@ def draw_tui(
         row += len(items) + 1
 
     row = 2
-    # gap=1 (not 2) pays for the domain row, keeping MIN_TERM_HEIGHT valid.
     draw_section(
         "Primary Launch Targets", curses.color_pair(1), cores_and_mods, 0, gap=1
     )
     offset = len(cores_and_mods)
-    # draw_section left a blank line after the targets; the counter takes it.
-    _draw_domain_row(stdscr, row - 1, 4, state, current_idx == offset)
-    row += 1
-    offset += 1
     if robots:
         draw_section(
             "Robot", curses.color_pair(1), robots, offset, gap=1, indent_all=True
@@ -300,6 +302,7 @@ def main(stdscr):
     state = LauncherState(load_config())
     restore_selection(state)
     default_robot_selection(state)
+    settle_selection(state)
     state.avoid_domains(other_instance_domains())
     export_domain_id(state.domain_id)
     claim_domains(state.claimed_domains())

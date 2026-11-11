@@ -1,6 +1,7 @@
 """What the TUI starts by itself when it opens."""
 
 from .apply import apply_changes, default_robot_selection
+from .choices import settle_selection
 from .config import load_selection, save_selection
 
 PRODUCTION_SERVICES = ("core", "control_panel")
@@ -17,6 +18,7 @@ def autostart(state, dev_mode):
             if pkg:
                 pkg.selected = True
         default_robot_selection(state)
+        settle_selection(state)
     selected = {p.id for p in state.packages if p.selected}
     if not selected:
         return None
