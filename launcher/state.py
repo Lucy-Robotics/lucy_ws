@@ -85,9 +85,37 @@ class LauncherState:
                 self._disable_with_dependents(other_pkg)
         pkg.selected = False
 
-    def step_domain(self, delta):
-        """Move the domain counter; applied (core restarted) on Enter."""
-        self.domain_id = step_domain_id(self.domain_id, delta)
+    def step_domain(self, delta, taken=frozenset()):
+        """Move the domain counter past the `taken` ones; applied on Enter.
+
+        Stays put when every domain that way is taken."""
+        domain = self.domain_id
+        while True:
+            nxt = step_domain_id(domain, delta)
+            if nxt == domain:
+                return
+            domain = nxt
+            if domain not in taken:
+                self.domain_id = domain
+                return
+
+    def avoid_domains(self, taken):
+        """Move off a domain another Control Center uses, unless core runs in it.
+
+        A second instance starts on the next free one: lucy_ws on 0, the next
+        on 1, and so on."""
+        if self.domain_id not in taken or self._core_running():
+            return
+        start = self.domain_id
+        self.step_domain(1, taken)
+        if self.domain_id == start:
+            self.step_domain(-1, taken)
+
+    def claimed_domains(self):
+        """Domains this instance uses: the counter's, and core's while it runs."""
+        if self._core_running():
+            return {self.domain_id, self.running_domain_id}
+        return {self.domain_id}
 
     def domain_restart_pending(self):
         """True when core runs in another domain than the counter shows."""

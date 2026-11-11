@@ -23,7 +23,8 @@ MIN_ACTIVE="${1:-1}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TTL="${LUCY_CONTROLLERS_CACHE_TTL:-8}"
 CALL_TIMEOUT="${LUCY_CONTROLLERS_TIMEOUT:-12}"
-CACHE="${TMPDIR:-/tmp}/lucy_controllers_active.$(id -u).cache"
+# Per Control Center instance: each one probes its own stack (launcher/instance.py).
+CACHE="${TMPDIR:-/tmp}/lucy_controllers_active.$(id -u).${LUCY_TMUX_SESSION:-lucy_ws}.cache"
 
 # The cache holds the active count, not a verdict, so callers asking different
 # thresholds share one probe. -1 means the manager did not answer.

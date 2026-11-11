@@ -62,7 +62,23 @@ When you apply changes in the launcher:
 The **ROS domain ID** row under the launch targets picks the DDS domain of the stack (multi-robot on one network: give each robot its own). Select it and press **Left/Right** (or **-/+**) to change it (0-101), then **Enter**:
 - core starts with `domain_id:=<n>`, and every tmux window, as well as the readiness checks, gets `ROS_DOMAIN_ID=<n>`;
 - if core is already running in another domain, the row says so and Enter restarts core, plus the running windows that depend on it (Lucy CLI, rqt), in the new domain;
-- the value is saved with the selection (`.lucy_launcher_state.json`); it defaults to `$ROS_DOMAIN_ID` (shell or `.env`), else 0.
+- the value is saved with the selection (`.lucy_launcher_state.json`); it defaults to `$ROS_DOMAIN_ID` (shell or `.env`), else 0;
+- domains used by another Control Center (below) are skipped.
+
+### Several Control Centers on one machine
+
+Running `./launch_lucy.sh` while a Control Center is already shown in a terminal starts a **second instance** next to it instead of joining it (a detached one is re-attached, as before):
+
+| | first | second | third |
+|---|---|---|---|
+| tmux session | `lucy_ws` | `lucy_ws_1` | `lucy_ws_2` |
+| ROS domain | `$ROS_DOMAIN_ID` or 0 | next free (1) | next free (2) |
+| rosbridge port | 9090 | 9091 | 9092 |
+| control panel port | 4004 | 4005 | 4006 |
+
+The TUI title shows the session of extra instances, e.g. *Lucy Control Center (lucy_ws_1)*; `tmux attach -t lucy_ws_1` gets back to it. Each instance has its own launcher files (`.lucy_launcher*.<session>.*`), ready markers and `GZ_PARTITION`, and its processes carry `LUCY_TMUX_SESSION=<session>`: readiness checks (`scripts/instance_pgrep.sh`), core teardown and orphan cleanup only look at their own instance, so quitting one leaves the others running. `LUCY_TMUX_SESSION=<name> ./launch_lucy.sh` pins the session.
+
+Processes started by hand (`pixi run core`) belong to the first instance. Local `launcher_config.json.local` files should use `bash scripts/instance_pgrep.sh` instead of `pgrep` in their readiness checks.
 
 ### Stopping packages and exiting
 

@@ -559,8 +559,11 @@ def test_core_teardown_kills_rviz_before_sigint():
     from launcher.tmux import _core_teardown_shell
 
     teardown = _core_teardown_shell()
-    assert "pkill -9 -x rviz2" in teardown
-    assert teardown.index("pkill -9 -x rviz2") < teardown.index("C-c")
+    # Only this instance's rviz2 (instance_pgrep.sh), never another stack's.
+    kill = "instance_pgrep.sh -x rviz2); do kill -9"
+    assert kill in teardown
+    assert "pkill" not in teardown
+    assert teardown.index(kill) < teardown.index("C-c")
 
 
 def test_window_teardown_stops_waiting_once_the_pane_is_gone():

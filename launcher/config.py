@@ -5,6 +5,7 @@ import os
 
 from .constants import (
     DEFAULT_CONFIG_FILE,
+    INSTANCE_ENV_KEYS,
     LOCAL_CONFIG_FILE,
     SELECTION_FILE,
     STATE_FILE,
@@ -40,6 +41,10 @@ def load_workspace_env():
             if not key:
                 continue
             val = val.strip().strip('"').strip("'")
+            # launch_lucy.sh already derived these from .env, per instance
+            # (e.g. PORT_ROSBRIDGE + 1 for lucy_ws_1); keep what it passed.
+            if key in INSTANCE_ENV_KEYS and key in os.environ:
+                continue
             os.environ[key] = val
 
 

@@ -1,9 +1,10 @@
 """Tmux session and window management."""
 
 import os
+import shlex
 import sys
 
-from .constants import TMUX_SESSION
+from .constants import INSTANCE_PGREP, TMUX_SESSION
 
 
 def is_in_tmux():
@@ -29,6 +30,9 @@ def _window_teardown_shell(window: str) -> str:
 
 
 def _core_teardown_shell() -> str:
+    # This instance's processes only: another Control Center's stack may run
+    # its own rviz2 and Gazebo on this host (launcher/instance.py).
+    pgrep = f"bash {shlex.quote(str(INSTANCE_PGREP))}"
     return (
         # rviz2 has to go before the SIGINT below. Its rclcpp signal handler throws
         # std::system_error("mutex lock failed") while shutting down on macOS; the
@@ -38,12 +42,12 @@ def _core_teardown_shell() -> str:
         # produce a crash report, SIGKILL produces none. RViz is a viewer with no
         # state to persist, so killing it outright costs nothing and is the only way
         # to stop the dialog without patching rviz2 itself.
-        "pkill -9 -x rviz2 2>/dev/null; "
+        f"for p in $({pgrep} -x rviz2); do kill -9 $p 2>/dev/null; done; "
         f"tmux send-keys -t {TMUX_SESSION}:core C-c 2>/dev/null; "
         # Wait for ros2 launch itself too: kill-window SIGHUPs it mid-shutdown, which
         # orphans its children before the firmware can release torque.
         "for _ in $(seq 1 40); do "
-        "pgrep -f '[g]z sim' >/dev/null 2>&1 || pgrep -x rviz2 >/dev/null 2>&1 || "
+        f"{pgrep} -f '[g]z sim' >/dev/null 2>&1 || {pgrep} -x rviz2 >/dev/null 2>&1 || "
         f"tmux list-panes -t {TMUX_SESSION}:core -F '#{{pane_dead}}' 2>/dev/null "
         "| grep -qx 0 || break; "
         "sleep 0.25; done; "

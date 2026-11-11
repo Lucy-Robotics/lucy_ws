@@ -7,10 +7,24 @@ WORKSPACE_ROOT = Path(__file__).resolve().parent.parent
 CONFIG_DIR = WORKSPACE_ROOT / "config"
 DEFAULT_CONFIG_FILE = CONFIG_DIR / "launcher_config.json"
 LOCAL_CONFIG_FILE = CONFIG_DIR / "launcher_config.json.local"
-STATE_FILE = WORKSPACE_ROOT / ".lucy_launcher_modifiers.json"
-SELECTION_FILE = WORKSPACE_ROOT / ".lucy_launcher_state.json"
-LAUNCHER_PIDFILE = WORKSPACE_ROOT / ".lucy_launcher.pid"
-TMUX_SESSION = os.environ.get("LUCY_TMUX_SESSION", "lucy_ws")
+DEFAULT_TMUX_SESSION = "lucy_ws"
+# One Control Center per tmux session. launch_lucy.sh starts a second one in
+# lucy_ws_<n> when lucy_ws is already in use: an instance with its own files,
+# ROS domain and ports. Processes are tied to their instance by this variable.
+TMUX_SESSION = os.environ.get("LUCY_TMUX_SESSION", DEFAULT_TMUX_SESSION)
+
+
+def instance_suffix(session: str) -> str:
+    """Infix of an instance's launcher files ('' for the default instance)."""
+    return "" if session == DEFAULT_TMUX_SESSION else f".{session}"
+
+
+_SUFFIX = instance_suffix(TMUX_SESSION)
+STATE_FILE = WORKSPACE_ROOT / f".lucy_launcher_modifiers{_SUFFIX}.json"
+SELECTION_FILE = WORKSPACE_ROOT / f".lucy_launcher_state{_SUFFIX}.json"
+LAUNCHER_PIDFILE = WORKSPACE_ROOT / f".lucy_launcher{_SUFFIX}.pid"
+# pgrep restricted to this instance's processes (readiness checks, teardown).
+INSTANCE_PGREP = WORKSPACE_ROOT / "scripts" / "instance_pgrep.sh"
 MIN_TERM_HEIGHT = 22
 MIN_TERM_WIDTH = 65
 
@@ -53,8 +67,21 @@ GUI_ENV_KEYS = (
     "LUCY_HEADLESS_RUNTIME_DIR",
     "GZ_RENDERING_PLUGIN_PATH",
     "GZ_RENDERING_RESOURCE_PATH",
-    # Not GUI, but tmux panes need it too: the domain the TUI selected.
+)
+
+# Also forwarded: the instance a pane belongs to and what is per instance.
+# Windows start from the tmux server's environment, which is the first
+# instance's, so a second instance must pass its own values explicitly.
+INSTANCE_ENV_KEYS = (
+    "LUCY_TMUX_SESSION",
     "ROS_DOMAIN_ID",
+    "PORT_ROSBRIDGE",
+    "LUCY_LCP_PUBLISHED_HOST_PORT",
+    "LUCY_LCP_CONTAINER_PORT",
+    "LUCY_LCP_SCHEME",
+    "GZ_PARTITION",
+    "LUCY_CONTROL_READY_FILE",
+    "LUCY_CLI_READY_FILE",
 )
 
 # Back-compat aliases used by tests and internal modules.

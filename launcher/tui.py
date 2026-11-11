@@ -10,8 +10,15 @@ except ImportError:
 from .apply import apply_changes, default_robot_selection, restore_selection
 from .autostart import autostart
 from .config import get_dev_mode, load_config, save_selection
-from .constants import MIN_TERM_HEIGHT, MIN_TERM_WIDTH, REDRAW_INTERVAL_MS
+from .constants import (
+    DEFAULT_TMUX_SESSION,
+    MIN_TERM_HEIGHT,
+    MIN_TERM_WIDTH,
+    REDRAW_INTERVAL_MS,
+    TMUX_SESSION,
+)
 from .domain import export_domain_id
+from .instance import claim_domains, other_instance_domains
 from .state import (
     LauncherState,
     StatusPoller,
@@ -177,6 +184,8 @@ def draw_tui(
 
     stdscr.erase()
     title = "Lucy Control Center"
+    if TMUX_SESSION != DEFAULT_TMUX_SESSION:
+        title += f" ({TMUX_SESSION})"
     stdscr.addstr(0, max(0, (w - len(title)) // 2), title, curses.A_BOLD)
     stdscr.addstr(
         h - 1,
@@ -289,7 +298,9 @@ def main(stdscr):
     state = LauncherState(load_config())
     restore_selection(state)
     default_robot_selection(state)
+    state.avoid_domains(other_instance_domains())
     export_domain_id(state.domain_id)
+    claim_domains(state.claimed_domains())
     status_msg = autostart(state, get_dev_mode())
     status_msg_until = time.time() + 3.0 if status_msg else 0.0
 
@@ -370,12 +381,14 @@ def _event_loop(stdscr, state, poller, status_msg=None, status_msg_until=0.0):
             elif key == curses.KEY_DOWN:
                 current_idx = (current_idx + 1) % len(display_list)
             elif on_domain and (step := domain_step(key)):
-                state.step_domain(step)
+                state.step_domain(step, other_instance_domains())
+                claim_domains(state.claimed_domains())
             elif key == ord(" "):
                 if not on_domain:
                     error_msg = state.toggle(display_list[current_idx].id)
             elif key == ord("\n"):
                 apply_changes(state)
+                claim_domains(state.claimed_domains())
                 save_selection(
                     {p.id for p in state.packages if p.selected}, state.domain_id
                 )
