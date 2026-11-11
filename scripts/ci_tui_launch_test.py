@@ -10,6 +10,8 @@ import sys
 import time
 
 from ci_panel_checks import exercise_panel
+from ci_panel_faults import exercise_faults
+from ci_ros_contract import check_ros_contract
 from ci_stack import (
     CLEANUP_TIMEOUT_S,
     ROOT,
@@ -65,7 +67,9 @@ def run_robot(ros: Ros, robot: str) -> None:
     ros.reset()
     check_feedback_matches(ros)
     check_robot_identity(ros, robot)
+    check_ros_contract(ros)
     exercise_panel(ros, robot)
+    exercise_faults(ros)
 
 
 def check_steady() -> None:

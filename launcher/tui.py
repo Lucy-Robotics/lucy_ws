@@ -7,12 +7,16 @@ try:
 except ImportError:
     curses = None
 
+from tui_toolbox import CYAN, GREEN, RED, YELLOW, draw_row, draw_title, fit, put, setup_colors
+
+from .access_urls import access_urls
 from .apply import apply_changes, default_robot_selection, restore_selection
 from .autostart import autostart
 from .config import get_dev_mode, load_config, save_selection
 from .robot_switch import take_robot_request
 from .stack_status import write_stack_status
 from .constants import MIN_TERM_HEIGHT, MIN_TERM_WIDTH, REDRAW_INTERVAL_MS
+from .options import with_focused_options
 from .state import (
     LauncherState,
     StatusPoller,
@@ -21,30 +25,10 @@ from .state import (
     _nav_hint,
     _pkg_start_times,
     _pkg_stop_times,
+    _crash_hint,
     _stage_hint,
-    _status_url,
     get_pkg_status,
 )
-
-
-def _fit(text, room):
-    """Shorten a trailing "..."-suffixed stage readout to `room` columns.
-
-    The stage is the last thing on the row and the first to run off the end of a
-    terminal at MIN_TERM_WIDTH — where an addstr past the last column raises,
-    taking the rest of the row with it. The suffix goes first: it is decoration
-    the "n/N" counter already carries, and dropping it is often enough to keep
-    the label whole. Only when that is not enough is the label itself cut, with
-    the suffix put back to mark the cut — an ASCII "..." and not an ellipsis
-    character, because the launcher never calls setlocale() and curses would
-    encode one against the C locale's ASCII codec, raising a UnicodeEncodeError
-    that is not a curses.error and so not caught below."""
-    if len(text) <= room:
-        return text
-    stripped = text.rstrip(".")
-    if len(stripped) <= room:
-        return stripped
-    return (stripped[: max(0, room - 3)].rstrip(" .") + "...")[:room]
 
 
 def _draw_pkg_row(
@@ -58,50 +42,35 @@ def _draw_pkg_row(
     attr,
     status,
     hint="",
-    url="",
+    urls=(),
     stage="",
+    detail="",
 ):
-    base = f"{prefix}{indent}{checkbox} {name}"
-    stdscr.addstr(y, x, base, attr)
-    col = x + len(base)
     labels = {
-        "running": (" [RUNNING]", curses.color_pair(4)),
-        "loading": (" [LOADING]", curses.color_pair(1)),
-        "stopping": (" [STOPPING]", curses.color_pair(1)),
-        "crashed": (" [CRASHED]", curses.color_pair(2) | curses.A_BOLD),
+        "running": (" [RUNNING]", curses.color_pair(GREEN)),
+        "loading": (" [LOADING]", curses.color_pair(YELLOW)),
+        "stopping": (" [STOPPING]", curses.color_pair(YELLOW)),
+        "crashed": (" [CRASHED]", curses.color_pair(RED) | curses.A_BOLD),
         "stopped": (" [STOPPED]", curses.A_DIM),
     }
-    status_str, status_attr = labels.get(status, (" [STOPPED]", curses.A_DIM))
-    try:
-        stdscr.addstr(y, col, status_str, status_attr)
-        col += len(status_str)
-    except curses.error:
-        pass
+    status_str, status_attr = labels.get(status, (" [STOPPED]", curses.A_DIM)) if status else ("", 0)
+    col = draw_row(stdscr, y, x, prefix, indent, checkbox, name, attr, status_str, status_attr)
+    if detail and status == "crashed":
+        room = stdscr.getmaxyx()[1] - col - 1
+        if room > 1:
+            col = put(stdscr, y, col, fit(f" {detail}", room), curses.color_pair(RED))
     if stage:
         # Dimmed: the stage is a progress readout, not a state of its own, and
         # must not compete with the status label it trails.
         room = stdscr.getmaxyx()[1] - col - 1
         if room > 1:
-            text = _fit(f" {stage}", room)
-            try:
-                stdscr.addstr(y, col, text, curses.A_DIM)
-                col += len(text)
-            except curses.error:
-                pass
-    if url and status == "running":
-        text = f" ({url})"
-        try:
-            stdscr.addstr(y, col, text, curses.color_pair(3))
-            col += len(text)
-        except curses.error:
-            pass
+            col = put(stdscr, y, col, fit(f" {stage}", room), curses.A_DIM)
+    if urls and status == "running":
+        room = stdscr.getmaxyx()[1] - col - 1
+        text = fit(f" ({'  '.join(urls)})", room) if room > 1 else ""
+        col = put(stdscr, y, col, text, curses.color_pair(CYAN))
     if hint:
-        text = f" {hint}"
-        try:
-            stdscr.addstr(y, col, text, curses.color_pair(3))
-            col += len(text)
-        except curses.error:
-            pass
+        col = put(stdscr, y, col, f" {hint}", curses.color_pair(CYAN))
 
 
 def confirm_exit_action(key):
@@ -131,7 +100,7 @@ def draw_too_small_message(stdscr):
 def draw_tui(
     stdscr,
     state,
-    current_idx,
+    focused_id,
     error_msg,
     status_msg,
     unapplied=False,
@@ -144,7 +113,7 @@ def draw_tui(
 
     stdscr.erase()
     title = "Lucy Control Center"
-    stdscr.addstr(0, max(0, (w - len(title)) // 2), title, curses.A_BOLD)
+    draw_title(stdscr, title)
     stdscr.addstr(
         h - 1,
         2,
@@ -157,18 +126,18 @@ def draw_tui(
             h - 2,
             2,
             "Stop all processes and exit? (y/n)",
-            curses.A_BOLD | curses.color_pair(2),
+            curses.A_BOLD | curses.color_pair(RED),
         )
     elif status_msg:
         stdscr.addstr(h - 2, 2, status_msg, curses.A_BOLD)
     elif error_msg:
-        stdscr.addstr(h - 2, 2, f"Warning: {error_msg}", curses.color_pair(2))
+        stdscr.addstr(h - 2, 2, f"Warning: {error_msg}", curses.color_pair(RED))
     elif unapplied:
         stdscr.addstr(
             h - 2,
             2,
             "Unapplied changes — press Enter to apply",
-            curses.color_pair(1),
+            curses.color_pair(YELLOW),
         )
 
     robots = [p for p in state.packages if p.type == "modifier" and p.requires_pkg]
@@ -177,9 +146,13 @@ def draw_tui(
         for p in state.packages
         if p.type in ("core", "modifier") and not p.requires_pkg
     ]
-    interfaces = [p for p in state.packages if p.type == "interface"]
+    interfaces = with_focused_options(
+        [p for p in state.packages if p.type == "interface"], state.packages, focused_id
+    )
     tools = [p for p in state.packages if p.type == "tool"]
     display_list = cores_and_mods + robots + interfaces + tools
+    ids = [p.id for p in display_list]
+    current_idx = ids.index(focused_id) if focused_id in ids else 0
 
     def draw_section(title, color, items, offset, gap=1, indent_all=False):
         nonlocal row
@@ -195,11 +168,11 @@ def draw_tui(
                 attr |= curses.A_BOLD
             if p.subitem:
                 indent = "        "
-            elif indent_all or p.type == "modifier":
+            elif indent_all or p.type in ("modifier", "option"):
                 indent = "    "
             else:
                 indent = ""
-            status = get_pkg_status(p)
+            status = None if p.type == "option" else get_pkg_status(p)
             hint = _nav_hint(p)
             _draw_pkg_row(
                 stdscr,
@@ -212,24 +185,25 @@ def draw_tui(
                 attr,
                 status,
                 hint,
-                _status_url(p),
+                access_urls(p, state),
                 _stage_hint(p, status),
+                _crash_hint(p, status),
             )
         row += len(items) + 1
 
     row = 2
     draw_section(
-        "Primary Launch Targets", curses.color_pair(1), cores_and_mods, 0, gap=2
+        "Primary Launch Targets", curses.color_pair(YELLOW), cores_and_mods, 0, gap=2
     )
     offset = len(cores_and_mods)
     if robots:
         draw_section(
-            "Robot", curses.color_pair(1), robots, offset, gap=1, indent_all=True
+            "Robot", curses.color_pair(YELLOW), robots, offset, gap=1, indent_all=True
         )
         offset += len(robots)
-    draw_section("Interfaces", curses.color_pair(3), interfaces, offset, gap=1)
+    draw_section("Interfaces", curses.color_pair(CYAN), interfaces, offset, gap=1)
     offset += len(interfaces)
-    draw_section("Tools", curses.color_pair(3), tools, offset, gap=1)
+    draw_section("Tools", curses.color_pair(CYAN), tools, offset, gap=1)
 
     stdscr.refresh()
     return display_list
@@ -239,14 +213,7 @@ def main(stdscr):
     curses.curs_set(0)
     stdscr.nodelay(0)
     stdscr.timeout(-1)
-    curses.start_color()
-    curses.use_default_colors()
-
-    if curses.has_colors():
-        curses.init_pair(1, curses.COLOR_YELLOW, -1)
-        curses.init_pair(2, curses.COLOR_RED, -1)
-        curses.init_pair(3, curses.COLOR_CYAN, -1)
-        curses.init_pair(4, curses.COLOR_GREEN, -1)
+    setup_colors()
 
     state = LauncherState(load_config())
     restore_selection(state)
@@ -264,7 +231,7 @@ def main(stdscr):
 def _event_loop(stdscr, state, poller, status_msg=None, status_msg_until=0.0):
     """Draw/input loop. Package status arrives from `poller` as finished
     snapshots so no keystroke ever waits on a readiness probe."""
-    current_idx = 0
+    focused_id = None
     error_msg = None
     confirm_exit = False
 
@@ -286,7 +253,7 @@ def _event_loop(stdscr, state, poller, status_msg=None, status_msg_until=0.0):
             display_list = draw_tui(
                 stdscr,
                 state,
-                current_idx,
+                focused_id,
                 error_msg,
                 status_msg,
                 _has_unapplied_changes(state),
@@ -333,13 +300,14 @@ def _event_loop(stdscr, state, poller, status_msg=None, status_msg_until=0.0):
                     confirm_exit = False
                     continue
 
+            ids = [p.id for p in display_list]
+            current_idx = ids.index(focused_id) if focused_id in ids else 0
             if key == curses.KEY_UP:
-                current_idx = (current_idx - 1) % len(display_list)
+                focused_id = ids[(current_idx - 1) % len(ids)]
             elif key == curses.KEY_DOWN:
-                current_idx = (current_idx + 1) % len(display_list)
+                focused_id = ids[(current_idx + 1) % len(ids)]
             elif key == ord(" "):
-                pkg_to_toggle = display_list[current_idx]
-                error_msg = state.toggle(pkg_to_toggle.id)
+                error_msg = state.toggle(ids[current_idx])
             elif key == ord("\n"):
                 apply_changes(state)
                 save_selection({p.id for p in state.packages if p.selected})

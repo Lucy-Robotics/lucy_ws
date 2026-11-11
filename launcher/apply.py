@@ -4,12 +4,25 @@ import time
 
 from .config import load_selection
 from .constants import TMUX_SESSION
+from .options import default_options, options_changed, record_launch, with_options
 from .shell import run_teardown_async
 from .state import (
     _intended_running,
     _pkg_start_times,
     _pkg_stop_times,
 )
+
+
+def _clean_status():
+    try:
+        from pathlib import Path
+
+        Path("/tmp/.lucy_real_hardware_status").unlink(missing_ok=True)
+        Path("/tmp/.lucy_real_hardware_error").unlink(missing_ok=True)
+        Path("/tmp/.lucy_real_hardware_ready").unlink(missing_ok=True)
+        Path("/tmp/.lucy_real_hardware_expected").unlink(missing_ok=True)
+    except OSError:
+        pass
 
 
 def _package_needs_vite_preserve(pkg) -> bool:
@@ -65,6 +78,7 @@ def stop_all_packages(state):
         if core and core.is_running:
             launcher._stop_core_tmux()
         launcher.save_state({"modifiers": []})
+        _clean_status()
     launcher._finish_teardown()
 
 
@@ -95,6 +109,7 @@ def apply_changes(state):
             protect_vite=protect_vite,
         )
         launcher.save_state({"modifiers": []})
+        _clean_status()
         core_pkg.is_running = False
         core_pkg.ready = False
         _pkg_start_times.pop("core", None)
@@ -109,6 +124,13 @@ def apply_changes(state):
                 _intended_running.discard(mod.id)
 
     for pkg in state.packages:
+        if pkg.selected and pkg.is_running and pkg.id not in _pkg_stop_times and options_changed(state, pkg):
+            launcher._stop_tmux_window(pkg.id)
+            pkg.is_running = False
+
+    for pkg in state.packages:
+        if pkg.type == "option":
+            continue
         if not pkg.selected and pkg.is_running:
             stopping = True
             if pkg.is_complex_command():
@@ -140,7 +162,8 @@ def apply_changes(state):
     for pkg in state.packages:
         crashed = pkg.pane_dead and pkg.pane_exit_status != 0
         if (
-            pkg.selected
+            pkg.type != "option"
+            and pkg.selected
             and pkg.id not in _pkg_stop_times
             and (not pkg.is_running or crashed)
         ):
@@ -159,6 +182,7 @@ def apply_changes(state):
                 _pkg_start_times[pkg.id] = time.time()
                 _intended_running.add(pkg.id)
             elif pkg.type == "core":
+                _clean_status()
                 base_cmd = pkg.command
                 selected_modifiers = [
                     p for p in state.packages if p.type == "modifier" and p.selected
@@ -181,9 +205,10 @@ def apply_changes(state):
                 if pkg.type == "interface":
                     launcher.run_shell_command(
                         launcher._tmux_new_pixi_window(
-                            pkg.id, pkg.command, remain_on_exit=True
+                            pkg.id, with_options(pkg, state), remain_on_exit=True
                         )
                     )
+                    record_launch(state, pkg)
                 else:
                     launcher.run_shell_command(
                         launcher._tmux_new_pixi_window(
@@ -217,6 +242,7 @@ def restore_selection(state):
     if chosen is not None:
         for pkg in robots:
             pkg.selected = pkg is chosen
+    default_options(state)
 
 
 def default_robot_selection(state):
