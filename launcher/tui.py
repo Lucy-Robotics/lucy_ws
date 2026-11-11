@@ -20,6 +20,7 @@ from .constants import (
 )
 from .domain import export_domain_id
 from .domain_field import DOMAIN_ROW, domain_step, draw_domain_row
+from .links import ADD_INTERFACE, ADD_ROBOT, LinkRow, draw_link_row, open_link
 from .instance import claim_domains, other_instance_domains
 from .robot_switch import take_robot_request
 from .stack_status import write_stack_status
@@ -81,7 +82,7 @@ def _draw_pkg_row(
         "crashed": (" [CRASHED]", curses.color_pair(2) | curses.A_BOLD),
         "stopped": (" [STOPPED]", curses.A_DIM),
     }
-    status_str, status_attr = labels.get(status, (" [STOPPED]", curses.A_DIM))
+    status_str, status_attr = labels.get(status, ("", curses.A_DIM))
     try:
         stdscr.addstr(y, col, status_str, status_attr)
         col += len(status_str)
@@ -147,7 +148,9 @@ def draw_tui(
     unapplied=False,
     confirm_exit=False,
 ):
-    robots = [p for p in state.packages if p.type == "modifier" and p.requires_pkg]
+    robots = [p for p in state.packages if p.type == "modifier" and p.requires_pkg] + [
+        ADD_ROBOT
+    ]
     cores = [p for p in state.packages if p.type == "core"]
     mods = [
         p
@@ -155,14 +158,12 @@ def draw_tui(
         if p.type == "modifier" and not p.requires_pkg and p.section != "tools"
     ]
     cores_and_mods = cores + mods
-    interfaces = [p for p in state.packages if p.type == "interface"]
+    interfaces = [p for p in state.packages if p.type == "interface"] + [ADD_INTERFACE]
     tools = [p for p in state.packages if p.type == "tool" or p.section == "tools"]
     options = [DOMAIN_ROW]
     display_list = cores_and_mods + robots + interfaces + tools + options
-    sections = [cores_and_mods, interfaces, tools, options] + (
-        [robots] if robots else []
-    )
-    min_height = max(MIN_TERM_HEIGHT, sum(len(s) + 2 for s in sections) + 2)
+    sections = [cores_and_mods, robots, interfaces, tools, options]
+    min_height = max(MIN_TERM_HEIGHT, sum(len(s) + 2 for s in sections) + 3)
     h, w = stdscr.getmaxyx()
     if h < min_height or w < MIN_TERM_WIDTH:
         draw_too_small_message(stdscr, min_height)
@@ -188,7 +189,7 @@ def draw_tui(
             curses.A_BOLD | curses.color_pair(2),
         )
     elif status_msg:
-        stdscr.addstr(h - 2, 2, status_msg, curses.A_BOLD)
+        stdscr.addstr(h - 2, 2, status_msg[: w - 3], curses.A_BOLD)
     elif error_msg:
         stdscr.addstr(h - 2, 2, f"Warning: {error_msg}", curses.color_pair(2))
     elif unapplied:
@@ -199,13 +200,16 @@ def draw_tui(
             curses.color_pair(1),
         )
 
-    def draw_section(title, color, items, offset, gap=1, indent_all=False):
+    def draw_section(title, color, items, offset, x=4):
         nonlocal row
         if title:
             stdscr.addstr(row, 2, title, curses.A_BOLD | color)
-            row += gap
+            row += 1
         for i, p in enumerate(items):
             list_idx = offset + i
+            if isinstance(p, LinkRow):
+                draw_link_row(stdscr, row + i, x, p, current_idx == list_idx)
+                continue
             if p is DOMAIN_ROW:
                 draw_domain_row(stdscr, row + i, 4, state, current_idx == list_idx)
                 continue
@@ -217,41 +221,40 @@ def draw_tui(
                 attr |= curses.A_BOLD
             if p.subitem:
                 indent = "        "
-            elif indent_all or (p.type == "modifier" and p.section != "tools"):
+            elif p in mods:
                 indent = "    "
             else:
                 indent = ""
             status = get_pkg_status(p)
+            shows_stopped = p.type == "core" or p.selected
+            label = status if shows_stopped or status != "stopped" else None
             hint = _nav_hint(p)
             _draw_pkg_row(
                 stdscr,
                 row + i,
-                4,
+                x,
                 prefix,
                 indent,
                 checkbox,
                 p.name,
                 attr,
-                status,
+                label,
                 hint,
                 _status_url(p),
                 _stage_hint(p, status),
             )
         row += len(items) + 1
 
-    row = 2
-    draw_section(None, 0, cores_and_mods, 0)
+    row = 3
+    draw_section(None, 0, cores_and_mods, 0, x=0)
     offset = len(cores_and_mods)
-    if robots:
-        draw_section(
-            "Robot", curses.color_pair(1), robots, offset, gap=1, indent_all=True
-        )
-        offset += len(robots)
-    draw_section("Control Interfaces", curses.color_pair(3), interfaces, offset, gap=1)
+    draw_section("Robot", curses.color_pair(1), robots, offset)
+    offset += len(robots)
+    draw_section("Control Interfaces", curses.color_pair(3), interfaces, offset)
     offset += len(interfaces)
-    draw_section("Tools", curses.color_pair(3), tools, offset, gap=1)
+    draw_section("Tools", curses.color_pair(3), tools, offset)
     offset += len(tools)
-    draw_section("Options", curses.color_pair(3), options, offset, gap=1)
+    draw_section("Options", curses.color_pair(3), options, offset)
 
     stdscr.refresh()
     return display_list
@@ -341,7 +344,7 @@ def _event_loop(stdscr, state, poller, status_msg=None, status_msg_until=0.0):
             # Statuses also age on their own (LOADING and STOPPING both expire on
             # a clock), so redraw on a short tick whenever anything is live. The
             # redraw is cheap: erase() leaves curses sending only what changed.
-            if _intended_running or _pkg_stop_times:
+            if _intended_running or _pkg_stop_times or status_msg:
                 stdscr.nodelay(1)
                 stdscr.timeout(REDRAW_INTERVAL_MS)
             else:
@@ -359,17 +362,21 @@ def _event_loop(stdscr, state, poller, status_msg=None, status_msg_until=0.0):
                     confirm_exit = False
                     continue
 
-            on_domain = display_list[current_idx] is DOMAIN_ROW
+            current = display_list[current_idx]
+            on_domain = current is DOMAIN_ROW
             if key == curses.KEY_UP:
                 current_idx = (current_idx - 1) % len(display_list)
             elif key == curses.KEY_DOWN:
                 current_idx = (current_idx + 1) % len(display_list)
+            elif isinstance(current, LinkRow) and key in (ord(" "), ord("\n")):
+                status_msg = open_link(current)
+                status_msg_until = time.time() + 5.0
             elif on_domain and (step := domain_step(key)):
                 state.step_domain(step, other_instance_domains())
                 claim_domains(state.claimed_domains())
             elif key == ord(" "):
                 if not on_domain:
-                    error_msg = state.toggle(display_list[current_idx].id)
+                    error_msg = state.toggle(current.id)
             elif key == ord("\n"):
                 apply_changes(state)
                 claim_domains(state.claimed_domains())

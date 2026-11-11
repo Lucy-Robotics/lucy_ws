@@ -19,9 +19,25 @@ def _deps_selected(state, pkg):
     )
 
 
+def keeps_when_core_off(pkg, parent):
+    return parent.type == "core" and pkg.type == "modifier"
+
+
+def _parents_kept(state, pkg):
+    parents = [state.get_by_id(dep) for dep in pkg.dependencies]
+    return all(p and (p.selected or keeps_when_core_off(pkg, p)) for p in parents)
+
+
+def is_active(state, pkg):
+    return pkg.selected and all(
+        state.get_by_id(dep) and is_active(state, state.get_by_id(dep))
+        for dep in pkg.dependencies
+    )
+
+
 def settle_selection(state):
     for pkg in state.packages:
-        if pkg.selected and not _deps_selected(state, pkg):
+        if pkg.selected and not _parents_kept(state, pkg):
             pkg.selected = False
     groups = dict.fromkeys(p.choice for p in state.packages if p.choice)
     for group in groups:

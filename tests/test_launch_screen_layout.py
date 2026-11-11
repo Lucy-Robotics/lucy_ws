@@ -1,6 +1,6 @@
 import pytest
 
-from launcher import domain_field, tui
+from launcher import domain_field, links, tui
 from launcher.domain_field import DOMAIN_ROW
 
 
@@ -16,23 +16,26 @@ class _Screen:
     def __init__(self, size):
         self.size = size
         self.rows = []
+        self.cols = []
 
     def getmaxyx(self):
         return self.size
 
     def erase(self):
         self.rows = []
+        self.cols = []
 
     def refresh(self):
         pass
 
     def addstr(self, y, x, text, attr=0):
         self.rows.append((y, text, attr))
+        self.cols.append((y, x, text))
 
 
 @pytest.fixture
 def state(isolated_state, monkeypatch):
-    for module in (tui, domain_field):
+    for module in (tui, domain_field, links):
         monkeypatch.setattr(module, "curses", _Curses())
     return isolated_state
 
@@ -56,8 +59,14 @@ def _min_height(state):
     ]
     interfaces = [p for p in pkgs if p.type == "interface"]
     tools = [p for p in pkgs if p.type == "tool" or p.section == "tools"]
-    sections = [primary, interfaces, tools, [DOMAIN_ROW]] + ([robots] if robots else [])
-    return max(tui.MIN_TERM_HEIGHT, sum(len(s) + 2 for s in sections) + 2)
+    sections = [
+        primary,
+        robots + [links.ADD_ROBOT],
+        interfaces + [links.ADD_INTERFACE],
+        tools,
+        [DOMAIN_ROW],
+    ]
+    return max(tui.MIN_TERM_HEIGHT, sum(len(s) + 2 for s in sections) + 3)
 
 
 def test_visualizer_is_listed_under_tools(state):
@@ -77,43 +86,95 @@ def test_domain_row_is_last_display_entry(state):
     assert display.count(DOMAIN_ROW) == 1
 
 
-def test_domain_row_is_drawn_with_counter(state):
+def _domain_pieces(screen):
+    y = _row(screen, "ROS domain")
+    return [(t, a) for r, t, a in screen.rows if r == y]
+
+
+def _pend(state):
+    state.get_by_id("core").is_running = True
+    state.running_domain_id = state.domain_id + 1
+
+
+def test_domain_row_reads_counter_once_pieces_are_joined(state):
     screen, _ = _draw(state)
-    assert any(
-        text == f"  ROS domain ID: < {state.domain_id} >" for _, text, _ in screen.rows
-    )
+    joined = "".join(t for t, _ in _domain_pieces(screen))
+    assert joined == f"  ROS domain ID: < {state.domain_id} >"
+
+
+@pytest.mark.parametrize("pending", [False, True])
+def test_domain_row_ends_with_closing_bracket_when_current(state, pending):
+    if pending:
+        _pend(state)
+    _, display = _draw(state)
+    screen, _ = _draw(state, current=len(display) - 1)
+    pieces = _domain_pieces(screen)
+    assert [t for t, _ in pieces][1:] == [str(state.domain_id), " >"]
+    assert pieces[0][0] == "> ROS domain ID: < "
 
 
 def test_domain_row_is_dim_without_core(state):
     screen, _ = _draw(state)
-    assert next(a for _, t, a in screen.rows if "ROS domain" in t) == _Curses.A_DIM
+    pieces = _domain_pieces(screen)
+    assert {pieces[0][1], pieces[1][1], pieces[2][1]} == {_Curses.A_DIM}
 
 
 def test_domain_row_is_normal_with_core(state):
     state.toggle("core")
     screen, _ = _draw(state)
-    assert next(a for _, t, a in screen.rows if "ROS domain" in t) == _Curses.A_NORMAL
+    pieces = _domain_pieces(screen)
+    assert {pieces[0][1], pieces[1][1], pieces[2][1]} == {_Curses.A_NORMAL}
 
 
-def test_domain_row_hint_shows_when_current(state):
-    _, display = _draw(state)
-    screen, _ = _draw(state, current=len(display) - 1)
-    assert any("Left/Right to change" in t for _, t, _ in screen.rows)
-
-
-def test_domain_row_hint_hidden_when_not_current(state):
+def test_domain_number_is_yellow_only_when_restart_is_pending(state):
+    _pend(state)
     screen, _ = _draw(state)
-    assert not any("Left/Right" in t for _, t, _ in screen.rows)
+    pieces = _domain_pieces(screen)
+    assert [a for _, a in pieces] == [
+        _Curses.A_DIM,
+        _Curses().color_pair(1),
+        _Curses.A_DIM,
+    ]
 
 
-def test_restart_hint_shows_running_domain(state):
-    state.get_by_id("core").is_running = True
-    state.running_domain_id = state.domain_id + 1
+def _col(screen, name, mark="["):
+    _, x, text = next(c for c in screen.cols if name in c[2])
+    return x + text.index(mark)
+
+
+def test_core_checkbox_is_in_the_section_title_column(state):
     screen, _ = _draw(state)
-    assert any(
-        f"core runs on {state.running_domain_id}, Enter restarts it" in t
-        for _, t, _ in screen.rows
-    )
+    assert _col(screen, "Core") == _col(screen, "Tools", "T") == 2
+
+
+@pytest.mark.parametrize("name", ["InMoov i2", "Simulator", "Control Panel"])
+def test_robot_mode_and_interface_checkboxes_share_column_six(state, name):
+    screen, _ = _draw(state)
+    assert _col(screen, name) == 6
+
+
+@pytest.mark.parametrize("name", ["Visualizer", "rqt GUI"])
+def test_tool_checkboxes_share_column_six(state, name):
+    screen, _ = _draw(state)
+    assert _col(screen, name) == 6
+
+
+def test_domain_label_starts_in_column_six(state):
+    screen, _ = _draw(state)
+    assert _col(screen, "ROS domain", "R") == 6
+
+
+@pytest.mark.parametrize("name", ["Headless", "Micro controllers", "USB servos"])
+def test_subitem_checkboxes_are_in_column_ten(state, name):
+    screen, _ = _draw(state)
+    assert _col(screen, name) == 10
+
+
+def test_core_follows_a_blank_row_under_the_title(state):
+    screen, _ = _draw(state)
+    assert _row(screen, "Lucy Launch Screen") == 0
+    assert _row(screen, "Core") == 3
+    assert not any(y in (1, 2) for y, _, _ in screen.rows)
 
 
 def test_footer_text(state):
@@ -136,3 +197,7 @@ def test_one_row_below_minimum_height_draws_too_small_message(state):
 def test_minimum_height_draws_without_error(state):
     _, display = _draw(state, size=(_min_height(state), 120))
     assert display is not None
+
+
+def test_minimum_height_of_the_shipped_config_is_thirty_one(state):
+    assert _min_height(state) == 31

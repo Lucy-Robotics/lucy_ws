@@ -16,7 +16,15 @@ os.chdir(ROOT)
 def isolated_state(monkeypatch):
     import json
 
+    from launcher import state as state_module
     from launcher.state import LauncherState
+
+    for tracked in (
+        state_module._pkg_stop_times,
+        state_module._pkg_start_times,
+        state_module._intended_running,
+    ):
+        tracked.clear()
 
     config = json.loads((ROOT / "config" / "launcher_config.json").read_text())
     for target, value in {

@@ -14,28 +14,13 @@ def domain_step(key):
     return 0
 
 
-def domain_hint(state, current):
-    if state.domain_restart_pending():
-        return (
-            f" core runs on {state.running_domain_id}, Enter restarts it",
-            curses.color_pair(1),
-        )
-    if current:
-        return " Left/Right to change", curses.A_DIM
-    return "", curses.A_DIM
-
-
 def draw_domain_row(stdscr, y, x, state, current):
-    prefix = "> " if current else "  "
-    base = f"{prefix}ROS domain ID: < {state.domain_id} >"
     core = state.get_by_id("core")
-    stdscr.addstr(
-        y, x, base, curses.A_NORMAL if core and core.selected else curses.A_DIM
-    )
-    hint, attr = domain_hint(state, current)
-    room = stdscr.getmaxyx()[1] - (x + len(base)) - 1
-    if hint and room > 1:
-        try:
-            stdscr.addstr(y, x + len(base), hint[:room], attr)
-        except curses.error:
-            pass
+    attr = curses.A_NORMAL if core and core.selected else curses.A_DIM
+    pending = state.domain_restart_pending()
+    number_attr = curses.color_pair(1) if pending else attr
+    label = f"{'> ' if current else '  '}ROS domain ID: < "
+    number = str(state.domain_id)
+    stdscr.addstr(y, x, label, attr)
+    stdscr.addstr(y, x + len(label), number, number_attr)
+    stdscr.addstr(y, x + len(label) + len(number), " >", attr)

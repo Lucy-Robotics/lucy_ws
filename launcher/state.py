@@ -6,8 +6,10 @@ import time
 
 from .constants import LOADING_TIMEOUT, STOPPING_TIMEOUT
 from .choices import (
+    is_active,
     is_choice_default,
     is_last_choice,
+    keeps_when_core_off,
     same_choice,
     settle_selection,
 )
@@ -87,7 +89,9 @@ class LauncherState:
     def _disable_with_dependents(self, pkg):
         """Untick a package and any (transitive) dependents."""
         for other_pkg in self.packages:
-            if pkg.id in other_pkg.dependencies and other_pkg.selected:
+            if pkg.id not in other_pkg.dependencies or not other_pkg.selected:
+                continue
+            if not keeps_when_core_off(other_pkg, pkg):
                 self._disable_with_dependents(other_pkg)
         pkg.selected = False
 
@@ -259,7 +263,7 @@ def _has_unapplied_changes(state):
     for pkg in state.packages:
         if pkg.id in _pkg_start_times or pkg.id in _pkg_stop_times:
             continue
-        if pkg.selected != pkg.is_running:
+        if is_active(state, pkg) != pkg.is_running:
             return True
     return False
 
