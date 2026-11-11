@@ -50,13 +50,7 @@ def _row(screen, needle):
 
 
 def _min_height(state):
-    pkgs = state.packages
-    primary = [p for p in pkgs if p.type == "core"] + [
-        p
-        for p in pkgs
-        if p.type == "modifier" and not p.requires_pkg and p.section != "tools"
-    ]
-    return len(primary) + 2 + 2 * 4 + 3
+    return 2 * 5 + 4
 
 
 def test_visualizer_is_listed_under_tools(state):
@@ -132,15 +126,21 @@ def _col(screen, name, mark="["):
     return x + text.index(mark)
 
 
-def test_core_checkbox_is_in_the_section_title_column(state):
+def test_core_checkbox_is_in_column_six_like_other_items(state):
     screen, _ = _draw(state)
-    assert _col(screen, "Core") == _col(screen, "Tools", "▾") == 2
+    assert _col(screen, "Core") == _col(screen, "Visualizer") == 6
 
 
-@pytest.mark.parametrize("name", ["InMoov i2", "Simulator", "Control Panel"])
-def test_robot_mode_and_interface_checkboxes_share_column_six(state, name):
+@pytest.mark.parametrize("name", ["InMoov i2", "Control Panel"])
+def test_robot_and_interface_checkboxes_share_column_six(state, name):
     screen, _ = _draw(state)
     assert _col(screen, name) == 6
+
+
+@pytest.mark.parametrize("name", ["Simulator", "Hardware"])
+def test_mode_checkboxes_are_indented_to_column_ten(state, name):
+    screen, _ = _draw(state)
+    assert _col(screen, name) == 10
 
 
 @pytest.mark.parametrize("name", ["Visualizer", "rqt GUI"])
@@ -155,15 +155,16 @@ def test_domain_label_starts_in_column_six(state):
 
 
 @pytest.mark.parametrize("name", ["Headless", "Micro controllers", "USB servos"])
-def test_subitem_checkboxes_are_in_column_ten(state, name):
+def test_subitem_checkboxes_are_in_column_fourteen(state, name):
     screen, _ = _draw(state)
-    assert _col(screen, name) == 10
+    assert _col(screen, name) == 14
 
 
-def test_core_follows_a_blank_row_under_the_title(state):
+def test_stack_header_follows_two_blank_rows_under_the_title(state):
     screen, _ = _draw(state)
     assert _row(screen, "Lucy Launch Screen") == 0
-    assert _row(screen, "Core") == 3
+    assert _row(screen, "Stack") == 3
+    assert _row(screen, "Core") == 4
     assert not any(y in (1, 2) for y, _, _ in screen.rows)
 
 
@@ -189,5 +190,5 @@ def test_minimum_height_draws_without_error(state):
     assert display is not None
 
 
-def test_minimum_height_of_the_shipped_config_is_twenty(state):
-    assert _min_height(state) == 20
+def test_minimum_height_of_the_shipped_config_is_fourteen(state):
+    assert _min_height(state) == 14

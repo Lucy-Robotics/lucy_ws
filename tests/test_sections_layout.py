@@ -11,7 +11,7 @@ from sections_support import (
     state,
 )
 
-TITLES = ["Robot", "Control Interfaces", "Tools", "Options"]
+TITLES = ["Stack", "Robot", "Control Interfaces", "Tools", "Options"]
 
 
 def test_each_titled_section_has_a_header_before_its_items(state):
@@ -22,9 +22,29 @@ def test_each_titled_section_has_a_header_before_its_items(state):
     assert display[-1] is domain_field.DOMAIN_ROW
 
 
-def test_the_core_block_has_no_header(state):
+def test_the_stack_header_comes_first_with_core_under_it(state):
     _, display = draw(state)
-    assert display[0].type == "core"
+    assert display[0] == SectionRow("Stack", 1)
+    assert display[1].type == "core"
+
+
+def test_the_stack_header_is_on_row_three_with_no_blank_row_before_it(state):
+    screen, _ = draw(state)
+    assert header_row(screen, "Stack") == 3
+
+
+def test_one_blank_row_separates_two_sections(state):
+    screen, _ = draw(state)
+    gap = header_row(screen, "Control Interfaces") - header_row(screen, "Robot")
+    assert gap == 1 + 4 + 1
+
+
+def test_the_folded_stack_summary_lists_the_ticked_names(state):
+    state.toggle("core")
+    state.toggle("hardware")
+    screen, _ = draw(state, folded={"Stack"})
+    text = row_text(screen, header_row(screen, "Stack"))
+    assert text.endswith("  Core, Hardware, Micro controllers")
 
 
 def test_an_open_section_shows_a_down_chevron_in_column_two(state):
@@ -81,10 +101,12 @@ def test_an_open_section_shows_no_summary(state):
 @pytest.mark.parametrize(
     "height, folded",
     [
-        (31, []),
-        (27, ["Tools", "Options"]),
-        (24, ["Control Interfaces", "Tools", "Options"]),
-        (20, TITLES),
+        (32, []),
+        (31, ["Options"]),
+        (28, ["Tools", "Options"]),
+        (25, ["Control Interfaces", "Tools", "Options"]),
+        (21, ["Robot", "Control Interfaces", "Tools", "Options"]),
+        (14, TITLES),
     ],
 )
 def test_sections_fold_from_the_bottom_up_as_the_screen_shrinks(state, height, folded):
@@ -94,9 +116,9 @@ def test_sections_fold_from_the_bottom_up_as_the_screen_shrinks(state, height, f
 
 
 def test_one_row_below_every_section_folded_is_too_small(state):
-    screen, display = draw(state, height=19)
+    screen, display = draw(state, height=13)
     assert display is None
-    assert any(t == "(40x20 required)" for _, _, t, _ in screen.writes)
+    assert any(t == "(40x14 required)" for _, _, t, _ in screen.writes)
 
 
 def test_user_folded_sections_stay_folded_when_the_screen_is_tall(state):
@@ -104,7 +126,7 @@ def test_user_folded_sections_stay_folded_when_the_screen_is_tall(state):
     assert folded_titles(screen) == ["Robot"]
 
 
-@pytest.mark.parametrize("height", [80, 20])
+@pytest.mark.parametrize("height", [80, 14])
 def test_headers_open_or_folded_never_overflow_forty_columns(state, height):
     for pkg in state.packages:
         pkg.selected = True

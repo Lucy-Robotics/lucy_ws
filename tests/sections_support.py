@@ -30,7 +30,7 @@ class Screen:
         self.seen = []
         self.timeouts = []
         self.keys = list(keys)
-        self.shrink = shrink
+        self.resizes = [shrink] if isinstance(shrink, tuple) else list(shrink or [])
         self.writes = []
 
     def getmaxyx(self):
@@ -55,8 +55,8 @@ class Screen:
         if isinstance(key, tuple):
             self.clock[0] += key[1]
             return -1
-        if key == KEY_RESIZE and self.shrink:
-            self.size = self.shrink
+        if key == KEY_RESIZE and self.resizes:
+            self.size = self.resizes.pop(0)
         return key
 
     def bottom(self):

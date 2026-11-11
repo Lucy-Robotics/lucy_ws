@@ -61,7 +61,7 @@ def test_a_stopped_core_row_keeps_its_stopped_label(state, monkeypatch, selected
     _statuses(monkeypatch)
     state.get_by_id("core").selected = selected
     box = "[x]" if selected else "[ ]"
-    assert _text(_row(state, "core")) == f"> {box} Core [STOPPED]"
+    assert _text(_row(state, "core", current=1)) == f"> {box} Core [STOPPED]"
 
 
 def test_the_stopped_label_of_core_is_dim(state, monkeypatch):
