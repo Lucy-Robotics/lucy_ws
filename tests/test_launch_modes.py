@@ -104,20 +104,50 @@ def test_settle_drops_bridge_without_hardware_and_picks_simulator(state):
     assert "simulator" in _on(state)
 
 
-def test_unticking_core_clears_all_modes(state):
+def _core_off_with_hardware(state):
     state.toggle("core")
     state.toggle("hardware")
+    state.toggle("real_linux")
+    state.toggle("rviz")
+    state.toggle("lucy_cli")
     state.toggle("core")
-    assert not _on(state) & {"simulator", "hardware", "real_mcu_bridge"}
 
 
-def test_reticking_core_picks_simulator_again(state):
+def test_unticking_core_keeps_mode_bridge_and_rviz_ticked(state):
+    _core_off_with_hardware(state)
+    assert "core" not in _on(state)
+    assert {"hardware", "real_linux", "rviz"} <= _on(state)
+
+
+def test_unticking_core_keeps_the_ticked_robot(state):
     state.toggle("core")
-    state.toggle("hardware")
+    state.toggle("robot_so_arm101")
+    state.toggle("core")
+    assert "robot_so_arm101" in _on(state)
+    assert "robot_inmoov" not in _on(state)
+
+
+def test_unticking_core_still_unticks_interfaces_and_tools_that_need_it(state):
+    state.toggle("core")
+    state.toggle("lucy_cli")
+    state.toggle("rqt")
+    state.toggle("core")
+    assert not _on(state) & {"lucy_cli", "rqt"}
+
+
+def test_reticking_core_restores_the_previous_mode_and_bridge(state):
+    _core_off_with_hardware(state)
+    state.toggle("core")
+    assert {"core", "hardware", "real_linux", "rviz"} <= _on(state)
+    assert not _on(state) & {"simulator", "real_mcu_bridge"}
+
+
+def test_settle_still_drops_headless_without_gazebo_while_core_is_off(state):
     state.toggle("core")
     state.toggle("core")
-    assert "simulator" in _on(state)
-    assert "hardware" not in _on(state)
+    state.get_by_id("headless").selected = True
+    settle_selection(state)
+    assert "headless" not in _on(state)
 
 
 def test_hardware_usb_servos_launch_arguments(state):

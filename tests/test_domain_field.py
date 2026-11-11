@@ -1,5 +1,3 @@
-import curses as real_curses
-
 import pytest
 
 from launcher import domain_field
@@ -8,7 +6,7 @@ from launcher.domain_field import domain_step, draw_domain_row
 
 class _Curses:
     A_DIM, A_NORMAL = 2, 0
-    KEY_LEFT, KEY_RIGHT = real_curses.KEY_LEFT, real_curses.KEY_RIGHT
+    KEY_UP, KEY_LEFT, KEY_RIGHT = 259, 260, 261
     error = Exception
 
     def color_pair(self, n):
@@ -44,17 +42,17 @@ def _pend(state):
     state.running_domain_id = state.domain_id + 1
 
 
-@pytest.mark.parametrize("key", [real_curses.KEY_RIGHT, ord("+"), ord("=")])
+@pytest.mark.parametrize("key", [_Curses.KEY_RIGHT, ord("+"), ord("=")])
 def test_increase_keys_step_up(state, key):
     assert domain_step(key) == 1
 
 
-@pytest.mark.parametrize("key", [real_curses.KEY_LEFT, ord("-")])
+@pytest.mark.parametrize("key", [_Curses.KEY_LEFT, ord("-")])
 def test_decrease_keys_step_down(state, key):
     assert domain_step(key) == -1
 
 
-@pytest.mark.parametrize("key", [ord("d"), ord("\n"), ord(" "), real_curses.KEY_UP])
+@pytest.mark.parametrize("key", [ord("d"), ord("\n"), ord(" "), _Curses.KEY_UP])
 def test_other_keys_do_not_step(state, key):
     assert domain_step(key) == 0
 
