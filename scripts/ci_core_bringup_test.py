@@ -28,7 +28,7 @@ CONTROLLER_TIMEOUT_S = 180.0
 
 CORE_CMD = (
     "ros2 launch lucy_bringup lucy.launch.py "
-    "robot_package:=inmoov_urdf gazebo:=false"
+    "robot_package:=inmoov_urdf mode:=mock"
 )
 
 

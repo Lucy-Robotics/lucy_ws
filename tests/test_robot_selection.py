@@ -41,7 +41,7 @@ CONFIG = {
             "type": "modifier",
             "dependencies": ["core"],
             "conflicts": [],
-            "command": "gazebo:=true",
+            "command": "mode:=sim",
         },
     ]
 }
@@ -97,6 +97,6 @@ def test_save_selection_replaces_unwritable_file(monkeypatch, tmp_path):
     stale.chmod(0o444)
     monkeypatch.setattr(config, "SELECTION_FILE", stale)
 
-    config.save_selection({"core", "robot_b"})
+    config.save_selection({"core", "robot_b"}, 0)
 
     assert config.load_selection() == {"core", "robot_b"}

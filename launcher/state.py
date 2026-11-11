@@ -6,6 +6,7 @@ import time
 
 from .constants import LOADING_TIMEOUT, STOPPING_TIMEOUT
 from .config import get_dev_mode, load_state
+from .domain import env_domain_id, parse_domain_id, step_domain_id
 from .package import Package, _pkg_for_mode, _pkg_visible
 from .shell import tmux_window_snapshot
 
@@ -26,6 +27,11 @@ class LauncherState:
             Package(_pkg_for_mode(p, dev_mode), running_state["modifiers"]) for p in package_configs
         ]
         self.package_map = {p.id: p for p in self.packages}
+        # Domain core was started in (kept in the modifiers state file), and the
+        # one the counter shows; they differ until Enter restarts core.
+        running_domain = parse_domain_id(running_state.get("domain_id"))
+        self.running_domain_id = env_domain_id() if running_domain is None else running_domain
+        self.domain_id = self.running_domain_id
 
     def get_by_id(self, pkg_id):
         return self.package_map.get(pkg_id)
@@ -78,6 +84,46 @@ class LauncherState:
             if pkg.id in other_pkg.dependencies and other_pkg.selected:
                 self._disable_with_dependents(other_pkg)
         pkg.selected = False
+
+    def step_domain(self, delta, taken=frozenset()):
+        """Move the domain counter past the `taken` ones; applied on Enter.
+
+        Stays put when every domain that way is taken."""
+        domain = self.domain_id
+        while True:
+            nxt = step_domain_id(domain, delta)
+            if nxt == domain:
+                return
+            domain = nxt
+            if domain not in taken:
+                self.domain_id = domain
+                return
+
+    def avoid_domains(self, taken):
+        """Move off a domain another Control Center uses, unless core runs in it.
+
+        A second instance starts on the next free one: lucy_ws on 0, the next
+        on 1, and so on."""
+        if self.domain_id not in taken or self._core_running():
+            return
+        start = self.domain_id
+        self.step_domain(1, taken)
+        if self.domain_id == start:
+            self.step_domain(-1, taken)
+
+    def claimed_domains(self):
+        """Domains this instance uses: the counter's, and core's while it runs."""
+        if self._core_running():
+            return {self.domain_id, self.running_domain_id}
+        return {self.domain_id}
+
+    def domain_restart_pending(self):
+        """True when core runs in another domain than the counter shows."""
+        return self._core_running() and self.domain_id != self.running_domain_id
+
+    def _core_running(self):
+        core = self.get_by_id("core")
+        return bool(core and core.is_running)
 
     def _robot_packages(self):
         return [p for p in self.packages if p.requires_pkg]
@@ -199,6 +245,8 @@ def get_pkg_status(pkg):
 
 
 def _has_unapplied_changes(state):
+    if state.domain_restart_pending():
+        return True
     for pkg in state.packages:
         if pkg.id in _pkg_start_times or pkg.id in _pkg_stop_times:
             continue

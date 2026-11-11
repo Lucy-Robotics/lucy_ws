@@ -11,11 +11,11 @@
       "readiness_stages": [
         {
           "label": "Activating environment",
-          "check": "pgrep -f 'bin/[r]os2 launch lucy_bringup' >/dev/null 2>&1"
+          "check": "bash scripts/instance_pgrep.sh -f 'bin/[r]os2 launch lucy_bringup' >/dev/null 2>&1"
         },
         {
           "label": "Starting Rosbridge",
-          "check": "pgrep -f '[r]osbridge_websocket' >/dev/null 2>&1"
+          "check": "bash scripts/instance_pgrep.sh -f '[r]osbridge_websocket' >/dev/null 2>&1"
         },
         {
           "label": "Opening Rosbridge port",
@@ -23,15 +23,15 @@
         },
         {
           "label": "Starting config services",
-          "check": "pgrep -f '[c]onfig_pipeline_node' >/dev/null 2>&1"
+          "check": "bash scripts/instance_pgrep.sh -f '[c]onfig_pipeline_node' >/dev/null 2>&1"
         },
         {
           "label": "Starting control supervisor",
-          "check": "pgrep -f '[c]ontrol_supervisor_node' >/dev/null 2>&1"
+          "check": "bash scripts/instance_pgrep.sh -f '[c]ontrol_supervisor_node' >/dev/null 2>&1"
         },
         {
           "label": "Building robot model",
-          "check": "pgrep -f '[r]obot_state_publisher' >/dev/null 2>&1"
+          "check": "bash scripts/instance_pgrep.sh -f '[r]obot_state_publisher' >/dev/null 2>&1"
         },
         {
           "label": "Starting controller manager",
@@ -84,9 +84,9 @@
       "description": "(Gazebo)",
       "type": "modifier",
       "dependencies": ["core"],
-      "conflicts": ["real"],
-      "command": "gazebo:=true",
-      "readiness_check": "pgrep -f '[g]z sim' >/dev/null 2>&1",
+      "conflicts": ["real_linux", "real_mcu_bridge"],
+      "command": "mode:=sim",
+      "readiness_check": "bash scripts/instance_pgrep.sh -f '[g]z sim' >/dev/null 2>&1",
       "readiness_timeout": 120,
       "default_on": false
     },
@@ -109,19 +109,31 @@
       "dependencies": ["core"],
       "conflicts": [],
       "command": "rviz:=true",
-      "readiness_check": "pgrep -x rviz2 >/dev/null 2>&1",
+      "readiness_check": "bash scripts/instance_pgrep.sh -x rviz2 >/dev/null 2>&1",
       "readiness_timeout": 60,
       "default_on": false
     },
     {
-      "id": "real",
-      "name": "... with Real Hardware",
-      "description": "(Connect to physical robot)",
+      "id": "real_linux",
+      "name": "... with Real Hardware (USB servos)",
+      "description": "(host drives the servos: mode:=real bridge:=linux)",
       "type": "modifier",
       "dependencies": ["core"],
-      "conflicts": ["gazebo"],
-      "command": "real:=true",
-      "readiness_check": "pgrep -f '[l]ucy-embedded-firmware-(mcu-bridge|linux)' >/dev/null 2>&1",
+      "conflicts": ["gazebo", "real_mcu_bridge"],
+      "command": "mode:=real bridge:=linux",
+      "readiness_check": "bash scripts/instance_pgrep.sh -f '[l]ucy-embedded-firmware-linux' >/dev/null 2>&1",
+      "readiness_timeout": 30,
+      "default_on": false
+    },
+    {
+      "id": "real_mcu_bridge",
+      "name": "... with Real Hardware (MCU boards)",
+      "description": "(host relays to the boards: mode:=real bridge:=mcu_bridge)",
+      "type": "modifier",
+      "dependencies": ["core"],
+      "conflicts": ["gazebo", "real_linux"],
+      "command": "mode:=real bridge:=mcu_bridge",
+      "readiness_check": "bash scripts/instance_pgrep.sh -f '[l]ucy-embedded-firmware-mcu-bridge' >/dev/null 2>&1",
       "readiness_timeout": 30,
       "default_on": false
     },
@@ -134,7 +146,7 @@
       "dependencies": [],
       "conflicts": [],
       "command": "pixi run panel-prod --port ${LUCY_LCP_PUBLISHED_HOST_PORT:-4004} --strictPort",
-      "dev_command": "pixi run panel-dev",
+      "dev_command": "pixi run panel-dev --port ${LUCY_LCP_PUBLISHED_HOST_PORT:-4004} --strictPort",
       "command_win": "pixi run panel-prod --port 4004 --strictPort",
       "readiness_check": "bash scripts/port_open.sh ${LUCY_LCP_PUBLISHED_HOST_PORT:-4004}",
       "readiness_timeout": 300,
@@ -148,7 +160,7 @@
       "dependencies": ["core"],
       "conflicts": [],
       "command": "ros2 run lucy_cli tui",
-      "readiness_check": "test -f /tmp/lucy_cli.ready",
+      "readiness_check": "test -f ${LUCY_CLI_READY_FILE:-/tmp/lucy_cli.ready}",
       "nav_hint": "Ctrl-B W",
       "default_on": false
     },

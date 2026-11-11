@@ -129,19 +129,23 @@ tui-launch-test = "python scripts/ci_tui_launch_test.py"
 shell = "bash scripts/pixi_dev_shell.sh"
 
 [feature.launcher.target.unix.tasks]
-# lucy_bringup stacks (scripts/pixi_lucy_launch.sh — NixOS GL via scripts/nix_gl_env.sh)
+# lucy_bringup stacks (scripts/pixi_lucy_launch.sh — NixOS GL via scripts/nix_gl_env.sh).
+# lucy.launch.py mode:=mock|sim|real; extra args pass through, e.g. `pixi run core -- domain_id:=3`.
 core = { cmd = "bash scripts/pixi_lucy_launch.sh" }
-sim = { cmd = "bash scripts/pixi_lucy_launch.sh gazebo:=true" }
-sim-headless = { cmd = "bash scripts/pixi_lucy_launch.sh gazebo:=true headless:=true" }
-sim-rviz = { cmd = "bash scripts/pixi_lucy_launch.sh gazebo:=true headless:=true rviz:=true" }
 rviz = { cmd = "bash scripts/pixi_lucy_launch.sh rviz:=true" }
+sim = { cmd = "bash scripts/pixi_lucy_launch.sh mode:=sim" }
+sim-headless = { cmd = "bash scripts/pixi_lucy_launch.sh mode:=sim headless:=true" }
+sim-rviz = { cmd = "bash scripts/pixi_lucy_launch.sh mode:=sim headless:=true rviz:=true" }
+# Real robot: host drives USB-serial servos (SO-ARM101) / host relays to microcontroller boards.
+real-linux = { cmd = "bash scripts/pixi_lucy_launch.sh mode:=real bridge:=linux" }
+real-mcu-bridge = { cmd = "bash scripts/pixi_lucy_launch.sh mode:=real bridge:=mcu_bridge" }
 
 [feature.launcher.target.win-64.tasks]
 rcl = { cmd = "python -c 'import rclpy; print(rclpy.__file__)'" } # TMP task for testing
 core = { cmd = "python scripts/pixi_lucy_launch.py" }
-sim = { cmd = "python scripts/pixi_lucy_launch.py gazebo:=true" }
-sim-headless = { cmd = "python scripts/pixi_lucy_launch.py gazebo:=true headless:=true" }
-sim-rviz = { cmd = "python scripts/pixi_lucy_launch.py gazebo:=true headless:=true rviz:=true" }
+sim = { cmd = "python scripts/pixi_lucy_launch.py mode:=sim" }
+sim-headless = { cmd = "python scripts/pixi_lucy_launch.py mode:=sim headless:=true" }
+sim-rviz = { cmd = "python scripts/pixi_lucy_launch.py mode:=sim headless:=true rviz:=true" }
 rviz = { cmd = "python scripts/pixi_lucy_launch.py rviz:=true" }
 # core starts this automatically; here for running it standalone.
 joint-states = "ros2 run joint_state_publisher joint_state_publisher"
@@ -164,15 +168,21 @@ requests = "*"                # for rustup automatic download (if needed)
 # Zero-touch: installs rustup+elf2uf2 into $CONDA_PREFIX/{cargo,rustup}.
 # firmware_cargo_env.py points cargo/rustc at that layout (multi-platform).
 firmware-setup = "python scripts/firmware_setup.py"
-firmware-build = { cmd = "python $PIXI_PROJECT_ROOT/scripts/firmware_cargo_env.py cargo build --release --target thumbv6m-none-eabi", cwd = "src/lucy_embedded_firmware/firmwares/rp2040", depends-on = ["firmware-setup"] }
+# Host firmwares and rp2040 are colcon packages (src/lucy_embedded_firmware/firmwares/*), also built by
+# `pixi run build`. Run them with `ros2 run lucy_embedded_firmware_<linux|mcu_bridge> ...`.
 # Host Feetech SHM consumer (so101) and mcu_bridge need serialport → libudev on Linux.
-firmware-build-linux = { cmd = "python scripts/firmware_cargo_env.py cargo build --release -p lucy-embedded-firmware-linux -p lucy-embedded-firmware-mcu-bridge --manifest-path src/lucy_embedded_firmware/Cargo.toml", cwd = ".", depends-on = ["firmware-setup"] }
-firmware-flash = { cmd = "python scripts/firmware_flash.py", depends-on = ["firmware-build"] }
+firmware-build-linux = { cmd = "colcon build --symlink-install --packages-select lucy_embedded_firmware_linux --cmake-args -GNinja -DCMAKE_BUILD_TYPE=Release -Wno-dev", depends-on = ["firmware-setup"] }
+firmware-build-mcu-bridge = { cmd = "colcon build --symlink-install --packages-select lucy_embedded_firmware_mcu_bridge --cmake-args -GNinja -DCMAKE_BUILD_TYPE=Release -Wno-dev", depends-on = ["firmware-setup"] }
+# The RP2040 talks to the host through mcu_bridge, so build both.
+# UF2 lands in install/lucy_embedded_firmware_rp2040/share/lucy_embedded_firmware_rp2040/firmware/.
+firmware-build-rp2040 = { cmd = "colcon build --symlink-install --packages-select lucy_embedded_firmware_rp2040 lucy_embedded_firmware_mcu_bridge --cmake-args -GNinja -DCMAKE_BUILD_TYPE=Release -Wno-dev", depends-on = ["firmware-setup"] }
+firmware-flash = { cmd = "python scripts/firmware_flash.py", depends-on = ["firmware-build-rp2040"] }
 # Arduino Mega boards: `pixi run firmware-flash-mega mega_right [--robot pkg] [--port dev] [--build-only]`.
 # Needs host avr-gcc + avrdude (not on conda-forge).
 firmware-flash-mega = { cmd = "python scripts/firmware_flash_mega.py", depends-on = ["firmware-setup"] }
-firmware-clean = "python scripts/firmware_cargo_env.py cargo clean --manifest-path src/lucy_embedded_firmware/Cargo.toml"
-firmware-test = { cmd = "python scripts/firmware_cargo_env.py cargo test --manifest-path src/lucy_embedded_firmware/Cargo.toml", depends-on = ["firmware-setup"] }
+# No Cargo workspace: cargo test/clean walk each crate and firmware package.
+firmware-clean = "python scripts/firmware_cargo_each.py clean"
+firmware-test = { cmd = "python scripts/firmware_cargo_each.py test", depends-on = ["firmware-setup"] }
 
 # --- platform-specific host packages ---
 [target.linux.dependencies]

@@ -3,6 +3,8 @@
 import os
 import sys
 
+import pytest
+
 import launcher
 from launcher import (
     STATE_FILE,
@@ -21,6 +23,22 @@ from launcher import (
     needs_tmux_session,
     stop_all_packages,
 )
+
+
+class _SteadyDomain:
+    """What apply_changes reads of LauncherState's ROS domain: no change pending."""
+
+    domain_id = 0
+    running_domain_id = 0
+
+    def domain_restart_pending(self):
+        return False
+
+
+@pytest.fixture(autouse=True)
+def _restore_ros_domain_id(monkeypatch):
+    """apply_changes exports ROS_DOMAIN_ID; keep it from leaking into other tests."""
+    monkeypatch.setenv("ROS_DOMAIN_ID", "0")
 
 
 def test_state_file_is_workspace_scoped():
@@ -362,9 +380,9 @@ def test_apply_changes_modifier_restart_calls_finish_teardown(monkeypatch):
         True,
         "ros2 launch lucy_bringup lucy.launch.py",
     )
-    gazebo = FakePkg("gazebo", "modifier", True, False, "gazebo:=true")
+    gazebo = FakePkg("gazebo", "modifier", True, False, "mode:=sim")
 
-    class FakeState:
+    class FakeState(_SteadyDomain):
         packages = [core, gazebo]
 
         def get_by_id(self, pid):
@@ -380,6 +398,8 @@ def test_apply_changes_modifier_restart_calls_finish_teardown(monkeypatch):
         ),
     )
     monkeypatch.setattr(launcher, "save_state", lambda _data: calls.append("save"))
+    # Never the real thing: it would open a `core` window in a live lucy_ws session.
+    monkeypatch.setattr(launcher, "run_shell_command", lambda _cmd: None)
 
     apply_changes(FakeState())
     assert calls[0] == "core_stop"
@@ -413,7 +433,7 @@ def test_apply_changes_modifier_restart_preserves_control_panel(monkeypatch):
         True,
         "ros2 launch lucy_bringup lucy.launch.py",
     )
-    gazebo = FakePkg("gazebo", "modifier", True, False, "gazebo:=true")
+    gazebo = FakePkg("gazebo", "modifier", True, False, "mode:=sim")
     control_panel = FakePkg(
         "control_panel",
         "interface",
@@ -423,7 +443,7 @@ def test_apply_changes_modifier_restart_preserves_control_panel(monkeypatch):
         readiness_check="pgrep -f '[v]ite' >/dev/null 2>&1",
     )
 
-    class FakeState:
+    class FakeState(_SteadyDomain):
         packages = [core, gazebo, control_panel]
 
         def get_by_id(self, pid):
@@ -472,7 +492,7 @@ def test_apply_changes_stopping_core_preserves_running_control_panel(monkeypatch
         readiness_check="pgrep -f '[v]ite' >/dev/null 2>&1",
     )
 
-    class FakeState:
+    class FakeState(_SteadyDomain):
         packages = [core, control_panel]
 
         def get_by_id(self, pid):
@@ -536,11 +556,18 @@ def test_core_teardown_kills_rviz_before_sigint():
     process dies on SIGABRT. macOS files that as a crash and shows "rviz2 quit
     unexpectedly" on every stop. Measured: SIGINT and SIGTERM each produce a crash
     report, SIGKILL produces none."""
+    import shlex
+
+    from launcher.constants import INSTANCE_PGREP
     from launcher.tmux import _core_teardown_shell
 
     teardown = _core_teardown_shell()
-    assert "pkill -9 -x rviz2" in teardown
-    assert teardown.index("pkill -9 -x rviz2") < teardown.index("C-c")
+    # Only this instance's rviz2 (instance_pgrep.sh), never another stack's.
+    # Quoted like the code does: Windows paths (backslashes) get single quotes.
+    kill = f"{shlex.quote(str(INSTANCE_PGREP))} -x rviz2); do kill -9"
+    assert kill in teardown
+    assert "pkill" not in teardown
+    assert teardown.index(kill) < teardown.index("C-c")
 
 
 def test_window_teardown_stops_waiting_once_the_pane_is_gone():
@@ -562,7 +589,7 @@ def test_modifier_with_exit_check_reports_crash_when_exit_code_present(tmp_path)
             "id": "real",
             "name": "... with Real Hardware",
             "type": "modifier",
-            "command": "real:=true",
+            "command": "mode:=real bridge:=linux",
             "readiness_check": "false",
             "exit_check": (
                 f'"{sys.executable}" -c "import pathlib, sys; '
@@ -603,7 +630,7 @@ def test_intended_running_package_crashes_immediately_when_not_running():
             "id": "real",
             "name": "... with Real Hardware",
             "type": "modifier",
-            "command": "real:=true",
+            "command": "mode:=real bridge:=linux",
         },
         running_modifiers=[],
     )
@@ -628,7 +655,7 @@ def test_real_hardware_stays_loading_until_microcontroller_ready_file_exists(tmp
             "id": "real",
             "name": "... with Real Hardware",
             "type": "modifier",
-            "command": "real:=true",
+            "command": "mode:=real bridge:=linux",
             "readiness_check": (
                 f'"{sys.executable}" -c "import pathlib, sys; '
                 f'sys.exit(0 if pathlib.Path(sys.argv[1]).is_file() else 1)" '

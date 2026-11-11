@@ -42,7 +42,7 @@ def launched(monkeypatch):
     monkeypatch.setattr(autostart_module, "apply_changes",
                         lambda _s: calls.__setitem__("applied", calls["applied"] + 1))
     monkeypatch.setattr(autostart_module, "save_selection",
-                        lambda ids: calls.__setitem__("saved", ids))
+                        lambda ids, _domain: calls.__setitem__("saved", ids))
     return calls
 
 
