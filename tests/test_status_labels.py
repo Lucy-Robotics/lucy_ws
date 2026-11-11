@@ -1,6 +1,6 @@
 import pytest
 
-from launcher import domain_field, links, tui
+from launcher import domain_field, links, sections, tui
 
 
 class _Curses:
@@ -30,7 +30,7 @@ class _Screen:
 
 @pytest.fixture
 def state(isolated_state, monkeypatch):
-    for module in (tui, domain_field, links):
+    for module in (tui, domain_field, links, sections):
         monkeypatch.setattr(module, "curses", _Curses())
     return isolated_state
 

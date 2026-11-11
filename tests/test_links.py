@@ -3,17 +3,22 @@ import types
 
 import pytest
 
-from launcher import domain_field, links, tui
+from launcher import domain_field, links, sections, tui
 from launcher.links import ADD_INTERFACE, ADD_ROBOT, open_link
 
 URL = ADD_ROBOT.url
 KEY_UP, KEY_DOWN, KEY_RESIZE = 1001, 1002, 1003
 
 
+class _CursesError(Exception):
+    pass
+
+
 class _Curses:
     A_BOLD, A_DIM, A_NORMAL = 1, 2, 0
     KEY_UP, KEY_DOWN, KEY_RESIZE = KEY_UP, KEY_DOWN, KEY_RESIZE
-    error = Exception
+    KEY_LEFT, KEY_RIGHT = 1004, 1005
+    error = _CursesError
 
     def color_pair(self, n):
         return n << 8
@@ -44,6 +49,7 @@ class _Screen:
         pass
 
     def getch(self):
+        assert self.keys, "scripted keys exhausted"
         return self.keys.pop(0)
 
     def addstr(self, y, x, text, attr=0):
@@ -63,7 +69,7 @@ class _Poller:
 
 @pytest.fixture
 def state(isolated_state, monkeypatch):
-    for module in (tui, domain_field, links):
+    for module in (tui, domain_field, links, sections):
         monkeypatch.setattr(module, "curses", _Curses())
     return isolated_state
 
@@ -100,14 +106,14 @@ def test_add_robot_row_is_last_of_the_robot_section(state):
     _, display = _draw(state)
     before, after = _section_items(None, state, display, ADD_ROBOT)
     assert before.type == "modifier" and before.requires_pkg
-    assert after.type == "interface"
+    assert after == sections.SectionRow("Control Interfaces", 3)
 
 
 def test_add_interface_row_is_last_of_the_interfaces_section(state):
     _, display = _draw(state)
     before, after = _section_items(None, state, display, ADD_INTERFACE)
     assert before.type == "interface"
-    assert after.section == "tools" or after.type == "tool"
+    assert after == sections.SectionRow("Tools", 3)
 
 
 @pytest.mark.parametrize("link", [ADD_ROBOT, ADD_INTERFACE])

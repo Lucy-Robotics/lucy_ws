@@ -1,7 +1,7 @@
 import pytest
 
 import launcher
-from launcher import choices, domain_field, links, tui
+from launcher import choices, domain_field, links, sections, tui
 from launcher.state import _has_unapplied_changes
 
 
@@ -32,7 +32,7 @@ class _Screen:
 
 @pytest.fixture
 def state(isolated_state, monkeypatch):
-    for module in (tui, domain_field, links):
+    for module in (tui, domain_field, links, sections):
         monkeypatch.setattr(module, "curses", _Curses())
     monkeypatch.setenv("ROS_DOMAIN_ID", "0")
     return isolated_state

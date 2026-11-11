@@ -1,6 +1,6 @@
 import pytest
 
-from launcher import domain_field, links, tui
+from launcher import domain_field, links, sections, tui
 from launcher.domain_field import DOMAIN_ROW
 
 
@@ -35,7 +35,7 @@ class _Screen:
 
 @pytest.fixture
 def state(isolated_state, monkeypatch):
-    for module in (tui, domain_field, links):
+    for module in (tui, domain_field, links, sections):
         monkeypatch.setattr(module, "curses", _Curses())
     return isolated_state
 
@@ -51,22 +51,12 @@ def _row(screen, needle):
 
 def _min_height(state):
     pkgs = state.packages
-    robots = [p for p in pkgs if p.type == "modifier" and p.requires_pkg]
     primary = [p for p in pkgs if p.type == "core"] + [
         p
         for p in pkgs
         if p.type == "modifier" and not p.requires_pkg and p.section != "tools"
     ]
-    interfaces = [p for p in pkgs if p.type == "interface"]
-    tools = [p for p in pkgs if p.type == "tool" or p.section == "tools"]
-    sections = [
-        primary,
-        robots + [links.ADD_ROBOT],
-        interfaces + [links.ADD_INTERFACE],
-        tools,
-        [DOMAIN_ROW],
-    ]
-    return max(tui.MIN_TERM_HEIGHT, sum(len(s) + 2 for s in sections) + 3)
+    return len(primary) + 2 + 2 * 4 + 3
 
 
 def test_visualizer_is_listed_under_tools(state):
@@ -144,7 +134,7 @@ def _col(screen, name, mark="["):
 
 def test_core_checkbox_is_in_the_section_title_column(state):
     screen, _ = _draw(state)
-    assert _col(screen, "Core") == _col(screen, "Tools", "T") == 2
+    assert _col(screen, "Core") == _col(screen, "Tools", "▾") == 2
 
 
 @pytest.mark.parametrize("name", ["InMoov i2", "Simulator", "Control Panel"])
@@ -199,5 +189,5 @@ def test_minimum_height_draws_without_error(state):
     assert display is not None
 
 
-def test_minimum_height_of_the_shipped_config_is_thirty_one(state):
-    assert _min_height(state) == 31
+def test_minimum_height_of_the_shipped_config_is_twenty(state):
+    assert _min_height(state) == 20

@@ -25,7 +25,6 @@ SELECTION_FILE = WORKSPACE_ROOT / f".lucy_launcher_state{_SUFFIX}.json"
 LAUNCHER_PIDFILE = WORKSPACE_ROOT / f".lucy_launcher{_SUFFIX}.pid"
 # pgrep restricted to this instance's processes (readiness checks, teardown).
 INSTANCE_PGREP = WORKSPACE_ROOT / "scripts" / "instance_pgrep.sh"
-MIN_TERM_HEIGHT = 22
 MIN_TERM_WIDTH = 40
 
 LOADING_TIMEOUT = 30  # seconds before LOADING transitions to CRASHED

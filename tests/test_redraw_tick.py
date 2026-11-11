@@ -1,14 +1,19 @@
 import pytest
 
-from launcher import domain_field, links, tui
+from launcher import domain_field, links, sections, tui
 
 KEY_RESIZE = 1003
+
+
+class _CursesError(Exception):
+    pass
 
 
 class _Curses:
     A_BOLD, A_DIM, A_NORMAL = 1, 2, 0
     KEY_UP, KEY_DOWN, KEY_RESIZE = 1001, 1002, KEY_RESIZE
-    error = Exception
+    KEY_LEFT, KEY_RIGHT = 1004, 1005
+    error = _CursesError
 
     def color_pair(self, n):
         return n << 8
@@ -38,6 +43,7 @@ class _Screen:
         self.timeouts.append(ms)
 
     def getch(self):
+        assert self.keys, "scripted keys exhausted"
         return self.keys.pop(0)
 
 
@@ -51,7 +57,7 @@ class _Poller:
 
 @pytest.fixture
 def state(isolated_state, monkeypatch):
-    for module in (tui, domain_field, links):
+    for module in (tui, domain_field, links, sections):
         monkeypatch.setattr(module, "curses", _Curses())
     monkeypatch.setattr(tui, "write_stack_status", lambda _s: None)
     monkeypatch.setattr(tui, "take_robot_request", lambda _s: None)

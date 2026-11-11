@@ -13,13 +13,20 @@ from .choices import settle_selection
 from .config import get_dev_mode, load_config, save_selection
 from .constants import (
     DEFAULT_TMUX_SESSION,
-    MIN_TERM_HEIGHT,
     MIN_TERM_WIDTH,
     REDRAW_INTERVAL_MS,
     TMUX_SESSION,
 )
 from .domain import export_domain_id
 from .domain_field import DOMAIN_ROW, domain_step, draw_domain_row
+from .sections import (
+    SectionRow,
+    draw_section_header,
+    fold_change,
+    fold_to_fit,
+    rows_needed,
+    section_summary,
+)
 from .links import ADD_INTERFACE, ADD_ROBOT, LinkRow, draw_link_row, open_link
 from .instance import claim_domains, other_instance_domains
 from .robot_switch import take_robot_request
@@ -136,7 +143,7 @@ def confirm_exit_action(key):
     return "dismiss"
 
 
-def draw_too_small_message(stdscr, min_height=MIN_TERM_HEIGHT):
+def draw_too_small_message(stdscr, min_height):
     h, w = stdscr.getmaxyx()
     stdscr.erase()
     message = "Please increase terminal size"
@@ -154,6 +161,7 @@ def draw_tui(
     status_msg,
     unapplied=False,
     confirm_exit=False,
+    folded=frozenset(),
 ):
     robots = [p for p in state.packages if p.type == "modifier" and p.requires_pkg] + [
         ADD_ROBOT
@@ -168,10 +176,19 @@ def draw_tui(
     interfaces = [p for p in state.packages if p.type == "interface"] + [ADD_INTERFACE]
     tools = [p for p in state.packages if p.type == "tool" or p.section == "tools"]
     options = [DOMAIN_ROW]
-    display_list = cores_and_mods + robots + interfaces + tools + options
-    sections = [cores_and_mods, robots, interfaces, tools, options]
-    min_height = max(MIN_TERM_HEIGHT, sum(len(s) + 2 for s in sections) + 3)
+    titled = [
+        (SectionRow("Robot", 1), robots),
+        (SectionRow("Control Interfaces", 3), interfaces),
+        (SectionRow("Tools", 3), tools),
+        (SectionRow("Options", 3), options),
+    ]
     h, w = stdscr.getmaxyx()
+    all_folded = {section.title for section, _ in titled}
+    min_height = rows_needed(cores_and_mods, titled, all_folded)
+    folded = fold_to_fit(cores_and_mods, titled, folded, h)
+    display_list = list(cores_and_mods)
+    for section, items in titled:
+        display_list += [section] + ([] if section.title in folded else items)
     if h < min_height or w < MIN_TERM_WIDTH:
         draw_too_small_message(stdscr, min_height)
         return None
@@ -200,11 +217,8 @@ def draw_tui(
     elif unapplied:
         stdscr.addstr(h - 2, 2, _fit(UNAPPLIED, w - 3), curses.color_pair(1))
 
-    def draw_section(title, color, items, offset, x=4):
+    def draw_items(items, offset, x=4):
         nonlocal row
-        if title:
-            stdscr.addstr(row, 2, title, curses.A_BOLD | color)
-            row += 1
         for i, p in enumerate(items):
             list_idx = offset + i
             if isinstance(p, LinkRow):
@@ -243,18 +257,23 @@ def draw_tui(
                 _status_url(p),
                 _stage_hint(p, status),
             )
-        row += len(items) + 1
+        row += len(items)
 
     row = 3
-    draw_section(None, 0, cores_and_mods, 0, x=0)
+    draw_items(cores_and_mods, 0, x=0)
     offset = len(cores_and_mods)
-    draw_section("Robot", curses.color_pair(1), robots, offset)
-    offset += len(robots)
-    draw_section("Control Interfaces", curses.color_pair(3), interfaces, offset)
-    offset += len(interfaces)
-    draw_section("Tools", curses.color_pair(3), tools, offset)
-    offset += len(tools)
-    draw_section("Options", curses.color_pair(3), options, offset)
+    for section, items in titled:
+        row += 1
+        is_folded = section.title in folded
+        summary = section_summary(items, state)
+        draw_section_header(
+            stdscr, row, section, current_idx == offset, is_folded, summary, _fit
+        )
+        row += 1
+        offset += 1
+        if not is_folded:
+            draw_items(items, offset)
+            offset += len(items)
 
     stdscr.refresh()
     return display_list
@@ -296,6 +315,7 @@ def _event_loop(stdscr, state, poller, status_msg=None, status_msg_until=0.0):
     current_idx = 0
     error_msg = None
     confirm_exit = False
+    folded = set()
 
     while True:
         try:
@@ -320,8 +340,11 @@ def _event_loop(stdscr, state, poller, status_msg=None, status_msg_until=0.0):
                 status_msg,
                 _has_unapplied_changes(state),
                 confirm_exit,
+                folded,
             )
             error_msg = None
+            if display_list is not None:
+                current_idx = min(current_idx, len(display_list) - 1)
 
             if display_list is None:
                 stdscr.nodelay(1)
@@ -364,6 +387,14 @@ def _event_loop(stdscr, state, poller, status_msg=None, status_msg_until=0.0):
 
             current = display_list[current_idx]
             on_domain = current is DOMAIN_ROW
+            fold = (
+                fold_change(key, current.title in folded)
+                if isinstance(current, SectionRow)
+                else None
+            )
+            if fold is not None:
+                (folded.add if fold else folded.discard)(current.title)
+                continue
             if key == curses.KEY_UP:
                 current_idx = (current_idx - 1) % len(display_list)
             elif key == curses.KEY_DOWN:
