@@ -100,7 +100,7 @@ def _draw_pkg_row(
             except curses.error:
                 pass
     if url and status == "running":
-        text = f" ({url})"
+        text = _fit(f" ({url})", stdscr.getmaxyx()[1] - col - 1)
         try:
             stdscr.addstr(y, col, text, curses.color_pair(3))
             col += len(text)
@@ -189,7 +189,7 @@ def draw_tui(
             curses.A_BOLD | curses.color_pair(2),
         )
     elif status_msg:
-        stdscr.addstr(h - 2, 2, status_msg[: w - 3], curses.A_BOLD)
+        stdscr.addstr(h - 2, 2, _fit(status_msg, w - 3), curses.A_BOLD)
     elif error_msg:
         stdscr.addstr(h - 2, 2, f"Warning: {error_msg}", curses.color_pair(2))
     elif unapplied:
