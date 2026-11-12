@@ -362,6 +362,7 @@ def test_apply_changes_modifier_restart_calls_finish_teardown(monkeypatch):
             self.id = pid
             self.type = ptype
             self.selected = selected
+            self.dependencies = []
             self.is_running = running
             self.ready = running
             self.command = command
@@ -416,6 +417,7 @@ def test_apply_changes_modifier_restart_preserves_control_panel(monkeypatch):
             self.id = pid
             self.type = ptype
             self.selected = selected
+            self.dependencies = []
             self.is_running = running
             self.command = command
             self.lifecycle_hooks = {}
@@ -472,6 +474,7 @@ def test_apply_changes_stopping_core_preserves_running_control_panel(monkeypatch
             self.id = pid
             self.type = ptype
             self.selected = selected
+            self.dependencies = []
             self.is_running = running
             self.command = command
             self.lifecycle_hooks = {}

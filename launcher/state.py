@@ -5,6 +5,14 @@ import threading
 import time
 
 from .constants import LOADING_TIMEOUT, STOPPING_TIMEOUT
+from .choices import (
+    is_active,
+    is_choice_default,
+    is_last_choice,
+    keeps_when_core_off,
+    same_choice,
+    settle_selection,
+)
 from .config import get_dev_mode, load_state
 from .domain import env_domain_id, parse_domain_id, step_domain_id
 from .package import Package, _pkg_for_mode, _pkg_visible
@@ -64,10 +72,10 @@ class LauncherState:
 
     def _enable(self, pkg):
         """Tick a package, clearing anything it conflicts with first."""
-        for conflict_id in pkg.conflicts:
-            conflict_pkg = self.get_by_id(conflict_id)
-            if conflict_pkg and conflict_pkg.selected:
-                conflict_pkg.selected = False
+        for other in self.packages:
+            clashes = other.id in pkg.conflicts or same_choice(pkg, other)
+            if other.selected and clashes:
+                self._disable_with_dependents(other)
         pkg.selected = True
 
     def _enable_with_deps(self, pkg):
@@ -81,7 +89,9 @@ class LauncherState:
     def _disable_with_dependents(self, pkg):
         """Untick a package and any (transitive) dependents."""
         for other_pkg in self.packages:
-            if pkg.id in other_pkg.dependencies and other_pkg.selected:
+            if pkg.id not in other_pkg.dependencies or not other_pkg.selected:
+                continue
+            if not keeps_when_core_off(other_pkg, pkg):
                 self._disable_with_dependents(other_pkg)
         pkg.selected = False
 
@@ -141,7 +151,10 @@ class LauncherState:
                 selected_robots = [r for r in self._robot_packages() if r.selected]
                 if len(selected_robots) <= 1:
                     return "One robot package required"
+            if is_last_choice(self, pkg) and is_choice_default(self, pkg):
+                return f"One {pkg.choice} required"
             self._disable_with_dependents(pkg)
+        settle_selection(self)
         return None
 
 
@@ -250,7 +263,7 @@ def _has_unapplied_changes(state):
     for pkg in state.packages:
         if pkg.id in _pkg_start_times or pkg.id in _pkg_stop_times:
             continue
-        if pkg.selected != pkg.is_running:
+        if is_active(state, pkg) != pkg.is_running:
             return True
     return False
 

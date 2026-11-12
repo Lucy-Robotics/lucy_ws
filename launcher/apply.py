@@ -2,6 +2,7 @@
 
 import time
 
+from .choices import is_active
 from .config import load_selected_domain_id, load_selection
 from .constants import TMUX_SESSION
 from .domain import export_domain_id, parse_domain_id
@@ -141,7 +142,7 @@ def apply_changes(state):
                 _mark_stopped(mod)
 
     for pkg in state.packages:
-        if not pkg.selected and pkg.is_running:
+        if not is_active(state, pkg) and pkg.is_running:
             stopping = True
             if pkg.is_complex_command():
                 launcher.run_shell_command_async(
@@ -172,7 +173,7 @@ def apply_changes(state):
     for pkg in state.packages:
         crashed = pkg.pane_dead and pkg.pane_exit_status != 0
         if (
-            pkg.selected
+            is_active(state, pkg)
             and pkg.id not in _pkg_stop_times
             and (not pkg.is_running or crashed)
         ):

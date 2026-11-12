@@ -190,7 +190,7 @@ def guard_single_stack(
     if other is not None:
         # Never killed: that would orphan the stack it owns.
         print(
-            f"A Lucy Control Center is already running here (pid {other}).\n"
+            f"A Lucy Launch Screen is already running here (pid {other}).\n"
             f"Attach to it with:  tmux attach -t {TMUX_SESSION}\n"
             f"Set {ALLOW_MULTIPLE_ENV}=1 only if you really want a second one.",
             file=out,

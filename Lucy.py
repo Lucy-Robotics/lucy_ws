@@ -13,7 +13,7 @@ except ImportError:  # Windows: handled by windows_main
 ESCAPE_DELAY_MS = 50
 
 MIN_TERM_HEIGHT = 15
-MIN_TERM_WIDTH = 65
+MIN_TERM_WIDTH = 40
 INSTALL_ENV = {"LUCY_PIXI_AUTO_UPGRADE": "1"}
 
 def is_installed():
@@ -151,7 +151,7 @@ def not_installed_screen(stdscr):
         checkbox = "[x]" if is_dev_mode else "[ ]"
         dev_line = f"{checkbox} Developer Mode"
         stdscr.addstr(start + len(lines), max(0, (w - len(dev_line)) // 2), dev_line)
-        hint_line = "(SSH clones during install; does not change Launch)"
+        hint_line = "(installs over SSH; Launch unchanged)"
         stdscr.addstr(start + len(lines) + 1, max(0, (w - len(hint_line)) // 2), hint_line, curses.A_DIM)
 
         footer = [

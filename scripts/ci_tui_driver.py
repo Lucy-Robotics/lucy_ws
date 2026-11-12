@@ -69,12 +69,12 @@ def select_robot(robot: str) -> bool:
     label = re.escape(robot_label(robot))
     for _ in range(40):
         lines = screen().splitlines()
-        row = next((i for i, line in enumerate(lines) if re.search(rf"\] {label} \[", line)), None)
+        row = next((i for i, line in enumerate(lines) if re.search(rf"\] {label}(?: \[|$)", line)), None)
         cursor = next((i for i, line in enumerate(lines) if re.match(r"\s*> ", line)), None)
         if row is None or cursor is None:
             raise CheckFailed(f"no {robot_label(robot)} row or cursor in the TUI:\n{screen()}")
         if row == cursor:
-            if re.search(rf"\[x\] {label} \[", lines[row]):
+            if re.search(rf"\[x\] {label}(?: \[|$)", lines[row]):
                 return False
             tmux("send-keys", "-t", f"{SESSION}:Lucy", "Space")
             time.sleep(0.5)

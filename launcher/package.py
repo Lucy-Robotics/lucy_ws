@@ -69,6 +69,8 @@ class Package:
         self.selected = data.get("default_on", False)
         self.requires_pkg = data.get("requires_pkg")
         self.subitem = data.get("subitem", False)
+        self.choice = data.get("choice")
+        self.section = data.get("section")
         self.readiness_check = data.get("readiness_check")
         self.exit_check = data.get("exit_check")
         self.readiness_stages = _readiness_stages(data.get("readiness_stages"))

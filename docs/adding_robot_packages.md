@@ -179,7 +179,7 @@ Add a modifier (usually in `config/launcher_config.json.local` while iterating):
 ```json
 {
   "id": "robot_my_robot",
-  "name": "Robot: My Robot",
+  "name": "My Robot",
   "description": "(robot_package:=my_robot_urdf)",
   "type": "modifier",
   "dependencies": ["core"],
