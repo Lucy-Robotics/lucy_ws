@@ -6,6 +6,7 @@ import os
 import re
 import time
 
+from ci_panel_calibration import check_calibration
 from ci_panel_viewer import WEBGL_RENDERER, check_viewer, check_viewer_follows, watch_model
 from ci_stack import PANEL_PORT, ROOT, Ros, diff, log
 
@@ -99,6 +100,8 @@ def exercise_panel(ros: Ros, robot: str) -> None:
         page.on("console", lambda m: m.type == "error" and log(f"browser: {m.text}"))
         try:
             drive_panel(page, ros)
+            if robot == "so_arm101_urdf":
+                check_calibration(page, ros)
         finally:
             shot.parent.mkdir(exist_ok=True)
             page.mouse.move(0, 0)
