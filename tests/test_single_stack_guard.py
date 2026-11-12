@@ -158,7 +158,7 @@ def test_restarting_over_your_own_stack_is_not_blocked_by_the_pidfile():
 def test_pidfile_ignores_a_dead_launcher(tmp_path, monkeypatch):
     from launcher import preflight
 
-    pidfile = tmp_path / ".lucy_launcher.pid"
+    pidfile = tmp_path / "launcher.lucy_ws_0.pid"
     pidfile.write_text("999999")  # not a live pid
     monkeypatch.setattr(preflight, "LAUNCHER_PIDFILE", pidfile)
     assert preflight.another_launcher_pid() is None
@@ -169,7 +169,7 @@ def test_pidfile_ignores_a_reused_pid(tmp_path, monkeypatch):
 
     from launcher import preflight
 
-    pidfile = tmp_path / ".lucy_launcher.pid"
+    pidfile = tmp_path / "launcher.lucy_ws_0.pid"
     pidfile.write_text(str(os.getppid()))
     monkeypatch.setattr(preflight, "LAUNCHER_PIDFILE", pidfile)
     monkeypatch.setattr(preflight, "_cmdline_of", lambda _p: "/usr/bin/some-unrelated-daemon")
@@ -181,7 +181,7 @@ def test_pidfile_round_trips(tmp_path, monkeypatch):
 
     from launcher import preflight
 
-    pidfile = tmp_path / ".lucy_launcher.pid"
+    pidfile = tmp_path / "launcher.lucy_ws_0.pid"
     monkeypatch.setattr(preflight, "LAUNCHER_PIDFILE", pidfile)
     preflight.claim_launcher_pidfile()
     assert pidfile.read_text().strip() == str(os.getpid())

@@ -112,7 +112,7 @@ class LauncherState:
     def avoid_domains(self, taken):
         """Move off a domain another Control Center uses, unless core runs in it.
 
-        A second instance starts on the next free one: lucy_ws on 0, the next
+        A second instance starts on the next free one: lucy_ws_0 on 0, the next
         on 1, and so on."""
         if self.domain_id not in taken or self._core_running():
             return

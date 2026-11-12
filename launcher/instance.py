@@ -1,8 +1,8 @@
 """Several Control Centers on one host, one per tmux session.
 
 launch_lucy.sh starts a second launcher in its own session (lucy_ws_1, ...)
-when lucy_ws is already shown in a terminal. Each instance keeps its own
-launcher files (constants.instance_suffix), and its stack is told apart from the
+when lucy_ws_0 is already shown in a terminal. Each instance keeps its own
+state in ~/.local/state/lucy/<session>/, and its stack is told apart from the
 others by LUCY_TMUX_SESSION in the environment of every process it starts.
 
 Instances must not share a ROS domain, or their graphs merge: each one claims
@@ -18,11 +18,11 @@ import tempfile
 from .constants import (
     DEFAULT_TMUX_SESSION,
     LAUNCHER_PIDFILE,
+    STATE_ROOT,
     TMUX_SESSION,
-    WORKSPACE_ROOT,
 )
 
-_PIDFILE_RE = re.compile(r"^\.lucy_launcher(?:\.(?P<session>.+))?\.pid$")
+_PIDFILE_RE = re.compile(r"^launcher\.(?P<session>.+)\.pid$")
 
 
 def _pid_alive(pid):
@@ -73,25 +73,33 @@ def read_pidfile(path):
     return pid, domains
 
 
-def other_instance_domains(root=WORKSPACE_ROOT, own_session=TMUX_SESSION):
-    """ROS domains claimed by the other live Control Centers of this workspace."""
-    taken = set()
-    for path in root.glob(".lucy_launcher*.pid"):
+def other_instance_claims(root=STATE_ROOT, own_session=TMUX_SESSION):
+    """{domain: [sessions]} claimed by the other live Control Centers on this host."""
+    claims = {}
+    for path in sorted(root.glob("launcher.*.pid")):
         match = _PIDFILE_RE.match(path.name)
         if not match:
             continue
-        if (match.group("session") or DEFAULT_TMUX_SESSION) == own_session:
+        session = match.group("session")
+        if session == own_session:
             continue
         pid, domains = read_pidfile(path)
         if pid is not None and pid != os.getpid() and _pid_alive(pid):
-            taken |= domains
-    return taken
+            for domain in domains:
+                claims.setdefault(domain, []).append(session)
+    return claims
+
+
+def other_instance_domains(root=STATE_ROOT, own_session=TMUX_SESSION):
+    """ROS domains claimed by the other live Control Centers on this host."""
+    return set(other_instance_claims(root, own_session))
 
 
 def claim_domains(domains, pidfile=LAUNCHER_PIDFILE):
     """Write this launcher's pidfile: its pid, then the domains it uses."""
     claimed = " ".join(map(str, sorted(domains)))
     try:
+        pidfile.parent.mkdir(parents=True, exist_ok=True)
         pidfile.write_text(f"{os.getpid()}\n{claimed}\n")
     except OSError:
         pass

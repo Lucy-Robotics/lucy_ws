@@ -2,10 +2,12 @@
 
 import os
 import sys
+from pathlib import Path
 
 import pytest
 
 import launcher
+from launcher.constants import LAUNCHER_PIDFILE, state_root
 from launcher import (
     STATE_FILE,
     WORKSPACE_ROOT,
@@ -41,8 +43,19 @@ def _restore_ros_domain_id(monkeypatch):
     monkeypatch.setenv("ROS_DOMAIN_ID", "0")
 
 
-def test_state_file_is_workspace_scoped():
-    assert STATE_FILE == WORKSPACE_ROOT / ".lucy_launcher_modifiers.json"
+def test_state_is_kept_per_ws_outside_the_repo():
+    assert STATE_FILE == state_root() / "lucy_ws_0" / "modifiers.json"
+    assert not STATE_FILE.is_relative_to(WORKSPACE_ROOT)
+
+
+def test_pidfiles_are_shared_by_every_ws():
+    # Sessions and ROS domains are host-wide: every launcher must see the others' claims.
+    assert LAUNCHER_PIDFILE == state_root() / "launcher.lucy_ws_0.pid"
+
+
+def test_state_root_follows_xdg_state_home(tmp_path):
+    assert state_root({"XDG_STATE_HOME": str(tmp_path)}) == tmp_path / "lucy"
+    assert state_root({}) == Path.home() / ".local" / "state" / "lucy"
 
 
 def test_pixi_workspace_script_wraps_ros2():
@@ -399,7 +412,7 @@ def test_apply_changes_modifier_restart_calls_finish_teardown(monkeypatch):
         ),
     )
     monkeypatch.setattr(launcher, "save_state", lambda _data: calls.append("save"))
-    # Never the real thing: it would open a `core` window in a live lucy_ws session.
+    # Never the real thing: it would open a `core` window in a live lucy_ws_0 session.
     monkeypatch.setattr(launcher, "run_shell_command", lambda _cmd: None)
 
     apply_changes(FakeState())

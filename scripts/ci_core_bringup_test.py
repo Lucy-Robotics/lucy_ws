@@ -19,7 +19,7 @@ from pathlib import Path
 from urllib.parse import unquote, urlparse
 
 ROOT = Path(__file__).resolve().parent.parent
-TMUX_SESSION = os.environ.get("LUCY_TMUX_SESSION", "lucy_ws")
+TMUX_SESSION = os.environ.get("LUCY_TMUX_SESSION", "lucy_ws_0")
 
 BRINGUP_TIMEOUT_S = float(os.environ.get("LUCY_CI_BRINGUP_TIMEOUT", "300"))
 ROSBRIDGE_PORT = int(os.environ.get("PORT_ROSBRIDGE", "9090"))

@@ -187,7 +187,8 @@ jobs:
         timeout-minutes: 25
         shell: bash
         run: |
-          rm -f .env .lucy_launcher_state.json
+          rm -f .env
+          rm -rf "${XDG_STATE_HOME:-$HOME/.local/state}/lucy"
           pixi run tui-launch-test inmoov_urdf so_arm101_urdf
 
       - name: Name the E2E screenshots after their platform

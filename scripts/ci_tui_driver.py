@@ -12,7 +12,7 @@ import urllib.request
 from ci_stack import PANEL_PORT, ROOT, CheckFailed, log
 
 OUTER_SOCKET = "lucy_ci_outer"
-SESSION = os.environ.get("LUCY_TMUX_SESSION", "lucy_ws")
+SESSION = os.environ.get("LUCY_TMUX_SESSION", "lucy_ws_0")
 
 
 def tmux(*args: str, outer: bool = False) -> str:
