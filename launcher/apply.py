@@ -238,7 +238,7 @@ def apply_changes(state):
 
 
 def restore_selection(state):
-    """Pre-tick packages from the last applied selection (.lucy_launcher_state.json)."""
+    """Pre-tick packages from the last applied selection (SELECTION_FILE)."""
     saved = load_selection()
     if saved is None:
         return

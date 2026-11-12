@@ -110,3 +110,24 @@ def test_label_and_brackets_keep_row_attribute_when_restart_is_pending(state):
     _pend(state)
     cells = _draw(state)
     assert [cells[0][2], cells[2][2]] == [_Curses.A_DIM] * 2
+
+
+def test_warning_names_the_ws_already_using_the_domain(state):
+    screen = _Screen()
+    draw_domain_row(screen, 3, 4, state, False, {state.domain_id: ["lucy_ws_1"]})
+    x, text, attr = sorted(screen.cells)[-1]
+    assert text == f" ROS domain {state.domain_id} is already used by lucy_ws_1"
+    assert attr == _Curses().color_pair(2)
+
+
+def test_warning_is_cut_to_a_narrow_screen(state):
+    screen = _Screen(width=40)
+    draw_domain_row(screen, 3, 4, state, False, {state.domain_id: ["lucy_ws_1"]})
+    assert max(x + len(text) for x, text, _ in screen.cells) < 40
+
+
+def test_no_warning_for_a_domain_nobody_else_uses(state):
+    assert _draw(state)[-1][1] == " >"
+    screen = _Screen()
+    draw_domain_row(screen, 3, 4, state, False, {state.domain_id + 1: ["lucy_ws_1"]})
+    assert sorted(screen.cells)[-1][1] == " >"

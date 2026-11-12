@@ -110,9 +110,8 @@ fi
 pick_tmux_session() {
   local n=0 s
   while (( n <= 100 )); do
-    s=lucy_ws
-    (( n > 0 )) && s="lucy_ws_${n}"
-    # "=" asks tmux for this exact name: a bare lucy_ws also matches lucy_ws_1.
+    s="lucy_ws_${n}"
+    # "=" asks tmux for this exact name: a bare lucy_ws_1 also matches lucy_ws_10.
     if ! tmux list-windows -t "=${s}" -F '#{window_name}' 2>/dev/null | grep -qx Lucy \
       || [[ "$(tmux display-message -p -t "=${s}:" '#{session_attached}' 2>/dev/null)" == 0 ]]; then
       echo "${s}"
@@ -123,7 +122,7 @@ pick_tmux_session() {
   echo "lucy_ws_${n}"
 }
 
-TMUX_SESSION="lucy_ws"
+TMUX_SESSION="lucy_ws_0"
 INSTANCE=0
 case "${1:-}" in
   --headless|--shell) ;;

@@ -19,7 +19,7 @@ fi
 printf 'DEV=true\n' > .env
 
 export LUCY_WS_ROOT="$ROOT"
-TMUX_SESSION="${LUCY_TMUX_SESSION:-lucy_ws}"
+TMUX_SESSION="${LUCY_TMUX_SESSION:-lucy_ws_0}"
 export LUCY_TMUX_SESSION="$TMUX_SESSION"
 
 tmux start-server

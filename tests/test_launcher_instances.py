@@ -10,36 +10,47 @@ import pytest
 
 import launcher
 from launcher import config, instance, process
-from launcher.constants import instance_suffix
 from launcher.state import LauncherState
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_default_instance_keeps_its_file_names():
-    assert instance_suffix("lucy_ws") == ""
-    assert instance_suffix("lucy_ws_1") == ".lucy_ws_1"
+def test_claims_name_the_sessions_using_each_domain(tmp_path):
+    alive = os.getppid()
+    (tmp_path / "launcher.lucy_ws_0.pid").write_text(f"{alive}\n0\n")
+    (tmp_path / "launcher.lucy_ws_1.pid").write_text(f"{alive}\n0 1\n")
+    (tmp_path / "launcher.lucy_ws_2.pid").write_text("999999999\n1\n")  # dead
+    claims = instance.other_instance_claims(tmp_path, own_session="lucy_ws_3")
+    assert claims == {0: ["lucy_ws_0", "lucy_ws_1"], 1: ["lucy_ws_1"]}
+
+
+def test_domain_warning_names_the_other_ws():
+    from launcher.tui import domain_warning
+
+    assert domain_warning(0, {}) is None
+    assert domain_warning(0, {1: ["lucy_ws_1"]}) is None
+    assert domain_warning(1, {1: ["lucy_ws_1"]}) == "ROS domain 1 is already used by lucy_ws_1"
 
 
 def test_pidfile_carries_the_claimed_domains(tmp_path):
-    pidfile = tmp_path / ".lucy_launcher.lucy_ws_1.pid"
+    pidfile = tmp_path / "launcher.lucy_ws_1.pid"
     instance.claim_domains({3, 1}, pidfile=pidfile)
     assert instance.read_pidfile(pidfile) == (os.getpid(), {1, 3})
 
 
 def test_pidfile_without_domains_still_reads(tmp_path):
-    pidfile = tmp_path / ".lucy_launcher.pid"
+    pidfile = tmp_path / "launcher.lucy_ws_0.pid"
     pidfile.write_text("1234")
     assert instance.read_pidfile(pidfile) == (1234, set())
 
 
 def test_other_instances_domains_skip_own_and_dead(tmp_path):
     alive = os.getppid()
-    (tmp_path / ".lucy_launcher.pid").write_text(f"{alive}\n0\n")
-    (tmp_path / ".lucy_launcher.lucy_ws_1.pid").write_text(f"{alive}\n1 4\n")
-    (tmp_path / ".lucy_launcher.lucy_ws_2.pid").write_text("999999999\n2\n")  # dead
+    (tmp_path / "launcher.lucy_ws_0.pid").write_text(f"{alive}\n0\n")
+    (tmp_path / "launcher.lucy_ws_1.pid").write_text(f"{alive}\n1 4\n")
+    (tmp_path / "launcher.lucy_ws_2.pid").write_text("999999999\n2\n")  # dead
     assert instance.other_instance_domains(tmp_path, own_session="lucy_ws_3") == {0, 1, 4}
-    assert instance.other_instance_domains(tmp_path, own_session="lucy_ws") == {1, 4}
+    assert instance.other_instance_domains(tmp_path, own_session="lucy_ws_0") == {1, 4}
 
 
 def test_second_instance_gets_its_own_markers_and_gazebo_partition():
@@ -53,14 +64,14 @@ def test_second_instance_gets_its_own_markers_and_gazebo_partition():
 
 def test_default_instance_keeps_stock_settings():
     env = {}
-    instance.export_instance_env("lucy_ws", env)
-    assert env == {"LUCY_TMUX_SESSION": "lucy_ws"}
+    instance.export_instance_env("lucy_ws_0", env)
+    assert env == {"LUCY_TMUX_SESSION": "lucy_ws_0"}
 
 
 @pytest.mark.parametrize(
     "environ, session",
     [
-        ({}, "lucy_ws"),
+        ({}, "lucy_ws_0"),
         ({"LUCY_TMUX_SESSION": "lucy_ws_1"}, "lucy_ws_1"),
         # macOS reader: the value runs on to the next variable on the ps line.
         ({"LUCY_TMUX_SESSION": "lucy_ws_2 TERM=xterm"}, "lucy_ws_2"),
@@ -75,7 +86,7 @@ def test_orphan_cleanup_leaves_other_instances_alone(monkeypatch):
     cmdline = f"python3 {ws}/install/lib/robot_state_publisher"
     environs = {11: {}, 12: {"LUCY_TMUX_SESSION": "lucy_ws_1"}}
     monkeypatch.setattr(launcher, "_read_proc_environ", lambda pid: environs[pid])
-    monkeypatch.setattr(process, "TMUX_SESSION", "lucy_ws")
+    monkeypatch.setattr(process, "TMUX_SESSION", "lucy_ws_0")
     assert process.is_lucy_orphan(11, cmdline)
     assert not process.is_lucy_orphan(12, cmdline)
     monkeypatch.setattr(process, "TMUX_SESSION", "lucy_ws_1")
@@ -163,7 +174,7 @@ def test_instance_pgrep_only_sees_its_instance():
 
         mine = pgrep("lucy_ws_7")
         assert mine.returncode == 0 and str(child.pid) in mine.stdout.split()
-        assert pgrep("lucy_ws").returncode == 1
+        assert pgrep("lucy_ws_0").returncode == 1
     finally:
         child.kill()
         child.wait()

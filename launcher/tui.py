@@ -12,13 +12,12 @@ from .autostart import autostart
 from .choices import settle_selection
 from .config import get_dev_mode, load_config, save_selection
 from .constants import (
-    DEFAULT_TMUX_SESSION,
     MIN_TERM_WIDTH,
     REDRAW_INTERVAL_MS,
     TMUX_SESSION,
 )
 from .domain import export_domain_id
-from .domain_field import DOMAIN_ROW, domain_step, draw_domain_row
+from .domain_field import DOMAIN_ROW, domain_step, domain_warning, draw_domain_row
 from .sections import (
     SectionRow,
     draw_section_header,
@@ -28,7 +27,7 @@ from .sections import (
     section_summary,
 )
 from .links import ADD_INTERFACE, ADD_ROBOT, LinkRow, draw_link_row, open_link
-from .instance import claim_domains, other_instance_domains
+from .instance import claim_domains, other_instance_claims, other_instance_domains
 from .robot_switch import take_robot_request
 from .stack_status import write_stack_status
 from .state import (
@@ -183,6 +182,7 @@ def draw_tui(
     unapplied=False,
     confirm_exit=False,
     folded=frozenset(),
+    domain_claims=None,
 ):
     titled = launch_sections(state)
     h, w = stdscr.getmaxyx()
@@ -197,9 +197,7 @@ def draw_tui(
         return None
 
     stdscr.erase()
-    title = "Lucy Launch Screen"
-    if TMUX_SESSION != DEFAULT_TMUX_SESSION:
-        title += f" ({TMUX_SESSION})"
+    title = f"Lucy Launch Screen ({TMUX_SESSION})"
     stdscr.addstr(0, max(0, (w - len(title)) // 2), title, curses.A_BOLD)
     footer = FOOTER if len(FOOTER) + 3 <= w else SHORT_FOOTER
     stdscr.addstr(h - 1, 2, footer, curses.A_BOLD)
@@ -228,7 +226,9 @@ def draw_tui(
                 draw_link_row(stdscr, row + i, x, p, current_idx == list_idx)
                 continue
             if p is DOMAIN_ROW:
-                draw_domain_row(stdscr, row + i, 4, state, current_idx == list_idx)
+                draw_domain_row(
+                    stdscr, row + i, 4, state, current_idx == list_idx, domain_claims
+                )
                 continue
             prefix = "> " if current_idx == list_idx else "  "
             checkbox = "[x]" if p.selected else "[ ]"
@@ -298,11 +298,18 @@ def main(stdscr):
     restore_selection(state)
     default_robot_selection(state)
     settle_selection(state)
-    state.avoid_domains(other_instance_domains())
+    claims = other_instance_claims()
+    saved_domain = state.domain_id
+    state.avoid_domains(set(claims))
     export_domain_id(state.domain_id)
     claim_domains(state.claimed_domains())
     status_msg = autostart(state, get_dev_mode())
     status_msg_until = time.time() + 3.0 if status_msg else 0.0
+    if state.domain_id != saved_domain:
+        status_msg = (
+            f"{domain_warning(saved_domain, claims)}: switched to {state.domain_id}"
+        )
+        status_msg_until = time.time() + 8.0
 
     poller = StatusPoller(state)
     try:
@@ -329,7 +336,9 @@ def _event_loop(stdscr, state, poller, status_msg=None, status_msg_until=0.0):
             switched = take_robot_request(state)
             if switched:
                 apply_changes(state)
-                save_selection({p.id for p in state.packages if p.selected})
+                save_selection(
+                    {p.id for p in state.packages if p.selected}, state.domain_id
+                )
                 status_msg = f"Control panel switched to {switched.name}"
                 status_msg_until = time.time() + 5.0
                 poller.request_refresh()
@@ -346,6 +355,7 @@ def _event_loop(stdscr, state, poller, status_msg=None, status_msg_until=0.0):
                 _has_unapplied_changes(state),
                 confirm_exit,
                 folded,
+                other_instance_claims(),
             )
             if error_msg and time.time() >= error_until:
                 error_msg = None

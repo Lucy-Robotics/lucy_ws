@@ -109,6 +109,14 @@ my_robot_urdf/
    (launch files pass absolute `base_path`).
 4. Drop ROS 1 `<transmission>` blocks; ros2_control replaces them.
 5. Keep joint names stable - they must match hardware YAML and controllers.
+6. Declare the robot's capabilities with a `<lucy_capabilities>` child of
+   `<robot>` in the entry xacro (ROS tools ignore unknown elements):
+   ```xml
+   <lucy_capabilities effort_feedback="false"/>
+   ```
+   - `effort_feedback`: whether the servos report effort/load. When `false`,
+     the control panel hides the effort HEATMAP and ARROWS view options.
+     Defaults to `true` when the element or attribute is missing.
 
 **Bringup / pipeline note:** both `lucy_bringup` and `lucy_config_pipeline`
 read `config/control.launch.yaml` for `urdf_path` / `base_path` /

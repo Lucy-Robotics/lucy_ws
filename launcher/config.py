@@ -72,6 +72,7 @@ def load_state():
 
 
 def save_state(state_data):
+    STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
     with open(STATE_FILE, "w") as f:
         json.dump(state_data, f)
 
@@ -102,6 +103,7 @@ def save_selection(selected_ids, domain_id):
     data = {"selected": sorted(selected_ids), "domain_id": domain_id}
     tmp = f"{SELECTION_FILE}.tmp"
     try:
+        SELECTION_FILE.parent.mkdir(parents=True, exist_ok=True)
         with open(tmp, "w") as f:
             json.dump(data, f)
         # Replace, don't rewrite in place: a root-owned file left by the Docker setup

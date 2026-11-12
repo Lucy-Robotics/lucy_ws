@@ -7,22 +7,33 @@ WORKSPACE_ROOT = Path(__file__).resolve().parent.parent
 CONFIG_DIR = WORKSPACE_ROOT / "config"
 DEFAULT_CONFIG_FILE = CONFIG_DIR / "launcher_config.json"
 LOCAL_CONFIG_FILE = CONFIG_DIR / "launcher_config.json.local"
-DEFAULT_TMUX_SESSION = "lucy_ws"
-# One Control Center per tmux session. launch_lucy.sh starts a second one in
-# lucy_ws_<n> when lucy_ws is already in use: an instance with its own files,
-# ROS domain and ports. Processes are tied to their instance by this variable.
+DEFAULT_TMUX_SESSION = "lucy_ws_0"
+# One Control Center per tmux session. launch_lucy.sh starts the first one in
+# lucy_ws_0 and the next in lucy_ws_<n> when the previous ones are in use: an
+# instance with its own files, ROS domain and ports. Processes are tied to their
+# instance by this variable.
 TMUX_SESSION = os.environ.get("LUCY_TMUX_SESSION", DEFAULT_TMUX_SESSION)
 
 
-def instance_suffix(session: str) -> str:
-    """Infix of an instance's launcher files ('' for the default instance)."""
-    return "" if session == DEFAULT_TMUX_SESSION else f".{session}"
+def state_root(environ=os.environ) -> Path:
+    """Lucy's state, outside the repo: $XDG_STATE_HOME/lucy (~/.local/state/lucy).
+
+    Holds one directory per ws (tmux session) for its selection and modifiers,
+    and every Control Center's pidfile: sessions, ports and ROS domains are
+    host-wide, so each launcher must see the others' claims."""
+    base = environ.get("XDG_STATE_HOME") or str(Path.home() / ".local" / "state")
+    return Path(base) / "lucy"
 
 
-_SUFFIX = instance_suffix(TMUX_SESSION)
-STATE_FILE = WORKSPACE_ROOT / f".lucy_launcher_modifiers{_SUFFIX}.json"
-SELECTION_FILE = WORKSPACE_ROOT / f".lucy_launcher_state{_SUFFIX}.json"
-LAUNCHER_PIDFILE = WORKSPACE_ROOT / f".lucy_launcher{_SUFFIX}.pid"
+def pidfile_for(session: str, root: Path) -> Path:
+    return root / f"launcher.{session}.pid"
+
+
+STATE_ROOT = state_root()
+STATE_DIR = STATE_ROOT / TMUX_SESSION
+STATE_FILE = STATE_DIR / "modifiers.json"
+SELECTION_FILE = STATE_DIR / "selection.json"
+LAUNCHER_PIDFILE = pidfile_for(TMUX_SESSION, STATE_ROOT)
 # pgrep restricted to this instance's processes (readiness checks, teardown).
 INSTANCE_PGREP = WORKSPACE_ROOT / "scripts" / "instance_pgrep.sh"
 MIN_TERM_WIDTH = 40

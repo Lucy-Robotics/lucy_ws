@@ -91,8 +91,8 @@ def test_non_robot_modifiers_still_toggle_off(monkeypatch):
 def test_save_selection_replaces_unwritable_file(monkeypatch, tmp_path):
     from launcher import config
 
-    # Stands in for the root-owned .lucy_launcher_state.json the Docker setup left behind.
-    stale = tmp_path / ".lucy_launcher_state.json"
+    # Stands in for a root-owned selection file (e.g. one left behind by a Docker setup).
+    stale = tmp_path / "selection.json"
     stale.write_text('{"selected": ["robot_a"]}')
     stale.chmod(0o444)
     monkeypatch.setattr(config, "SELECTION_FILE", stale)
