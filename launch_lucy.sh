@@ -192,6 +192,7 @@ case "$(uname -s)" in
         elif ! tmux list-windows -t '=${TMUX_SESSION}' -F '#{window_name}' | grep -qx Lucy; then
           tmux new-window -t '=${TMUX_SESSION}:' -n Lucy \"${LAUNCH_CMD}\"
         fi
+        bash \"${SCRIPT_DIR}/scripts/tmux_theme.sh\" '${TMUX_SESSION}' || true
         tmux select-window -t '=${TMUX_SESSION}:Lucy' 2>/dev/null || true
         tmux attach-session -t '=${TMUX_SESSION}'
       "
