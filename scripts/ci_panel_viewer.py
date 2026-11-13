@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 import time
 from collections import Counter
+from urllib.parse import urlparse
 
 from ci_stack import CheckFailed, Ros, log
 
@@ -20,6 +21,7 @@ WEBGL_RENDERER = """() => {
 VIEWER_ERRORS = re.compile(r"No URDF received|Could not load any meshes|WebGL is not supported|Failed to load robot model")
 
 
+MESH_ROUTE = "/meshes"
 MESH_CALL_ID = re.compile(r'"id":\s*"(call_service:/mesh/get:\d+)"')
 FRAME_OP = re.compile(r'"op":\s*"(\w+)"')
 FRAME_NAME = re.compile(r'"(?:topic|service)":\s*"([^"]+)"')
@@ -72,7 +74,13 @@ def watch_model(page) -> dict:
                 frames.clear()
                 frame_bytes.clear()
 
+    def on_response(response) -> None:
+        if urlparse(response.url).path == MESH_ROUTE:
+            model["replies"] += 1
+            frames[f"rx http {MESH_ROUTE} {response.status}"] += 1
+
     page.on("console", on_console)
+    page.on("response", on_response)
     page.on("websocket", lambda ws: (ws.on("framereceived", on_frame), ws.on("framesent", on_sent)))
     return model
 
@@ -86,7 +94,7 @@ def check_viewer(page, model: dict, opened_at: float) -> None:
         page.wait_for_timeout(1000)
     if "meshes" not in model:
         raise CheckFailed(
-            f"the 3D view did not finish loading the robot: {model['replies']} mesh/get replies "
+            f"the 3D view did not finish loading the robot: {model['replies']} mesh replies "
             f"in {time.time() - opened_at:.0f}s, none in the last {time.time() - progressed_at:.0f}s"
         )
     loaded, total = model["meshes"]
@@ -97,7 +105,7 @@ def check_viewer(page, model: dict, opened_at: float) -> None:
     if shown.count():
         raise CheckFailed(f"the 3D view shows an error: {shown.first.inner_text()!r}")
     log(f"3D view loaded all {total} meshes in {model['done_at'] - opened_at:.0f}s "
-        f"({model['replies']} mesh/get replies) and shows no error")
+        f"({model['replies']} mesh replies) and shows no error")
 
 
 def grab(page, canvas) -> bytes:
