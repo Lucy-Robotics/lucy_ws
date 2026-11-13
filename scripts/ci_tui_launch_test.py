@@ -130,6 +130,7 @@ def main() -> int:
     except Exception as exc:
         log(f"FAIL: {exc}")
         print(f"[launcher]\n{screen()}\n[Lucy.py]\n{tmux('capture-pane', '-p', outer=True)}", flush=True)
+        print(f"[core]\n{tmux('capture-pane', '-p', '-J', '-S', '-400', '-t', f'{SESSION}:core')}", flush=True)
         return 1
     finally:
         faulthandler.dump_traceback_later(CLEANUP_TIMEOUT_S, exit=True)
