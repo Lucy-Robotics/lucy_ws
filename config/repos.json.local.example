@@ -1,35 +1,40 @@
 {
   "repos": [
     {
-      "name": "inmoov_urdf",
-      "branch": "cma/feat-pixi-gpu-support",
-      "url_https": "https://github.com/Sentience-Robotics/inmoov_urdf.git",
-      "url_ssh": "git@github.com:Sentience-Robotics/inmoov_urdf.git"
-    },
-    {
       "name": "lucy_ros_packages",
-      "branch": "cma/fix-skip-backward-ros-on-macOS",
-      "url_https": "https://github.com/Sentience-Robotics/lucy_ros_packages.git",
-      "url_ssh": "git@github.com:Sentience-Robotics/lucy_ros_packages.git"
+      "branch": "master",
+      "url_https": "https://github.com/Lucy-Robotics/lucy_ros_packages.git",
+      "url_ssh": "git@github.com:Lucy-Robotics/lucy_ros_packages.git"
     },
     {
       "name": "lucy_control_panel",
-      "branch": "cma/fix-commit-lock-file",
-      "url_https": "https://github.com/Sentience-Robotics/lucy_control_panel.git",
-      "url_ssh": "git@github.com:Sentience-Robotics/lucy_control_panel.git"
+      "branch": "master",
+      "url_https": "https://github.com/Lucy-Robotics/lucy_control_panel.git",
+      "url_ssh": "git@github.com:Lucy-Robotics/lucy_control_panel.git"
     },
     {
-      "name": "micro_ros_agent",
-      "branch": "jazzy",
-      "optional": true,
-      "url_https": "https://github.com/micro-ROS/micro-ROS-Agent.git",
-      "url_ssh": "git@github.com:micro-ROS/micro-ROS-Agent.git"
+      "name": "lucy_embedded_firmware",
+      "branch": "master",
+      "url_https": "https://github.com/Lucy-Robotics/lucy_embedded_firmware.git",
+      "url_ssh": "git@github.com:Lucy-Robotics/lucy_embedded_firmware.git"
+    },
+    {
+      "name": "inmoov_urdf",
+      "branch": "master",
+      "url_https": "https://github.com/Lucy-Robotics/inmoov_urdf.git",
+      "url_ssh": "git@github.com:Lucy-Robotics/inmoov_urdf.git"
+    },
+    {
+      "name": "so_arm101_urdf",
+      "branch": "master",
+      "url_https": "https://github.com/Lucy-Robotics/so_arm101_urdf.git",
+      "url_ssh": "git@github.com:Lucy-Robotics/so_arm101_urdf.git"
     },
     {
       "name": "thais_urdf",
       "branch": "dev",
-      "url_https": "https://github.com/Sentience-Robotics/thais_urdf.git",
-      "url_ssh": "git@github.com:Sentience-Robotics/thais_urdf.git"
+      "url_https": "https://github.com/Lucy-Robotics/thais_urdf.git",
+      "url_ssh": "git@github.com:Lucy-Robotics/thais_urdf.git"
     }
   ]
 }

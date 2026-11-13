@@ -1,8 +1,13 @@
 """Tests for launcher Pixi/tmux command wrapping (no tmux or ROS required)."""
 
 import os
+import sys
+from pathlib import Path
+
+import pytest
 
 import launcher
+from launcher.constants import LAUNCHER_PIDFILE, state_root
 from launcher import (
     STATE_FILE,
     WORKSPACE_ROOT,
@@ -13,6 +18,7 @@ from launcher import (
     _tmux_new_pixi_window,
     _window_teardown_shell,
     apply_changes,
+    get_pkg_status,
     is_lucy_orphan,
     is_lucy_orphan_cmdline,
     load_workspace_env,
@@ -21,8 +27,35 @@ from launcher import (
 )
 
 
-def test_state_file_is_workspace_scoped():
-    assert STATE_FILE == WORKSPACE_ROOT / ".lucy_launcher_modifiers.json"
+class _SteadyDomain:
+    """What apply_changes reads of LauncherState's ROS domain: no change pending."""
+
+    domain_id = 0
+    running_domain_id = 0
+
+    def domain_restart_pending(self):
+        return False
+
+
+@pytest.fixture(autouse=True)
+def _restore_ros_domain_id(monkeypatch):
+    """apply_changes exports ROS_DOMAIN_ID; keep it from leaking into other tests."""
+    monkeypatch.setenv("ROS_DOMAIN_ID", "0")
+
+
+def test_state_is_kept_per_ws_outside_the_repo():
+    assert STATE_FILE == state_root() / "lucy_ws_0" / "modifiers.json"
+    assert not STATE_FILE.is_relative_to(WORKSPACE_ROOT)
+
+
+def test_pidfiles_are_shared_by_every_ws():
+    # Sessions and ROS domains are host-wide: every launcher must see the others' claims.
+    assert LAUNCHER_PIDFILE == state_root() / "launcher.lucy_ws_0.pid"
+
+
+def test_state_root_follows_xdg_state_home(tmp_path):
+    assert state_root({"XDG_STATE_HOME": str(tmp_path)}) == tmp_path / "lucy"
+    assert state_root({}) == Path.home() / ".local" / "state" / "lucy"
 
 
 def test_pixi_workspace_script_wraps_ros2():
@@ -98,6 +131,8 @@ def test_core_teardown_waits_before_kill_window():
     assert "C-c" in cmd
     assert "kill-window" in cmd
     assert "pgrep" in cmd
+    assert "list-panes" in cmd
+    assert cmd.index("C-c") < cmd.index("list-panes") < cmd.index("kill-window")
     assert cmd == CORE_TEARDOWN
 
 
@@ -340,7 +375,9 @@ def test_apply_changes_modifier_restart_calls_finish_teardown(monkeypatch):
             self.id = pid
             self.type = ptype
             self.selected = selected
+            self.dependencies = []
             self.is_running = running
+            self.ready = running
             self.command = command
             self.lifecycle_hooks = {}
             self.pane_dead = False
@@ -357,9 +394,9 @@ def test_apply_changes_modifier_restart_calls_finish_teardown(monkeypatch):
         True,
         "ros2 launch lucy_bringup lucy.launch.py",
     )
-    gazebo = FakePkg("gazebo", "modifier", True, False, "gazebo:=true")
+    gazebo = FakePkg("gazebo", "modifier", True, False, "mode:=sim")
 
-    class FakeState:
+    class FakeState(_SteadyDomain):
         packages = [core, gazebo]
 
         def get_by_id(self, pid):
@@ -375,11 +412,14 @@ def test_apply_changes_modifier_restart_calls_finish_teardown(monkeypatch):
         ),
     )
     monkeypatch.setattr(launcher, "save_state", lambda _data: calls.append("save"))
+    # Never the real thing: it would open a `core` window in a live lucy_ws_0 session.
+    monkeypatch.setattr(launcher, "run_shell_command", lambda _cmd: None)
 
     apply_changes(FakeState())
     assert calls[0] == "core_stop"
     assert "save" in calls
     assert finish_args == [(frozenset(), False)]
+    assert get_pkg_status(core) != "running"
 
 
 def test_apply_changes_modifier_restart_preserves_control_panel(monkeypatch):
@@ -390,6 +430,7 @@ def test_apply_changes_modifier_restart_preserves_control_panel(monkeypatch):
             self.id = pid
             self.type = ptype
             self.selected = selected
+            self.dependencies = []
             self.is_running = running
             self.command = command
             self.lifecycle_hooks = {}
@@ -407,7 +448,7 @@ def test_apply_changes_modifier_restart_preserves_control_panel(monkeypatch):
         True,
         "ros2 launch lucy_bringup lucy.launch.py",
     )
-    gazebo = FakePkg("gazebo", "modifier", True, False, "gazebo:=true")
+    gazebo = FakePkg("gazebo", "modifier", True, False, "mode:=sim")
     control_panel = FakePkg(
         "control_panel",
         "interface",
@@ -417,7 +458,7 @@ def test_apply_changes_modifier_restart_preserves_control_panel(monkeypatch):
         readiness_check="pgrep -f '[v]ite' >/dev/null 2>&1",
     )
 
-    class FakeState:
+    class FakeState(_SteadyDomain):
         packages = [core, gazebo, control_panel]
 
         def get_by_id(self, pid):
@@ -446,6 +487,7 @@ def test_apply_changes_stopping_core_preserves_running_control_panel(monkeypatch
             self.id = pid
             self.type = ptype
             self.selected = selected
+            self.dependencies = []
             self.is_running = running
             self.command = command
             self.lifecycle_hooks = {}
@@ -466,7 +508,7 @@ def test_apply_changes_stopping_core_preserves_running_control_panel(monkeypatch
         readiness_check="pgrep -f '[v]ite' >/dev/null 2>&1",
     )
 
-    class FakeState:
+    class FakeState(_SteadyDomain):
         packages = [core, control_panel]
 
         def get_by_id(self, pid):
@@ -530,8 +572,134 @@ def test_core_teardown_kills_rviz_before_sigint():
     process dies on SIGABRT. macOS files that as a crash and shows "rviz2 quit
     unexpectedly" on every stop. Measured: SIGINT and SIGTERM each produce a crash
     report, SIGKILL produces none."""
+    import shlex
+
+    from launcher.constants import INSTANCE_PGREP
     from launcher.tmux import _core_teardown_shell
 
     teardown = _core_teardown_shell()
-    assert "pkill -9 -x rviz2" in teardown
-    assert teardown.index("pkill -9 -x rviz2") < teardown.index("C-c")
+    # Only this instance's rviz2 (instance_pgrep.sh), never another stack's.
+    # Quoted like the code does: Windows paths (backslashes) get single quotes.
+    kill = f"{shlex.quote(str(INSTANCE_PGREP))} -x rviz2); do kill -9"
+    assert kill in teardown
+    assert "pkill" not in teardown
+    assert teardown.index(kill) < teardown.index("C-c")
+
+
+def test_window_teardown_stops_waiting_once_the_pane_is_gone():
+    from launcher.tmux import _window_teardown_shell
+
+    cmd = _window_teardown_shell("control_panel")
+    assert "list-panes" in cmd
+    assert "break" in cmd
+    assert cmd.index("C-c") < cmd.index("break") < cmd.index("kill-window")
+
+
+def test_modifier_with_exit_check_reports_crash_when_exit_code_present(tmp_path):
+    from launcher.package import Package
+    from launcher.state import get_pkg_status, _intended_running, _pkg_start_times
+
+    status_file = tmp_path / "bridge_status"
+    pkg = Package(
+        {
+            "id": "real",
+            "name": "... with Real Hardware",
+            "type": "modifier",
+            "command": "mode:=real bridge:=linux",
+            "readiness_check": "false",
+            "exit_check": (
+                f'"{sys.executable}" -c "import pathlib, sys; '
+                f'p = pathlib.Path(sys.argv[1]); '
+                f'sys.stdout.write(p.read_text().strip()) if p.is_file() else None" '
+                f'"{status_file}"'
+            ),
+        },
+        running_modifiers=["real"],
+    )
+    # File doesn't exist yet: exit_status is None, pane_dead is False
+    status = pkg.probe_status(["real"])
+    assert status["pane_dead"] is False
+    assert status["pane_exit_status"] is None
+
+    # Write non-zero exit code: probe_status detects crash immediately
+    status_file.write_text("1\n")
+    status = pkg.probe_status(["real"])
+    assert status["pane_dead"] is True
+    assert status["pane_exit_status"] == 1
+    pkg.apply_status(status)
+
+    _intended_running.add("real")
+    try:
+        assert get_pkg_status(pkg) == "crashed"
+    finally:
+        _intended_running.discard("real")
+        _pkg_start_times.pop("real", None)
+
+
+def test_intended_running_package_crashes_immediately_when_not_running():
+    import time
+    from launcher.package import Package
+    from launcher.state import get_pkg_status, _intended_running, _pkg_start_times
+
+    pkg = Package(
+        {
+            "id": "real",
+            "name": "... with Real Hardware",
+            "type": "modifier",
+            "command": "mode:=real bridge:=linux",
+        },
+        running_modifiers=[],
+    )
+    assert not pkg.is_running
+    _intended_running.add("real")
+    _pkg_start_times["real"] = time.time()
+    try:
+        assert get_pkg_status(pkg) == "crashed"
+    finally:
+        _intended_running.discard("real")
+        _pkg_start_times.pop("real", None)
+
+
+def test_real_hardware_stays_loading_until_microcontroller_ready_file_exists(tmp_path):
+    import time
+    from launcher.package import Package
+    from launcher.state import get_pkg_status, _intended_running, _pkg_start_times
+
+    ready_file = tmp_path / ".lucy_real_hardware_ready"
+    pkg = Package(
+        {
+            "id": "real",
+            "name": "... with Real Hardware",
+            "type": "modifier",
+            "command": "mode:=real bridge:=linux",
+            "readiness_check": (
+                f'"{sys.executable}" -c "import pathlib, sys; '
+                f'sys.exit(0 if pathlib.Path(sys.argv[1]).is_file() else 1)" '
+                f'"{ready_file}"'
+            ),
+            "readiness_timeout": 30,
+        },
+        running_modifiers=["real"],
+    )
+
+    _intended_running.add("real")
+    _pkg_start_times["real"] = time.time()
+    try:
+        # Microcontroller has NOT been found yet: ready_file is absent
+        status = pkg.probe_status(["real"])
+        assert status["ready"] is False
+        pkg.apply_status(status)
+        assert get_pkg_status(pkg) == "loading"
+
+        # Microcontroller found and opened: ready_file is created
+        ready_file.touch()
+        status = pkg.probe_status(["real"])
+        assert status["ready"] is True
+        pkg.apply_status(status)
+        assert get_pkg_status(pkg) == "running"
+    finally:
+        _intended_running.discard("real")
+        _pkg_start_times.pop("real", None)
+
+
+

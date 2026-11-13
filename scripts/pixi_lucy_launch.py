@@ -13,7 +13,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 JOINT_COMMAND_TOPIC = "/lucy/commanded_joint_states"
 JOINT_STATES_TOPIC = "/joint_states"
-GAZEBO_ON_ARGS = ("gazebo:=true", "gazebo:=1", "gazebo:=yes")
 DDS_LOCALHOST_OFF = ("0", "false", "no", "off", "disable")
 # Long enough for a working ros2_control to have spawned its broadcaster.
 FALLBACK_DELAY_S = 25.0
@@ -204,8 +203,26 @@ def _stop(proc) -> None:
         proc.kill()
 
 
+def launch_arg(args, name: str) -> str | None:
+    """Last ``name:=value`` among the ros2 launch args (the one ros2 launch keeps)."""
+    value = None
+    for arg in args:
+        key, sep, val = arg.strip().partition(":=")
+        if sep and key == name:
+            value = val.strip()
+    return value
+
+
 def gazebo_requested(args) -> bool:
-    return any(a.strip().lower() in GAZEBO_ON_ARGS for a in args)
+    return (launch_arg(args, "mode") or "").lower() == "sim"
+
+
+def apply_domain_id(args) -> None:
+    """Export ``domain_id:=N`` as ROS_DOMAIN_ID, so the joint_states fallback this
+    script starts beside the launch joins the same graph."""
+    domain_id = launch_arg(args, "domain_id")
+    if domain_id:
+        os.environ["ROS_DOMAIN_ID"] = domain_id
 
 
 def refuse_gazebo_on_windows() -> None:
@@ -223,21 +240,27 @@ def refuse_gazebo_on_windows() -> None:
     )
 
 
-def apply_dds_scope() -> None:
+def apply_dds_scope(windows: bool = os.name == "nt") -> None:
     """Scope discovery to this host, as scripts/dds_env.sh does for the shell path.
 
     Only that shell script set it, so Windows ran with Jazzy's SUBNET default and
     merged anyone else's Lucy into this graph. ROS_LOCALHOST_ONLY stays unset: it
     is deprecated and takes precedence, which would make rcl ignore the range.
-    The CycloneDDS URI dds_env.sh also exports is left out, being inert under
-    rmw_fastrtps_cpp, which is what Windows runs.
+
+    Windows runs Cyclone DDS pinned to loopback by the CYCLONEDDS_URI pixi.toml
+    sets for every process, so the range stays SUBNET there: rmw_cyclonedds's
+    LOCALHOST mode probes a port per participant index, and Windows UDP sockets
+    fail on the ICMP replies from the unused ones, so nothing is discovered.
     """
+    localhost = os.environ.get("LUCY_DDS_LOCALHOST", "1").strip().lower() not in DDS_LOCALHOST_OFF
+    if windows and not localhost:
+        os.environ.pop("CYCLONEDDS_URI", None)
     if os.environ.get("LUCY_DDS_RANGE"):
         os.environ["ROS_AUTOMATIC_DISCOVERY_RANGE"] = os.environ["LUCY_DDS_RANGE"]
-    elif os.environ.get("LUCY_DDS_LOCALHOST", "1").strip().lower() in DDS_LOCALHOST_OFF:
-        os.environ["ROS_AUTOMATIC_DISCOVERY_RANGE"] = "SUBNET"
-    else:
+    elif localhost and not windows:
         os.environ["ROS_AUTOMATIC_DISCOVERY_RANGE"] = "LOCALHOST"
+    else:
+        os.environ["ROS_AUTOMATIC_DISCOVERY_RANGE"] = "SUBNET"
 
     peers = os.environ.get("LUCY_DDS_PEERS", "")
     if peers:
@@ -253,17 +276,18 @@ def main() -> int:
         return 1
 
     apply_dds_scope()
+    apply_domain_id(sys.argv[1:])
     configure_windows_dll_search_path()
     validate_windows_ros_runtime()
 
-    robot = os.environ.get("LUCY_ROBOT_PACKAGE", "inmoov_urdf")
-
+    # Without LUCY_ROBOT_PACKAGE, lucy.launch.py picks the installed robot package.
+    robot = os.environ.get("LUCY_ROBOT_PACKAGE", "").strip()
     command = [
         "ros2",
         "launch",
         "lucy_bringup",
         "lucy.launch.py",
-        f"robot_package:={robot}",
+        *([f"robot_package:={robot}"] if robot else []),
         *sys.argv[1:],
     ]
 

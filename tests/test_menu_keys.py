@@ -83,3 +83,18 @@ def test_escape_delay_is_optional(monkeypatch):
     monkeypatch.delattr(_StubCurses, "set_escdelay")
     monkeypatch.setattr(Lucy, "curses", stub)
     assert Lucy.main_tui(_StubScreen([ord("q")])) is None
+
+
+@pytest.mark.parametrize("value, session", [("2", "lucy_ws_2"), ("lucy_ws_0", "lucy_ws_0"), ("03", "lucy_ws_3")])
+def test_ws_flag_picks_the_instance(value, session):
+    assert Lucy.parse_args(["-ws", value]).ws == session
+
+
+@pytest.mark.parametrize("value", ["robot", "lucy_ws", "lucy_ws_x", "../x"])
+def test_ws_flag_rejects_names_without_a_number(value):
+    with pytest.raises(SystemExit):
+        Lucy.parse_args(["-ws", value])
+
+
+def test_ws_flag_is_optional():
+    assert Lucy.parse_args([]).ws is None

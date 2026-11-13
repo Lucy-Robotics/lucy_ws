@@ -20,6 +20,7 @@ import sys
 import time
 
 from .constants import LAUNCHER_PIDFILE, TMUX_SESSION
+from .instance import _pid_alive, claim_domains, read_pidfile
 from .process import (
     _iter_processes,
     _kill_process_tree,
@@ -37,16 +38,6 @@ def _truthy(name: str) -> bool:
     return os.environ.get(name, "").strip().lower() in ("1", "true", "yes", "on")
 
 
-def _pid_alive(pid: int) -> bool:
-    try:
-        os.kill(pid, 0)
-    except ProcessLookupError:
-        return False
-    except PermissionError:
-        return True
-    return True
-
-
 def _cmdline_of(pid: int) -> str:
     for other, cmdline in _iter_processes():
         if other == pid:
@@ -61,11 +52,8 @@ def another_launcher_pid():
     orphan matcher deliberately never matches. Re-checked against the process
     table so a stale pidfile cannot lock the workspace out.
     """
-    try:
-        pid = int(LAUNCHER_PIDFILE.read_text().strip())
-    except (OSError, ValueError):
-        return None
-    if pid == os.getpid() or not _pid_alive(pid):
+    pid, _domains = read_pidfile(LAUNCHER_PIDFILE)
+    if pid is None or pid == os.getpid() or not _pid_alive(pid):
         return None
     cmdline = _cmdline_of(pid)
     if cmdline and "launcher" not in cmdline and "Lucy.py" not in cmdline:
@@ -74,18 +62,15 @@ def another_launcher_pid():
 
 
 def claim_launcher_pidfile() -> None:
-    try:
-        LAUNCHER_PIDFILE.write_text(str(os.getpid()))
-    except OSError:
-        pass
+    claim_domains((), pidfile=LAUNCHER_PIDFILE)
 
 
 def release_launcher_pidfile() -> None:
-    try:
-        if int(LAUNCHER_PIDFILE.read_text().strip()) == os.getpid():
+    if read_pidfile(LAUNCHER_PIDFILE)[0] == os.getpid():
+        try:
             LAUNCHER_PIDFILE.unlink()
-    except (OSError, ValueError):
-        pass
+        except OSError:
+            pass
 
 
 def _parent_pid(pid: int):
@@ -205,7 +190,7 @@ def guard_single_stack(
     if other is not None:
         # Never killed: that would orphan the stack it owns.
         print(
-            f"A Lucy Control Center is already running here (pid {other}).\n"
+            f"A Lucy Launch Screen is already running here (pid {other}).\n"
             f"Attach to it with:  tmux attach -t {TMUX_SESSION}\n"
             f"Set {ALLOW_MULTIPLE_ENV}=1 only if you really want a second one.",
             file=out,

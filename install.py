@@ -798,6 +798,52 @@ def patch_windows_rosbridge_signals(project_root: Path | str, log: Log = print) 
     return patched
 
 
+RPYUTILS_DLL_ORIGINAL = "@contextmanager\ndef add_dll_directories_from_env(env_name: str):\n"
+RPYUTILS_DLL_UNLOCKED = "@contextmanager\ndef _add_dll_directories_from_env_unlocked(env_name: str):\n"
+RPYUTILS_DLL_LOCKED = """
+
+import threading
+
+_dll_directories_lock = threading.RLock()
+
+
+@contextmanager
+def add_dll_directories_from_env(env_name: str):
+    with _dll_directories_lock, _add_dll_directories_from_env_unlocked(env_name) as handles:
+        yield handles
+"""
+
+
+def patch_windows_rpyutils_dll_lock(project_root: Path | str, log: Log = print) -> list[str]:
+    """Stop concurrent ROS type imports failing with WinError 206 under Windows.
+
+    rosbridge serves calls on threads; each first import of a type adds every
+    PATH directory to the DLL search list, and a few at once overflow it, so
+    the import fails and every later call of that type retries it.
+    """
+    if sys.platform != "win32":
+        return []
+
+    patched = []
+    for env_dir in sorted((Path(project_root) / ".pixi" / "envs").glob("*")):
+        module = env_dir / "Lib" / "site-packages" / "rpyutils" / "add_dll_directories.py"
+        if not module.is_file():
+            continue
+        source = module.read_text(encoding="utf-8")
+        if RPYUTILS_DLL_UNLOCKED in source or RPYUTILS_DLL_ORIGINAL not in source:
+            continue
+        module.write_text(
+            source.replace(RPYUTILS_DLL_ORIGINAL, RPYUTILS_DLL_UNLOCKED) + RPYUTILS_DLL_LOCKED,
+            encoding="utf-8",
+        )
+        patched.append(str(module))
+
+    if patched:
+        log("Windows: serialised rpyutils DLL directory changes "
+            "(concurrent ROS type imports overflow the DLL search path without this)")
+    return patched
+
+
 def pixi_install(
     project_root: Path | str, run_command: Callable = default_run_command, log: Log = print
 ) -> None:
@@ -808,6 +854,7 @@ def pixi_install(
     pixi_run(project_root, ["install"], run_command)
     ensure_windows_libexec_shims(project_root, log)
     patch_windows_rosbridge_signals(project_root, log)
+    patch_windows_rpyutils_dll_lock(project_root, log)
 
 
 def build_local_realsense_optional(
@@ -826,13 +873,38 @@ def build_local_realsense_optional(
 
 
 def build_workspace(
-    project_root: Path | str, run_command: Callable = default_run_command, log: Log = print
+    project_root: Path | str,
+    run_command: Callable = default_run_command,
+    log: Log = print,
+    developer: bool = False,
 ) -> None:
+    # colcon builds the Rust firmwares too, so cargo must exist first.
+    setup_firmware_toolchain(project_root, run_command, log)
     log("Building ROS workspace (colcon) ...")
     pixi_run(project_root, ["run", "build"], run_command)
     log("Installing control panel dependencies (yarn) ...")
     pixi_run(project_root, ["run", "panel-install"], run_command)
+    if not developer:
+        log("Building the control panel for production ...")
+        pixi_run(project_root, ["run", "panel-build"], run_command)
     build_local_realsense_optional(project_root, run_command, log)
+
+
+def setup_firmware_toolchain(
+    project_root: Path | str, run_command: Callable = default_run_command, log: Log = print
+) -> None:
+    """Install the Rust/RP2040 toolchain into the Pixi env (idempotent).
+
+    Runs ``pixi run firmware-setup`` before the colcon build, which compiles the host
+    firmwares (linux, mcu_bridge) and the rp2040 image, so an update never leaves a stale
+    bridge talking an old protocol to freshly flashed boards. Without the toolchain colcon
+    skips those packages with a warning. Skip with ``LUCY_SKIP_FIRMWARE_SETUP=1``.
+    """
+    if env_flag("LUCY_SKIP_FIRMWARE_SETUP"):
+        log("Firmware toolchain: LUCY_SKIP_FIRMWARE_SETUP set — skipping")
+        return
+    log("Firmware toolchain (pixi run firmware-setup) ...")
+    pixi_run(project_root, ["run", "firmware-setup"], run_command)
 
 
 # --- flow --------------------------------------------------------------------
@@ -887,7 +959,7 @@ def run_flow(
     if skip_build:
         log("Skipping workspace build (--skip-build).")
     else:
-        build_workspace(root, run_command, log)
+        build_workspace(root, run_command, log, developer=developer)
 
     return {"mode": mode, "developer": developer, "fetch_method": effective, "skip_build": skip_build}
 

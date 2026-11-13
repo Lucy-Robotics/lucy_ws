@@ -37,9 +37,9 @@ pixi install          # updates pixi.lock for every platform in pixi.toml
 
 Use Pixi target tables in `pixi.toml`:
 
-- `[target.linux]` — `gstreamer`, `libgl-devel`
-- **tmux** — host package (apt, Homebrew); not in Pixi
-- `[feature.ros.target.osx-*]` — `pygraphviz`, Cyclone DDS RMW
+- `[target.linux]` - `gstreamer`, `libgl-devel`
+- **tmux** - host package (apt, Homebrew); not in Pixi
+- `[feature.ros.target.osx-*]` - `pygraphviz`, Cyclone DDS RMW
 
 ## Build, launch, and activation
 

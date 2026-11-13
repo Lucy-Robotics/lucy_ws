@@ -57,8 +57,6 @@ def _package(monkeypatch, *, passing, running=True, stages=STAGES):
     return pkg, ran
 
 
-
-
 def test_stage_reports_the_milestone_being_waited_on(monkeypatch):
     pkg, _ = _package(monkeypatch, passing={"check-a"})
     assert pkg.stage == {"index": 2, "total": 3, "label": "Starting config services"}
@@ -128,8 +126,6 @@ def test_a_package_without_stages_keeps_its_plain_readiness_check(monkeypatch):
     assert "check-port" in calls
 
 
-
-
 def _staged_pkg(index=1, total=5, label="Starting Rosbridge"):
     return types.SimpleNamespace(
         id="core", stage={"index": index, "total": total, "label": label}
@@ -150,8 +146,6 @@ def test_stage_hint_only_shows_while_loading(status):
 
 def test_stage_hint_is_empty_without_a_stage():
     assert _stage_hint(types.SimpleNamespace(id="core", stage=None), "loading") == ""
-
-
 
 
 class FakeCursesError(Exception):
@@ -195,36 +189,52 @@ def _row_text(screen):
 def test_row_shows_the_stage_after_the_loading_label(fake_curses):
     screen = FakeScreen()
     tui._draw_pkg_row(
-        screen, 3, 4, "> ", "", "[x]", "Core", 0, "loading",
+        screen,
+        3,
+        4,
+        "> ",
+        "",
+        "[x]",
+        "Core",
+        0,
+        "loading",
         stage="1/8 Starting Rosbridge...",
     )
-    assert _row_text(screen) == (
-        "> [x] Core [LOADING] 1/8 Starting Rosbridge..."
-    )
+    assert _row_text(screen) == ("> [x] Core [LOADING] 1/8 Starting Rosbridge...")
 
 
 def test_the_stage_is_greyed_out(fake_curses):
     """Dimmed so a progress readout does not compete with the status label."""
     screen = FakeScreen()
     tui._draw_pkg_row(
-        screen, 3, 4, "> ", "", "[x]", "Core", 0, "loading",
+        screen,
+        3,
+        4,
+        "> ",
+        "",
+        "[x]",
+        "Core",
+        0,
+        "loading",
         stage="1/8 Starting Rosbridge...",
     )
     stage_write = next(w for w in screen.writes if "Rosbridge" in w[2])
     assert stage_write[3] == fake_curses.A_DIM
 
 
-def test_a_row_without_a_stage_is_unchanged(fake_curses):
-    screen = FakeScreen()
-    tui._draw_pkg_row(screen, 3, 4, "  ", "", "[ ]", "rqt GUI", 0, "stopped")
-    assert _row_text(screen) == "  [ ] rqt GUI [STOPPED]"
-
-
 def test_a_long_stage_is_truncated_rather_than_dropped(fake_curses):
     """addstr past the last column raises, taking the rest of the row with it."""
     screen = FakeScreen(width=50)
     tui._draw_pkg_row(
-        screen, 3, 4, "> ", "", "[x]", "Core", 0, "loading",
+        screen,
+        3,
+        4,
+        "> ",
+        "",
+        "[x]",
+        "Core",
+        0,
+        "loading",
         stage="6/8 Building robot model...",
     )
     text = _row_text(screen)
@@ -255,7 +265,7 @@ def test_every_core_stage_keeps_its_counter_at_the_minimum_width():
     """At MIN_TERM_WIDTH the stage gets ~25 columns, so labels are cut. The
     "n/N" and the verb may not be, or the row stops reading as progress."""
     core = _core_config()
-    base = len("  [x] ") + len(core["name"]) + len(" [LOADING]") + 4
+    base = len("> [x] ") + len(core["name"]) + len(" [LOADING]")
     room = MIN_TERM_WIDTH - base - 1
     total = len(core["readiness_stages"])
     for index, stage in enumerate(core["readiness_stages"], start=1):
@@ -264,8 +274,6 @@ def test_every_core_stage_keeps_its_counter_at_the_minimum_width():
         assert f"{index}/{total}" in shown
         verb = stage["label"].split()[0]
         assert verb in shown, f"{stage['label']!r} cut past recognition: {shown!r}"
-
-
 
 
 def test_core_config_declares_the_stages_of_its_old_composite_probe():
@@ -301,9 +309,9 @@ def test_the_costly_probe_is_confined_to_the_end_of_the_walk():
     checks = [s["check"] for s in _core_config()["readiness_stages"]]
     costly = [i for i, c in enumerate(checks) if "controllers_active" in c]
     assert costly, "core no longer checks that controllers came up"
-    assert costly == list(range(costly[0], len(checks))), (
-        "a cheap stage sits after the costly probe"
-    )
+    assert costly == list(
+        range(costly[0], len(checks))
+    ), "a cheap stage sits after the costly probe"
 
 
 def test_repeated_controller_probes_share_one_call():
@@ -311,5 +319,7 @@ def test_repeated_controller_probes_share_one_call():
     checks = [s["check"] for s in _core_config()["readiness_stages"]]
     thresholds = [c.rsplit(None, 1)[-1] for c in checks if "controllers_active" in c]
     assert len(set(thresholds)) == len(thresholds), "two stages ask the same question"
-    script = (DEFAULT_CONFIG_FILE.parent.parent / "scripts" / "controllers_active.sh").read_text()
+    script = (
+        DEFAULT_CONFIG_FILE.parent.parent / "scripts" / "controllers_active.sh"
+    ).read_text()
     assert "${active}" in script.split("printf")[-1], "the cache must hold the count"

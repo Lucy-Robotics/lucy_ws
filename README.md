@@ -1,5 +1,12 @@
 # Lucy ROS 2 workspace (Jazzy)
 
+[![CI: dev](https://github.com/Lucy-Robotics/lucy_ws/actions/workflows/install-and-launch.yml/badge.svg?branch=dev)](https://github.com/Lucy-Robotics/lucy_ws/actions/workflows/install-and-launch.yml?query=branch%3Adev)
+[![CI: master](https://github.com/Lucy-Robotics/lucy_ws/actions/workflows/install-and-launch.yml/badge.svg?branch=master)](https://github.com/Lucy-Robotics/lucy_ws/actions/workflows/install-and-launch.yml?query=branch%3Amaster)
+[![codecov](https://codecov.io/gh/Lucy-Robotics/lucy_ws/branch/master/graph/badge.svg)](https://codecov.io/gh/Lucy-Robotics/lucy_ws)
+[![release](https://img.shields.io/github/v/release/Lucy-Robotics/lucy_ws)](https://github.com/Lucy-Robotics/lucy_ws/releases)
+[![license](https://img.shields.io/github/license/Lucy-Robotics/lucy_ws)](LICENSE)
+[![Discord](https://img.shields.io/discord/1272611839775084564?label=Discord&logo=discord&logoColor=white&color=5865F2)](https://discord.com/invite/g4KNZ3eeBd)
+
 Workspace bringup for the Lucy / InMoov humanoid. ROS 2 Jazzy, Gazebo, RViz, and the web control panel run **natively** via [Pixi](https://pixi.prefix.dev/) and [RoboStack](https://robostack.github.io/).
 
 ## Requirements
@@ -9,7 +16,7 @@ Workspace bringup for the Lucy / InMoov humanoid. ROS 2 Jazzy, Gazebo, RViz, and
 | [Git](https://git-scm.com/downloads) | ✓ | ✓ | ✓ ([Git for Windows](https://git-scm.com/install/windows)) |
 | [Python 3](https://www.python.org/downloads/) (for `Lucy.py`) | ✓ | ✓ | ✓ |
 | [Pixi](https://pixi.prefix.dev/latest/installation/) **≥ 0.78** | ✓ | ✓ | ✓ |
-| **tmux** (multi-window launcher) | ✓ | ✓ (`brew install tmux`) | — (launcher runs directly) |
+| **tmux** (multi-window launcher) | ✓ | ✓ (`brew install tmux`) | - (launcher runs directly) |
 
 ROS packages are installed by Pixi into `.pixi/`.
 
@@ -20,7 +27,7 @@ GUI apps (RViz, Gazebo, rqt) are native. Platform-specific notes (Wayland, AirPl
 **Clone (recommended):**
 
 ```bash
-git clone https://github.com/Sentience-Robotics/lucy_ws.git
+git clone https://github.com/Lucy-Robotics/lucy_ws.git
 cd lucy_ws
 ```
 
@@ -49,7 +56,7 @@ For Gazebo/RViz GL, also see the [NixOS notes](docs/developer_lucy_packages.md#p
 
 ### Windows
 
-`Lucy-Setup.exe` is built from [Lucy-Windows-Installer](https://github.com/Sentience-Robotics/Lucy-Windows-Installer).
+`Lucy-Setup.exe` is built from [Lucy-Windows-Installer](https://github.com/Lucy-Robotics/Lucy-Windows-Installer).
 
 Keep the workspace in a path **without spaces**. Pixi console scripts (colcon, pytest, ROS 2 nodes) embed the interpreter path unquoted and cannot start from one.
 Pixi resolves **`win-64`** on Windows-on-ARM too. `pixi.lock` has no `win-arm64`.
@@ -66,7 +73,7 @@ Windows is **visualisation only** for now. `pixi run core` starts a `/joint_stat
 
 ## Using the Lucy launcher
 
-**Launch** starts a **tmux** session (Linux/macOS) and the **Lucy Control Center** TUI (`python -m launcher`, or `python launcher.py` / `./launch_lucy.sh`):
+**Launch** starts a **tmux** session (Linux/macOS) and the **Lucy Launch Screen** TUI (`python -m launcher`, or `python launcher.py` / `./launch_lucy.sh`):
 
 | Key | Action |
 |-----|--------|
@@ -77,23 +84,47 @@ Windows is **visualisation only** for now. `pixi run core` starts a `/joint_stat
 
 **Components you can enable:**
 
-- **Core** — base robot stack (`lucy_bringup`)
-- **Modifiers** — Simulator (Gazebo), **… headless** (server-only sim, under Simulator), Visualizer (RViz), Real Hardware
-- **Interfaces** — Control Panel (web UI), Lucy CLI
-- **Tools** — Console, rqt
+- **Core** - base robot stack (`lucy_bringup`)
+- **Mode** (one, under Core) - Simulator (mock hardware, default), Physics Simulator (Gazebo, optional **Headless**), Hardware (**Micro controllers** or **USB servos**)
+- **Control Interfaces** - Control Panel (web UI), Lucy CLI
+- **Tools** - Visualizer (RViz), Console, rqt
 
 > **Recommended starting point:** **Core + Control Panel**  (the web 3D viewer is enough for most work without heavy GUI apps)
 
 **tmux windows** (Linux/macOS):
 
-- **`Ctrl+B` then `W`** — window list
-- **`Ctrl+B` then `N`** / **`P`** — next / previous window
+- **`Ctrl+B` then `W`** - window list
+- **`Ctrl+B` then `N`** / **`P`** - next / previous window
 
 On Windows, the Control Center runs without tmux (one process tree). Gazebo, RViz, and rqt still open as native GUI apps when enabled.
+
+## How to use your own robot?
+
+Lucy selects the robot package with `robot_package:=…` or `LUCY_ROBOT_PACKAGE`.
+
+| Robot | Package | First-time / real hardware |
+|-------|---------|----------------------------|
+| SO-ARM101 | `so_arm101_urdf` | **[Hardware setup](src/so_arm101_urdf/docs/HARDWARE_SETUP.md)** - LeRobot calibrate, apply limits, regenerate, then `pixi run real-linux` |
+| InMoov | `inmoov_urdf` | Package docs under `src/inmoov_urdf/` |
+| InMoov i2 | `inmoov_i2_urdf` | Package docs under `src/inmoov_i2_urdf/` |
+| Thais | `thais_urdf` | Package docs under `src/thais_urdf/` |
+
+Example (SO-ARM101 after calibration):
+
+```bash
+LUCY_ROBOT_PACKAGE=so_arm101_urdf pixi run real-linux
+```
+
+Adding a new robot package: [docs/adding_robot_packages.md](docs/adding_robot_packages.md) (when present).
 
 ## Developer setup
 
 For developer mode, see the **[developer guide](docs/developer_lucy_packages.md)**.
+
+## Architecture
+
+- **[Architecture index](docs/architecture/README.md)** - schematics and guide
+- **[System overview](docs/architecture/overview.md)** - workspace packages, browser, MCU, peripherals
 
 ## Contributing
 
@@ -105,4 +136,4 @@ Read **[CONTRIBUTING.md](CONTRIBUTING.md)**, and the **[Code of Conduct](CODE_OF
 
 This project is licensed under the **GNU General Public License v3.0**. See [LICENSE](LICENSE) for the full text.
 
-Lucy is part of [Sentience Robotics](https://sentience-robotics.fr) and builds on the [InMoov](https://inmoov.fr/) open-source humanoid project.
+[Lucy](https://lucy-robotics.com) builds on the [InMoov](https://inmoov.fr/) open-source humanoid project and the [SO101](https://huggingface.co/docs/lerobot/en/so101).

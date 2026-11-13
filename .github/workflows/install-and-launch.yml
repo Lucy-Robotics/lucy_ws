@@ -5,21 +5,61 @@ name: Install, Build & Test
 
 on:
   workflow_dispatch:
+    inputs:
+      branches:
+        description: 'Branches that override the ref, e.g. "lucy_ws=aes/fix-tui"'
+        required: false
+        default: ''
+        type: string
   push:
     branches: [master, dev]
     tags:
       - 'v*'
   pull_request:
-    branches: [master, dev]
+  workflow_call:
 
 permissions:
   contents: read
 
 jobs:
+  installer-branches:
+    name: "Windows installer: pick the branches"
+    runs-on: ubuntu-latest
+    outputs:
+      lucy_ws: ${{ steps.pick.outputs.lucy_ws }}
+      repos: ${{ steps.pick.outputs.repos }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          repository: Lucy-Robotics/lucy_ws
+          ref: ${{ github.event.repository.name != 'lucy_ws' && (github.base_ref == 'master' && 'master' || 'dev') || '' }}
+
+      - name: Pick the sub-repo branches
+        id: pick
+        shell: bash
+        env:
+          CALLER: ${{ github.event.repository.name }}
+          CALLER_REF: ${{ github.head_ref || github.ref_name }}
+          BRANCHES: ${{ inputs.branches }}
+          MASTER_SIDE: ${{ github.event.repository.name != '.github' && (github.base_ref == 'master' || github.ref_name == 'master' || startsWith(github.ref, 'refs/tags/')) }}
+        run: |
+          python3 scripts/ci_pick_repos.py | tee picked.txt
+          echo "lucy_ws=$(awk '$1 == "lucy_ws" { print $2 }' picked.txt)" >> "$GITHUB_OUTPUT"
+          { echo 'repos<<REPOS_JSON'; cat config/repos.json; echo; echo REPOS_JSON; } >> "$GITHUB_OUTPUT"
+
+  windows-installer:
+    name: Windows installer
+    needs: installer-branches
+    uses: Lucy-Robotics/Lucy_windows/.github/workflows/installer-e2e.yml@master
+    with:
+      lucy_ws_branch: ${{ needs.installer-branches.outputs.lucy_ws }}
+      repos_json: ${{ needs.installer-branches.outputs.repos }}
+
   pixi-install-build-test:
     name: Pixi install & build (${{ matrix.runner }})
+    needs: installer-branches
     concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.runner }}
+      group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.branches }}-${{ matrix.runner }}
       cancel-in-progress: true
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 120
@@ -40,12 +80,21 @@ jobs:
       CI: "true"
     steps:
       - uses: actions/checkout@v5
+        with:
+          repository: Lucy-Robotics/lucy_ws
+          ref: ${{ inputs.branches != '' && needs.installer-branches.outputs.lucy_ws || (github.event.repository.name != 'lucy_ws' && (github.base_ref == 'master' && 'master' || 'dev') || '') }}
 
       - uses: prefix-dev/setup-pixi@v0.10.0
         with:
           pixi-version: latest
           cache: ${{ matrix.pixi_platform != 'win-64' }}
+          run-install: ${{ matrix.pixi_platform != 'win-64' }}
           post-cleanup: false
+
+      - name: "Windows: install the Pixi environment, retrying dropped downloads"
+        if: matrix.pixi_platform == 'win-64'
+        shell: bash
+        run: for i in 1 2 3; do pixi install --locked && exit 0; sleep 30; done; exit 1
 
       - name: Workspace unit tests
         shell: bash
@@ -55,11 +104,23 @@ jobs:
         shell: bash
         run: rm -f .env .env.local || true
 
+      - name: Pick the sub-repo branches
+        shell: bash
+        env:
+          REPOS_JSON: ${{ needs.installer-branches.outputs.repos }}
+        run: printf '%s' "$REPOS_JSON" > config/repos.json
+
       - name: Clone sub-repositories (skip colcon)
         shell: bash
         run: |
           chmod +x launch_lucy.sh
           python3 install.py --skip-build
+
+      # colcon builds the Rust firmwares, so the toolchain goes first (as install.py does).
+      - name: "Linux/macOS: firmware toolchain"
+        if: runner.os != 'Windows'
+        shell: bash
+        run: pixi run firmware-setup
 
       - name: Build workspace (colcon)
         shell: bash
@@ -81,8 +142,13 @@ jobs:
         shell: bash
         run: ./launch_lucy.sh --headless python scripts/ros_doctor.py
 
-      - name: Launcher tmux smoke (Linux)
-        if: matrix.pixi_platform == 'linux-64'
+      - name: "Linux/macOS: install tmux"
+        if: runner.os != 'Windows'
+        shell: bash
+        run: command -v tmux || { [ "$RUNNER_OS" = macOS ] && brew install tmux || sudo apt-get install -y tmux; }
+
+      - name: "Linux/macOS: launcher tmux smoke"
+        if: runner.os != 'Windows'
         shell: bash
         run: |
           chmod +x scripts/ci_tmux_launcher_smoke.sh
@@ -90,10 +156,73 @@ jobs:
 
       # The smoke above answers "did the processes start". This asks whether the
       # graph they formed is one the control panel and RViz can actually use.
-      - name: Core bringup graph checks (Linux)
-        if: matrix.pixi_platform == 'linux-64'
+      - name: "Linux/macOS: core bringup graph checks"
+        if: runner.os != 'Windows'
         shell: bash
         run: pixi run core-bringup-test
+
+      - name: Install the E2E browser
+        shell: bash
+        run: for i in 1 2 3; do pixi run python -m playwright install ${{ runner.os == 'Linux' && '--with-deps' || '' }} chromium && exit 0; sleep 30; done; exit 1
+
+      - name: "Windows: control panel E2E through the launcher commands (SO101, mock hardware)"
+        id: e2e_so101
+        if: runner.os == 'Windows'
+        timeout-minutes: 15
+        env:
+          PYTHONFAULTHANDLER: "1"
+        shell: bash
+        run: pixi run panel-e2e-test so_arm101_urdf
+
+      - name: "Windows: control panel E2E through the launcher commands (InMoov, mock hardware)"
+        if: runner.os == 'Windows' && (success() || steps.e2e_so101.outcome == 'failure')
+        timeout-minutes: 15
+        env:
+          PYTHONFAULTHANDLER: "1"
+        shell: bash
+        run: pixi run panel-e2e-test inmoov_urdf
+
+      - name: "Linux/macOS: Lucy.py TUI, InMoov then SO101, panel E2E on each (mock hardware)"
+        if: runner.os != 'Windows'
+        timeout-minutes: 25
+        shell: bash
+        run: |
+          rm -f .env
+          rm -rf "${XDG_STATE_HOME:-$HOME/.local/state}/lucy"
+          pixi run tui-launch-test inmoov_urdf so_arm101_urdf
+
+      - name: Name the E2E screenshots after their platform
+        if: always()
+        shell: bash
+        run: |
+          for robot in inmoov_urdf so_arm101_urdf; do
+            [ -f "log/panel_e2e_${robot}.png" ] && mv "log/panel_e2e_${robot}.png" "log/${robot}-${{ matrix.pixi_platform }}.png"
+          done
+          true
+
+      - name: Upload the InMoov screenshot
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          path: log/inmoov_urdf-${{ matrix.pixi_platform }}.png
+          archive: false
+          if-no-files-found: ignore
+
+      - name: Upload the SO101 screenshot
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          path: log/so_arm101_urdf-${{ matrix.pixi_platform }}.png
+          archive: false
+          if-no-files-found: ignore
+
+      - name: Upload the ROS logs of a failed run
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ros-logs-${{ matrix.pixi_platform }}
+          path: ~/.ros/log
+          if-no-files-found: ignore
 
       - name: Verify Pixi platform
         shell: bash

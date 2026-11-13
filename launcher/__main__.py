@@ -9,6 +9,7 @@ except ImportError:
     curses = None
 
 from .config import load_config, load_workspace_env
+from .instance import export_instance_env
 from .constants import STATE_FILE, TMUX_SESSION, WORKSPACE_ROOT
 from .apply import stop_all_packages
 from .process import prune_ros_logs
@@ -41,6 +42,7 @@ def run():
         )
         sys.exit(1)
     load_workspace_env()
+    export_instance_env()
     if needs_tmux_session() and not is_in_tmux():
         print(
             f"Error: launcher must run inside the {TMUX_SESSION} tmux session (./launch_lucy.sh).",
