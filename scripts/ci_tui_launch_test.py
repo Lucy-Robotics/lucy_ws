@@ -106,6 +106,12 @@ def check_exit_cleans_up() -> None:
     log("Exit stopped every stack process")
 
 
+def busiest_processes(count: int = 15) -> str:
+    out = subprocess.run(["ps", "-Ao", "pcpu=,time=,args="], capture_output=True, text=True).stdout
+    rows = sorted(out.splitlines(), key=lambda row: float(row.split()[0]), reverse=True)
+    return "\n".join(row[:160] for row in rows[:count])
+
+
 def main() -> int:
     robots = sys.argv[1:] or ["inmoov_urdf", "so_arm101_urdf"]
     env = {k: v for k, v in os.environ.items() if k != "TMUX"}
@@ -131,6 +137,7 @@ def main() -> int:
         log(f"FAIL: {exc}")
         print(f"[launcher]\n{screen()}\n[Lucy.py]\n{tmux('capture-pane', '-p', outer=True)}", flush=True)
         print(f"[core]\n{tmux('capture-pane', '-p', '-J', '-S', '-400', '-t', f'{SESSION}:core')}", flush=True)
+        print(f"[cpu]\n{busiest_processes()}", flush=True)
         return 1
     finally:
         faulthandler.dump_traceback_later(CLEANUP_TIMEOUT_S, exit=True)
