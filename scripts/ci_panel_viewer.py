@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 import time
+from collections import Counter
 
 from ci_stack import CheckFailed, Ros, log
 
@@ -20,13 +21,28 @@ VIEWER_ERRORS = re.compile(r"No URDF received|Could not load any meshes|WebGL is
 
 
 MESH_CALL_ID = re.compile(r'"id":\s*"(call_service:/mesh/get:\d+)"')
+FRAME_OP = re.compile(r'"op":\s*"(\w+)"')
+FRAME_NAME = re.compile(r'"(?:topic|service)":\s*"([^"]+)"')
+
+
+def frame_key(direction: str, payload) -> str:
+    head = payload[:300] if isinstance(payload, str) else ""
+    op, name = FRAME_OP.search(head), FRAME_NAME.search(head)
+    return f"{direction} {op.group(1) if op else '?'} {name.group(1) if name else '?'}"
 
 
 def watch_model(page) -> dict:
     model: dict = {"replies": 0}
     started_at, sent_at, waits = time.time(), {}, []
+    frames, frame_bytes = Counter(), Counter()
+
+    def count(direction: str, payload) -> None:
+        key = frame_key(direction, payload)
+        frames[key] += 1
+        frame_bytes[key] += len(payload)
 
     def on_sent(payload) -> None:
+        count("tx", payload)
         m = MESH_CALL_ID.search(payload[:300]) if isinstance(payload, str) else None
         if m:
             sent_at[m.group(1)] = time.time()
@@ -38,6 +54,7 @@ def watch_model(page) -> dict:
             model["done_at"] = time.time()
 
     def on_frame(payload) -> None:
+        count("rx", payload)
         head = payload[:120] if isinstance(payload, str) else ""
         if '"service_response"' in head and '"/mesh/get"' in head:
             model["replies"] += 1
@@ -51,6 +68,9 @@ def watch_model(page) -> dict:
                     f"mean {sum(waits) / max(len(waits), 1):.1f}s ({len(payload) // 1024} KiB)"
                 )
                 waits.clear()
+                log("frames: " + ", ".join(f"{k} x{n} {frame_bytes[k] // 1024}KiB" for k, n in frames.most_common(8)))
+                frames.clear()
+                frame_bytes.clear()
 
     page.on("console", on_console)
     page.on("websocket", lambda ws: (ws.on("framereceived", on_frame), ws.on("framesent", on_sent)))
