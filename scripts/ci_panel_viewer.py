@@ -19,8 +19,17 @@ WEBGL_RENDERER = """() => {
 VIEWER_ERRORS = re.compile(r"No URDF received|Could not load any meshes|WebGL is not supported|Failed to load robot model")
 
 
+MESH_CALL_ID = re.compile(r'"id":\s*"(call_service:/mesh/get:\d+)"')
+
+
 def watch_model(page) -> dict:
     model: dict = {"replies": 0}
+    started_at, sent_at, waits = time.time(), {}, []
+
+    def on_sent(payload) -> None:
+        m = MESH_CALL_ID.search(payload[:300]) if isinstance(payload, str) else None
+        if m:
+            sent_at[m.group(1)] = time.time()
 
     def on_console(msg) -> None:
         m = re.search(r"\[useRobotModel\] Done .* (\d+)/(\d+) meshes", msg.text)
@@ -32,9 +41,19 @@ def watch_model(page) -> dict:
         head = payload[:120] if isinstance(payload, str) else ""
         if '"service_response"' in head and '"/mesh/get"' in head:
             model["replies"] += 1
+            m = MESH_CALL_ID.search(payload[:300]) or MESH_CALL_ID.search(payload[-300:])
+            if m and m.group(1) in sent_at:
+                waits.append(time.time() - sent_at.pop(m.group(1)))
+            if model["replies"] % 25 == 0:
+                log(
+                    f"mesh/get at {time.time() - started_at:.0f}s: {model['replies']} replies, "
+                    f"{len(sent_at)} pending, reply wait max {max(waits, default=0):.1f}s "
+                    f"mean {sum(waits) / max(len(waits), 1):.1f}s ({len(payload) // 1024} KiB)"
+                )
+                waits.clear()
 
     page.on("console", on_console)
-    page.on("websocket", lambda ws: ws.on("framereceived", on_frame))
+    page.on("websocket", lambda ws: (ws.on("framereceived", on_frame), ws.on("framesent", on_sent)))
     return model
 
 
