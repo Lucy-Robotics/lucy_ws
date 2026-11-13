@@ -6,6 +6,7 @@ import os
 import re
 import time
 
+from ci_panel_profile import log_busiest_processes, log_profile, start_profile
 from ci_panel_viewer import WEBGL_RENDERER, check_viewer, check_viewer_follows, watch_model
 from ci_stack import PANEL_PORT, ROOT, Ros, diff, log
 
@@ -97,9 +98,15 @@ def exercise_panel(ros: Ros, robot: str) -> None:
         browser = pw.chromium.launch(executable_path=os.environ.get("LUCY_E2E_BROWSER") or None)
         page = browser.new_page(viewport={"width": 1600, "height": 1000})
         page.on("console", lambda m: m.type == "error" and log(f"browser: {m.text}"))
+        profiler = start_profile(page)
         try:
             drive_panel(page, ros)
         finally:
+            for diagnose in (log_busiest_processes, lambda: log_profile(profiler)):
+                try:
+                    diagnose()
+                except Exception as exc:
+                    log(f"diagnostics skipped: {exc}")
             shot.parent.mkdir(exist_ok=True)
             page.mouse.move(0, 0)
             page.screenshot(path=str(shot), full_page=True)
