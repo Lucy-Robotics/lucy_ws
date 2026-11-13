@@ -80,7 +80,6 @@ class Ros:
 
     def reset(self) -> None:
         self.latest = {}
-        self.description = None
 
     def stack_nodes(self) -> set[str]:
         return set(self.node.get_node_names()) & STACK_NODES
