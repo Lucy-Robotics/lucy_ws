@@ -147,8 +147,7 @@ sim = { cmd = "bash scripts/pixi_lucy_launch.sh mode:=sim" }
 sim-headless = { cmd = "bash scripts/pixi_lucy_launch.sh mode:=sim headless:=true" }
 sim-rviz = { cmd = "bash scripts/pixi_lucy_launch.sh mode:=sim headless:=true rviz:=true" }
 # Real robot: host drives USB-serial servos (SO-ARM101) / host relays to microcontroller boards.
-real-linux = { cmd = "bash scripts/pixi_lucy_launch.sh mode:=real bridge:=linux" }
-real-mcu-bridge = { cmd = "bash scripts/pixi_lucy_launch.sh mode:=real bridge:=mcu_bridge" }
+real = { cmd = "bash scripts/pixi_lucy_launch.sh mode:=real" }
 
 [feature.launcher.target.win-64.tasks]
 rcl = { cmd = "python -c 'import rclpy; print(rclpy.__file__)'" } # TMP task for testing

@@ -44,7 +44,7 @@ def test_the_folded_stack_summary_lists_the_ticked_names(state):
     state.toggle("hardware")
     screen, _ = draw(state, folded={"Stack"})
     text = row_text(screen, header_row(screen, "Stack"))
-    assert text.endswith("  Core, Hardware, Micro controllers")
+    assert text.endswith("  Core, Hardware")
 
 
 def test_an_open_section_shows_a_down_chevron_in_column_two(state):
@@ -101,11 +101,11 @@ def test_an_open_section_shows_no_summary(state):
 @pytest.mark.parametrize(
     "height, folded",
     [
-        (32, []),
-        (31, ["Options"]),
-        (28, ["Tools", "Options"]),
-        (25, ["Control Interfaces", "Tools", "Options"]),
-        (21, ["Robot", "Control Interfaces", "Tools", "Options"]),
+        (30, []),
+        (29, ["Options"]),
+        (26, ["Tools", "Options"]),
+        (23, ["Control Interfaces", "Tools", "Options"]),
+        (19, ["Robot", "Control Interfaces", "Tools", "Options"]),
         (14, TITLES),
     ],
 )
