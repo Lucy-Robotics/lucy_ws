@@ -75,10 +75,11 @@ def test_a_kept_modifier_is_active_with_core_on(state):
 
 def test_a_nested_modifier_is_inactive_when_any_ancestor_is_off(state):
     state.toggle("core")
-    state.toggle("hardware")
+    state.toggle("gazebo")
+    state.toggle("headless")
     state.toggle("core")
-    state.get_by_id("hardware").selected = False
-    assert not choices.is_active(state, state.get_by_id("real_mcu_bridge"))
+    state.get_by_id("gazebo").selected = False
+    assert not choices.is_active(state, state.get_by_id("headless"))
 
 
 def test_apply_does_not_start_a_kept_modifier_while_core_is_off(state, shell):
