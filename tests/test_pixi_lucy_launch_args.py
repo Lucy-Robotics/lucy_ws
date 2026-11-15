@@ -22,7 +22,7 @@ def launcher():
     [
         (["mode:=sim", "headless:=true"], True),
         (["mode:=SIM"], True),
-        (["mode:=real", "bridge:=linux"], False),
+        (["mode:=real"], False),
         (["rviz:=true"], False),
         (["mode:=sim", "mode:=mock"], False),
     ],

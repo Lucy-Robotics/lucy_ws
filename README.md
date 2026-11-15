@@ -94,7 +94,7 @@ Windows is **visualisation only** for now. `pixi run core` starts a `/joint_stat
 **Components you can enable:**
 
 - **Core** - base robot stack (`lucy_bringup`)
-- **Mode** (one, under Core) - Simulator (mock hardware, default), Physics Simulator (Gazebo, optional **Headless**), Hardware (**Micro controllers** or **USB servos**)
+- **Mode** (one, under Core) - Simulator (mock hardware, default), Physics Simulator (Gazebo, optional **Headless**), Hardware (the robot package picks its bridge)
 - **Control Interfaces** - Control Panel (web UI), Lucy CLI
 - **Tools** - Visualizer (RViz), Console, rqt
 
@@ -113,7 +113,7 @@ Lucy selects the robot package with `robot_package:=…` or `LUCY_ROBOT_PACKAGE`
 
 | Robot | Package | First-time / real hardware |
 |-------|---------|----------------------------|
-| SO-ARM101 | `so_arm101_urdf` | **[Hardware setup](src/so_arm101_urdf/docs/HARDWARE_SETUP.md)** - LeRobot calibrate, apply limits, regenerate, then `pixi run real-linux` |
+| SO-ARM101 | `so_arm101_urdf` | **[Hardware setup](src/so_arm101_urdf/docs/HARDWARE_SETUP.md)** - LeRobot calibrate, apply limits, regenerate, then `pixi run real` |
 | InMoov | `inmoov_urdf` | Package docs under `src/inmoov_urdf/` |
 | InMoov i2 | `inmoov_i2_urdf` | Package docs under `src/inmoov_i2_urdf/` |
 | Thais | `thais_urdf` | Package docs under `src/thais_urdf/` |
@@ -122,7 +122,7 @@ Lucy selects the robot package with `robot_package:=…` or `LUCY_ROBOT_PACKAGE`
 Example (SO-ARM101 after calibration):
 
 ```bash
-LUCY_ROBOT_PACKAGE=so_arm101_urdf pixi run real-linux
+LUCY_ROBOT_PACKAGE=so_arm101_urdf pixi run real
 ```
 
 Adding a new robot package: [docs/adding_robot_packages.md](docs/adding_robot_packages.md) (when present).

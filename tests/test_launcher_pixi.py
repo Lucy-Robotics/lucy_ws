@@ -612,7 +612,7 @@ def test_modifier_with_exit_check_reports_crash_when_exit_code_present(tmp_path)
             "id": "real",
             "name": "... with Hardware",
             "type": "modifier",
-            "command": "mode:=real bridge:=linux",
+            "command": "mode:=real",
             "readiness_check": "false",
             "exit_check": (
                 f'"{sys.executable}" -c "import pathlib, sys; '
@@ -653,7 +653,7 @@ def test_intended_running_package_crashes_immediately_when_not_running():
             "id": "real",
             "name": "... with Hardware",
             "type": "modifier",
-            "command": "mode:=real bridge:=linux",
+            "command": "mode:=real",
         },
         running_modifiers=[],
     )
@@ -706,7 +706,7 @@ def test_real_hardware_stays_loading_until_microcontroller_ready_file_exists(tmp
             "id": "real",
             "name": "... with Hardware",
             "type": "modifier",
-            "command": "mode:=real bridge:=linux",
+            "command": "mode:=real",
             "readiness_check": (
                 f'"{sys.executable}" -c "import pathlib, sys; '
                 f'sys.exit(0 if pathlib.Path(sys.argv[1]).is_file() else 1)" '
