@@ -174,14 +174,13 @@ esac
 case "$(uname -s)" in
   Linux|Darwin)
     if command -v tmux >/dev/null 2>&1; then
-      LAUNCH_CMD="cd \"${SCRIPT_DIR}\" && pixi run -e ${LUCY_PIXI_ENV:-default} -- python -m launcher"
       export LUCY_TMUX_SESSION="$TMUX_SESSION"
       # Passed on the command line: a session created on a running tmux server
       # starts from the server's environment, i.e. the first instance's.
       INSTANCE_ENV="LUCY_TMUX_SESSION=${TMUX_SESSION} PORT_ROSBRIDGE=${PORT_ROSBRIDGE}"
       INSTANCE_ENV+=" LUCY_LCP_PUBLISHED_HOST_PORT=${LUCY_LCP_PUBLISHED_HOST_PORT}"
       INSTANCE_ENV+=" LUCY_LCP_CONTAINER_PORT=${LUCY_LCP_CONTAINER_PORT} LUCY_LCP_SCHEME=${LUCY_LCP_SCHEME}"
-      LAUNCH_CMD="cd \"${SCRIPT_DIR}\" && env ${INSTANCE_ENV} pixi run -- python -m launcher"
+      LAUNCH_CMD="cd \"${SCRIPT_DIR}\" && env ${INSTANCE_ENV} pixi run -e ${LUCY_PIXI_ENV:-default} -- python -m launcher"
       # Package windows keep the session alive after the Control Center exits, so
       # "session exists" does not imply "Lucy window exists".
       exec bash -c "

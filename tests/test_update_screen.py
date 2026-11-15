@@ -24,7 +24,8 @@ TO_SIMULATION = [UP] * 10
 
 
 class Screen:
-    def __init__(self, keys, size=(Lucy.MIN_TERM_HEIGHT, Lucy.MIN_TERM_WIDTH)):
+    # The component table is laid out for 65 columns; the Lucy menu itself fits 40.
+    def __init__(self, keys, size=(Lucy.MIN_TERM_HEIGHT, 65)):
         self.keys, self.size, self.written, self.drawn, self.lines = list(keys), size, {}, "", {}
         self.attrs = {}
 

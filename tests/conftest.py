@@ -16,6 +16,7 @@ os.chdir(ROOT)
 def isolated_state(monkeypatch):
     import json
 
+    import components
     from launcher import state as state_module
     from launcher.state import LauncherState
 
@@ -32,6 +33,11 @@ def isolated_state(monkeypatch):
         "launcher.state.get_dev_mode": lambda: False,
         "launcher.state.tmux_window_snapshot": lambda: (set(), {}),
         "launcher.package._ros_pkg_installed": lambda _name: True,
+        # The default install, plus simulation for the Gazebo rows.
+        "launcher.package.components.load": lambda _root: {
+            **components.DEFAULTS,
+            "simulation": True,
+        },
         "launcher.package._pane_exit_status": lambda _pkg_id: None,
         "launcher.package.run_shell_command": lambda *_a, **_k: False,
     }.items():
