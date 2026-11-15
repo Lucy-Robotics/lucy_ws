@@ -30,6 +30,7 @@ def record_launch(state, pkg):
     launched = launched_options() - {o.id for o in options}
     launched |= {o.id for o in options if o.selected}
     try:
+        OPTIONS_FILE.parent.mkdir(parents=True, exist_ok=True)
         OPTIONS_FILE.write_text(json.dumps(sorted(launched)))
     except OSError:
         pass

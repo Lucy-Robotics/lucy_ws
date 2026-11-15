@@ -94,9 +94,9 @@ Windows is **visualisation only** for now. `pixi run core` starts a `/joint_stat
 **Components you can enable:**
 
 - **Core** - base robot stack (`lucy_bringup`)
-- **Modifiers** - Simulator (Gazebo), **… headless** (server-only sim, under Simulator), Visualizer (RViz), Hardware
-- **Interfaces** - Control Panel (web UI), Lucy CLI
-- **Tools** - Console, rqt
+- **Mode** (one, under Core) - Simulator (mock hardware, default), Physics Simulator (Gazebo, optional **Headless**), Hardware (**Micro controllers** or **USB servos**)
+- **Control Interfaces** - Control Panel (web UI), Lucy CLI
+- **Tools** - Visualizer (RViz), Console, rqt
 
 > **Recommended starting point:** **Core + Control Panel**  (the web 3D viewer is enough for most work without heavy GUI apps)
 

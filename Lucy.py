@@ -245,11 +245,12 @@ def main_tui(stdscr):
     title = lucy_title()
     current_idx = 0
     options = ["Launch", "---", "Update", "Rebuild", "Exit", "---", "Developer Mode"]
+    ws = os.environ.get("LUCY_TMUX_SESSION")
 
     while True:
         stdscr.clear()
         h, w = stdscr.getmaxyx()
-        draw_title(stdscr, title)
+        draw_title(stdscr, f"{title} ({ws})" if ws else title)
 
         for i, option in enumerate(options):
             if option == "---":

@@ -268,7 +268,7 @@ def _has_unapplied_changes(state):
         parent = state.get_by_id(pkg.parent) if pkg.parent else None
         if pkg.parent and not (parent and parent.is_running):
             continue
-        if pkg.selected != pkg.is_running:
+        if is_active(state, pkg) != pkg.is_running:
             return True
     return False
 
