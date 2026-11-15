@@ -5,6 +5,7 @@ import time
 from .choices import is_active
 from .config import load_selected_domain_id, load_selection
 from .constants import TMUX_SESSION
+from .domain import export_domain_id, parse_domain_id
 from .options import default_options, options_changed, record_launch, with_options
 from .shell import run_teardown_async
 from .state import (
@@ -12,18 +13,6 @@ from .state import (
     _pkg_start_times,
     _pkg_stop_times,
 )
-
-
-def _clean_status():
-    try:
-        from pathlib import Path
-
-        Path("/tmp/.lucy_real_hardware_status").unlink(missing_ok=True)
-        Path("/tmp/.lucy_real_hardware_error").unlink(missing_ok=True)
-        Path("/tmp/.lucy_real_hardware_ready").unlink(missing_ok=True)
-        Path("/tmp/.lucy_real_hardware_expected").unlink(missing_ok=True)
-    except OSError:
-        pass
 
 
 def _package_needs_vite_preserve(pkg) -> bool:
@@ -79,7 +68,6 @@ def stop_all_packages(state):
         if core and core.is_running:
             launcher._stop_core_tmux()
         launcher.save_state({"modifiers": []})
-        _clean_status()
     launcher._finish_teardown()
 
 
@@ -147,11 +135,7 @@ def apply_changes(state):
             protect_vite=protect_vite,
         )
         launcher.save_state({"modifiers": []})
-        _clean_status()
-        core_pkg.is_running = False
-        core_pkg.ready = False
-        _pkg_start_times.pop("core", None)
-        _intended_running.discard("core")
+        _mark_stopped(core_pkg)
         for mod in state.packages:
             if mod.type == "modifier":
                 if mod.is_running and "stop" in mod.lifecycle_hooks:
@@ -166,7 +150,7 @@ def apply_changes(state):
     for pkg in state.packages:
         if pkg.type == "option":
             continue
-        if not pkg.selected and pkg.is_running:
+        if not is_active(state, pkg) and pkg.is_running:
             stopping = True
             if pkg.is_complex_command():
                 launcher.run_shell_command_async(
@@ -198,7 +182,7 @@ def apply_changes(state):
         crashed = pkg.pane_dead and pkg.pane_exit_status != 0
         if (
             pkg.type != "option"
-            and pkg.selected
+            and is_active(state, pkg)
             and pkg.id not in _pkg_stop_times
             and (not pkg.is_running or crashed)
         ):
@@ -217,7 +201,6 @@ def apply_changes(state):
                 _pkg_start_times[pkg.id] = time.time()
                 _intended_running.add(pkg.id)
             elif pkg.type == "core":
-                _clean_status()
                 base_cmd = pkg.command
                 selected_modifiers = [
                     p for p in state.packages if p.type == "modifier" and p.selected
@@ -279,6 +262,11 @@ def restore_selection(state):
         for pkg in robots:
             pkg.selected = pkg is chosen
     default_options(state)
+    # A running core keeps showing the domain it runs in.
+    core = state.get_by_id("core")
+    saved_domain = parse_domain_id(load_selected_domain_id())
+    if saved_domain is not None and not (core and core.is_running):
+        state.domain_id = saved_domain
 
 
 def default_robot_selection(state):

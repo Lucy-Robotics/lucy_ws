@@ -925,8 +925,6 @@ def setup_firmware_toolchain(
             install_health.tracked(project_root, components.REPOS["firmware"]):
         log("Firmware toolchain (pixi run firmware-setup) ...")
         pixi_run(project_root, ["run", "firmware-setup"], run_command)
-        log("Host firmware binaries (pixi run firmware-build-linux) ...")
-        pixi_run(project_root, ["run", "firmware-build-linux"], run_command)
 
 
 # --- flow --------------------------------------------------------------------

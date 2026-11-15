@@ -124,7 +124,9 @@ def quit():
 
 
 def go_to(state, title, height=80):
-    _, display = draw(state, height=height)
-    return [KEY_DOWN] * display.index(
-        next(s for s in display if isinstance(s, SectionRow) and s.title == title)
+    # On its way down the cursor also steps through the panel's options, shown while on them.
+    folded = tui.fold_to_fit(tui.launch_sections(state), set(), height)
+    rows = tui.display_rows(tui.launch_sections(state, "control_panel"), folded)
+    return [KEY_DOWN] * rows.index(
+        next(s for s in rows if isinstance(s, SectionRow) and s.title == title)
     )

@@ -7,7 +7,7 @@ try:
 except ImportError:
     curses = None
 
-from tui_toolbox import CYAN, GREEN, RED, YELLOW, draw_row, draw_title, fit, put, setup_colors
+from tui_toolbox import CYAN, GREEN, RED, YELLOW, draw_title, fit, put, setup_colors
 
 from .access_urls import access_urls
 from .apply import apply_changes, default_robot_selection, restore_selection
@@ -31,10 +31,9 @@ from .sections import (
 )
 from .links import ADD_INTERFACE, ADD_ROBOT, LinkRow, draw_link_row, open_link
 from .instance import claim_domains, other_instance_claims, other_instance_domains
+from .options import with_focused_options
 from .robot_switch import take_robot_request
 from .stack_status import write_stack_status
-from .constants import MIN_TERM_HEIGHT, MIN_TERM_WIDTH, REDRAW_INTERVAL_MS
-from .options import with_focused_options
 from .state import (
     LauncherState,
     StatusPoller,
@@ -47,6 +46,11 @@ from .state import (
     _stage_hint,
     get_pkg_status,
 )
+
+
+FOOTER = "Enter: Apply | Space: Toggle | Q/X/Esc: Stop All & Exit"
+SHORT_FOOTER = "Enter Apply | Space Toggle | Q Exit"
+UNAPPLIED = "Unapplied changes — press Enter to apply"
 
 
 def _draw_pkg_row(
@@ -71,8 +75,13 @@ def _draw_pkg_row(
         "crashed": (" [CRASHED]", curses.color_pair(RED) | curses.A_BOLD),
         "stopped": (" [STOPPED]", curses.A_DIM),
     }
-    status_str, status_attr = labels.get(status, (" [STOPPED]", curses.A_DIM)) if status else ("", 0)
-    col = draw_row(stdscr, y, x, prefix, indent, checkbox, name, attr, status_str, status_attr)
+    status_str, status_attr = labels.get(status, ("", curses.A_DIM))
+    head = f"{prefix}{indent}{checkbox} "
+    room = stdscr.getmaxyx()[1] - x - len(head) - len(status_str) - 1
+    base = head + fit(name, max(room, 0))
+    stdscr.addstr(y, x, base, attr)
+    col = x + len(base)
+    col = put(stdscr, y, col, status_str, status_attr)
     if detail and status == "crashed":
         room = stdscr.getmaxyx()[1] - col - 1
         if room > 1:
@@ -88,7 +97,8 @@ def _draw_pkg_row(
         text = fit(f" ({'  '.join(urls)})", room) if room > 1 else ""
         col = put(stdscr, y, col, text, curses.color_pair(CYAN))
     if hint:
-        col = put(stdscr, y, col, f" {hint}", curses.color_pair(CYAN))
+        text = fit(f" {hint}", stdscr.getmaxyx()[1] - col - 1)
+        col = put(stdscr, y, col, text, curses.color_pair(CYAN))
 
 
 def confirm_exit_action(key):
@@ -119,55 +129,75 @@ def _is_mode(p):
     return p.type == "modifier" and not p.requires_pkg and p.section != "tools"
 
 
-def launch_sections(state):
+def launch_sections(state, focused_id=None):
+    """Sections and their rows; a package's options show while it or one of them has the cursor."""
     robots = [p for p in state.packages if p.type == "modifier" and p.requires_pkg] + [
         ADD_ROBOT
     ]
     cores = [p for p in state.packages if p.type == "core"]
     modes = [p for p in state.packages if _is_mode(p)]
-    interfaces = [p for p in state.packages if p.type == "interface"] + [ADD_INTERFACE]
+    interfaces = with_focused_options(
+        [p for p in state.packages if p.type == "interface"], state.packages, focused_id
+    ) + [ADD_INTERFACE]
     tools = [p for p in state.packages if p.type == "tool" or p.section == "tools"]
     return [
-        (SectionRow("Stack", 1), cores + modes),
-        (SectionRow("Robot", 1), robots),
-        (SectionRow("Control Interfaces", 3), interfaces),
-        (SectionRow("Tools", 3), tools),
-        (SectionRow("Options", 3), [DOMAIN_ROW]),
+        (SectionRow("Stack", YELLOW), cores + modes),
+        (SectionRow("Robot", YELLOW), robots),
+        (SectionRow("Control Interfaces", CYAN), interfaces),
+        (SectionRow("Tools", CYAN), tools),
+        (SectionRow("Options", CYAN), [DOMAIN_ROW]),
     ]
+
+
+def display_rows(titled, folded):
+    rows = []
+    for section, items in titled:
+        rows += [section] + ([] if section.title in folded else items)
+    return rows
+
+
+def resolve_focus(state, focused, current_idx, folded, height):
+    """``(focused row, its index, folded)``. Option rows come and go with the cursor, so
+    the cursor follows its row rather than an index; a row that left (folded away) hands
+    the cursor to the one now at its index. Folds fit the rows without options: the
+    cursor passing over a package must not fold a section for good."""
+    folded = fold_to_fit(launch_sections(state), folded, height)
+    for _ in range(2):
+        rows = display_rows(launch_sections(state, getattr(focused, "id", None)), folded)
+        if focused in rows:
+            break
+        focused = rows[min(current_idx, len(rows) - 1)]
+    return focused, rows.index(focused), folded
 
 
 def draw_tui(
     stdscr,
     state,
-    focused_id,
+    current_idx,
     error_msg,
     status_msg,
     unapplied=False,
     confirm_exit=False,
     folded=frozenset(),
     domain_claims=None,
+    focused_id=None,
 ):
-    titled = launch_sections(state)
+    titled = launch_sections(state, focused_id)
     h, w = stdscr.getmaxyx()
-    all_folded = {section.title for section, _ in titled}
-    min_height = rows_needed(titled, all_folded)
-    folded = fold_to_fit(titled, folded, h)
-    display_list = []
-    for section, items in titled:
-        display_list += [section] + ([] if section.title in folded else items)
+    # Fit without the options under the cursor; rows they push past the screen are clipped.
+    fitted = launch_sections(state)
+    all_folded = {section.title for section, _ in fitted}
+    min_height = rows_needed(fitted, all_folded)
+    folded = fold_to_fit(fitted, folded, h)
+    display_list = display_rows(titled, folded)
     if h < min_height or w < MIN_TERM_WIDTH:
         draw_too_small_message(stdscr, min_height)
         return None
 
     stdscr.erase()
-    title = "Lucy Control Center"
-    draw_title(stdscr, title)
-    stdscr.addstr(
-        h - 1,
-        2,
-        "Enter: Apply | Space: Toggle | Q/X/Esc: Stop All & Exit",
-        curses.A_BOLD,
-    )
+    draw_title(stdscr, f"Lucy Launch Screen ({TMUX_SESSION})")
+    footer = FOOTER if len(FOOTER) + 3 <= w else SHORT_FOOTER
+    stdscr.addstr(h - 1, 2, footer, curses.A_BOLD)
 
     if confirm_exit:
         stdscr.addstr(
@@ -177,37 +207,20 @@ def draw_tui(
             curses.A_BOLD | curses.color_pair(RED),
         )
     elif status_msg:
-        stdscr.addstr(h - 2, 2, _fit(status_msg, w - 3), curses.A_BOLD)
+        stdscr.addstr(h - 2, 2, fit(status_msg, w - 3), curses.A_BOLD)
     elif error_msg:
-        stdscr.addstr(h - 2, 2, f"Warning: {error_msg}", curses.color_pair(RED))
-    elif unapplied:
         stdscr.addstr(
-            h - 2,
-            2,
-            "Unapplied changes — press Enter to apply",
-            curses.color_pair(YELLOW),
+            h - 2, 2, fit(f"Warning: {error_msg}", w - 3), curses.color_pair(RED)
         )
     elif unapplied:
-        stdscr.addstr(h - 2, 2, _fit(UNAPPLIED, w - 3), curses.color_pair(1))
+        stdscr.addstr(h - 2, 2, fit(UNAPPLIED, w - 3), curses.color_pair(YELLOW))
 
-    robots = [p for p in state.packages if p.type == "modifier" and p.requires_pkg]
-    cores_and_mods = [
-        p
-        for p in state.packages
-        if p.type in ("core", "modifier") and not p.requires_pkg
-    ]
-    interfaces = with_focused_options(
-        [p for p in state.packages if p.type == "interface"], state.packages, focused_id
-    )
-    tools = [p for p in state.packages if p.type == "tool"]
-    display_list = cores_and_mods + robots + interfaces + tools
-    ids = [p.id for p in display_list]
-    current_idx = ids.index(focused_id) if focused_id in ids else 0
-
-    def draw_section(title, color, items, offset, gap=1, indent_all=False):
+    def draw_items(items, offset, x=4):
         nonlocal row
         for i, p in enumerate(items):
             list_idx = offset + i
+            if row + i >= h - 2:
+                continue
             if isinstance(p, LinkRow):
                 draw_link_row(stdscr, row + i, x, p, current_idx == list_idx)
                 continue
@@ -224,11 +237,13 @@ def draw_tui(
                 attr |= curses.A_BOLD
             if p.subitem:
                 indent = "        "
-            elif indent_all or p.type in ("modifier", "option"):
+            elif _is_mode(p) or p.type == "option":
                 indent = "    "
             else:
                 indent = ""
             status = None if p.type == "option" else get_pkg_status(p)
+            shows_stopped = p.type == "core" or p.selected
+            label = status if shows_stopped or status != "stopped" else None
             hint = _nav_hint(p)
             _draw_pkg_row(
                 stdscr,
@@ -248,18 +263,20 @@ def draw_tui(
         row += len(items)
 
     row = 2
-    draw_section(
-        "Primary Launch Targets", curses.color_pair(YELLOW), cores_and_mods, 0, gap=2
-    )
-    offset = len(cores_and_mods)
-    if robots:
-        draw_section(
-            "Robot", curses.color_pair(YELLOW), robots, offset, gap=1, indent_all=True
-        )
-        offset += len(robots)
-    draw_section("Interfaces", curses.color_pair(CYAN), interfaces, offset, gap=1)
-    offset += len(interfaces)
-    draw_section("Tools", curses.color_pair(CYAN), tools, offset, gap=1)
+    offset = 0
+    for section, items in titled:
+        row += 1
+        is_folded = section.title in folded
+        summary = section_summary(items, state)
+        if row < h - 2:
+            draw_section_header(
+                stdscr, row, section, current_idx == offset, is_folded, summary, fit
+            )
+        row += 1
+        offset += 1
+        if not is_folded:
+            draw_items(items, offset)
+            offset += len(items)
 
     stdscr.refresh()
     return display_list
@@ -298,7 +315,8 @@ def main(stdscr):
 def _event_loop(stdscr, state, poller, status_msg=None, status_msg_until=0.0):
     """Draw/input loop. Package status arrives from `poller` as finished
     snapshots so no keystroke ever waits on a readiness probe."""
-    focused_id = None
+    current_idx = 0
+    focused = None
     error_msg = None
     error_until = 0.0
     confirm_exit = False
@@ -322,17 +340,20 @@ def _event_loop(stdscr, state, poller, status_msg=None, status_msg_until=0.0):
             if status_msg and time.time() >= status_msg_until:
                 status_msg = None
             height = stdscr.getmaxyx()[0]
-            folded = fold_to_fit(launch_sections(state), folded, height)
+            focused, current_idx, folded = resolve_focus(
+                state, focused, current_idx, folded, height
+            )
             display_list = draw_tui(
                 stdscr,
                 state,
-                focused_id,
+                current_idx,
                 error_msg,
                 status_msg,
                 _has_unapplied_changes(state),
                 confirm_exit,
                 folded,
                 other_instance_claims(),
+                getattr(focused, "id", None),
             )
             if error_msg and time.time() >= error_until:
                 error_msg = None
@@ -378,14 +399,37 @@ def _event_loop(stdscr, state, poller, status_msg=None, status_msg_until=0.0):
                     confirm_exit = False
                     continue
 
-            ids = [p.id for p in display_list]
-            current_idx = ids.index(focused_id) if focused_id in ids else 0
+            current = display_list[current_idx]
+            on_domain = current is DOMAIN_ROW
+            if isinstance(current, SectionRow):
+                fold = fold_change(key, current.title in folded)
+                if fold:
+                    folded.add(current.title)
+                elif fold is False:
+                    opened = folded - {current.title}
+                    if rows_needed(launch_sections(state), opened) > height:
+                        error_msg = f"Terminal too small to open {current.title}"
+                        error_until = time.time() + 3.0
+                    else:
+                        folded = opened
+                if fold is not None:
+                    continue
             if key == curses.KEY_UP:
-                focused_id = ids[(current_idx - 1) % len(ids)]
+                current_idx = (current_idx - 1) % len(display_list)
+                focused = display_list[current_idx]
             elif key == curses.KEY_DOWN:
-                focused_id = ids[(current_idx + 1) % len(ids)]
+                current_idx = (current_idx + 1) % len(display_list)
+                focused = display_list[current_idx]
+            elif isinstance(current, LinkRow) and key in (ord(" "), ord("\n")):
+                status_msg = open_link(current)
+                status_msg_until = time.time() + 5.0
+            elif on_domain and (step := domain_step(key)):
+                state.step_domain(step, other_instance_domains())
+                claim_domains(state.claimed_domains())
             elif key == ord(" "):
-                error_msg = state.toggle(ids[current_idx])
+                if not on_domain:
+                    error_msg = state.toggle(current.id)
+                    error_until = time.time() + 3.0
             elif key == ord("\n"):
                 apply_changes(state)
                 claim_domains(state.claimed_domains())

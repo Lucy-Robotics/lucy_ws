@@ -79,7 +79,7 @@ def test_setup_firmware_toolchain_runs_pixi_task(monkeypatch):
     monkeypatch.delenv("LUCY_SKIP_FIRMWARE_SETUP", raising=False)
     monkeypatch.setattr(install, "pixi_run", record)
     install.setup_firmware_toolchain("/tmp/ws", lambda *a, **k: 0, log=lambda m: None)
-    assert calls == [["run", "firmware-setup"], ["run", "firmware-build-linux"]]
+    assert calls == [["run", "firmware-setup"]]
 
 
 def test_build_skips_panel_install_without_control_panel(tmp_path, monkeypatch):
@@ -114,3 +114,17 @@ def test_update_keeps_a_branch_that_only_exists_locally(tmp_path, monkeypatch):
                            lambda cmd, check=True: commands.append(cmd) or 0, logs.append)
     assert not any("pull" in cmd for cmd in commands)
     assert "not on origin" in logs[-1]
+
+
+def test_build_workspace_sets_up_firmware_toolchain_before_colcon(monkeypatch):
+    calls = []
+
+    def record(project_root, args, run_command):
+        calls.append(args)
+        return 0
+
+    monkeypatch.delenv("LUCY_SKIP_FIRMWARE_SETUP", raising=False)
+    monkeypatch.setattr(install, "pixi_run", record)
+    monkeypatch.setattr(install, "build_local_realsense_optional", lambda *a, **k: None)
+    install.build_workspace("/tmp/ws", lambda *a, **k: 0, log=lambda m: None)
+    assert calls.index(["run", "firmware-setup"]) < calls.index(["run", "build"])
