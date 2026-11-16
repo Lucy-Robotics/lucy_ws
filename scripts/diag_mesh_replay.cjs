@@ -7,7 +7,7 @@ const dir = process.argv[3];
 const CONC = Number(process.argv[4] || 8);
 const TIMEOUT = Number(process.argv[5] || 60) * 1000;
 const files = fs.readdirSync(dir).filter((f) => f.endsWith('.dae')).map((f) => 'file://' + path.join(dir, f));
-const ws = new WebSocket('ws://127.0.0.1:9090');
+const ws = new WebSocket(process.env.WS_URL || 'ws://127.0.0.1:9090');
 const pending = new Map();
 let n = 0, ok = 0, fail = 0, timeouts = 0, bytes = 0;
 const lat = [];
