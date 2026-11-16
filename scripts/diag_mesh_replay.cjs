@@ -36,6 +36,10 @@ function call(file) {
   });
 }
 ws.on('open', async () => {
+  for (const topic of (process.env.SUBS || '').split(',').filter(Boolean)) {
+    ws.send(JSON.stringify({ op: 'subscribe', topic }));
+  }
+  if (process.env.SUBS) await new Promise((r) => setTimeout(r, 2000));
   await call(files[0]);
   const queue = files.slice(1);
   const worker = async () => { while (queue.length) await call(queue.shift()); };

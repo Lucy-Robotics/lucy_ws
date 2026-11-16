@@ -2,6 +2,7 @@
 # Throwaway CI diagnostic: replay the panel's /mesh/get traffic with no browser,
 # directly on rosbridge (9090) and through the panel's vite /rosbridge proxy (4004).
 set -u
+set -m
 mesh_dir="src/inmoov_urdf/description/robot_description/meshes/dae"
 ws_modules="$PWD/src/lucy_control_panel/node_modules"
 
@@ -12,14 +13,17 @@ replay() {
 }
 
 stop_all() {
-  kill "$1" "$2" 2>/dev/null
+  kill -- "-$1" "-$2" 2>/dev/null
+  pkill -f "[.]pixi/envs/default" 2>/dev/null
   pkill -f "[r]os2 launch" 2>/dev/null
   pkill -f "[v]ite" 2>/dev/null
   sleep 8
   pkill -9 -f "[r]osbridge" 2>/dev/null
   pkill -9 -f "[c]ontrol_supervisor" 2>/dev/null
   pkill -9 -f "[c]onfig_services" 2>/dev/null
+  pkill -9 -f "[.]pixi/envs/default" 2>/dev/null
   sleep 3
+  pgrep -fa "[.]pixi/envs/default" | head -3
 }
 
 run_variant() {
@@ -34,6 +38,7 @@ run_variant() {
   sleep 25
   echo "variant=$name"
   replay direct ws://127.0.0.1:9090 8
+  SUBS=/joint_states,/dynamic_joint_states replay direct+subs ws://127.0.0.1:9090 8
   replay proxy ws://127.0.0.1:4004/rosbridge 2
   replay proxy ws://127.0.0.1:4004/rosbridge 8
   replay proxy ws://127.0.0.1:4004/rosbridge 8
