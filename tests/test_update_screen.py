@@ -16,11 +16,14 @@ from update_branches import WORKSPACE
 
 UP, DOWN, RIGHT, LEFT, ENTER, SPACE, ESC = (
     curses.KEY_UP, curses.KEY_DOWN, curses.KEY_RIGHT, curses.KEY_LEFT, ord("\n"), ord(" "), 27)
-TO_MARTY = [UP] * 4
+ROBOTS_BELOW_MARTY = len(components.ROBOTS) - 1 - components.ROBOTS.index("robot_marty")
+TO_MARTY = [UP] * (ROBOTS_BELOW_MARTY + 3)
+MARTY_TO_UPDATE = [DOWN] * (ROBOTS_BELOW_MARTY + 3)
 TO_CORE_REPO = [UP, UP]
 TO_WORKSPACE = [UP]
-TO_FIRST_ROBOT = [UP] * 7
-TO_SIMULATION = [UP] * 11
+TO_FIRST_ROBOT = [UP] * (len(components.ROBOTS) + 2)
+TO_SIMULATION = [UP] * (len(components.LABELS) + 2)
+CORE_REPO_LINE = len(components.LABELS) + 2
 
 
 class Screen:
@@ -55,13 +58,13 @@ def workspace(tmp_path, monkeypatch):
 
 
 def test_update_button_saves_the_choice_and_asks_for_the_update(workspace):
-    keys = [*TO_MARTY, SPACE, DOWN, DOWN, DOWN, DOWN, ENTER]
+    keys = [*TO_MARTY, SPACE, *MARTY_TO_UPDATE, ENTER]
     assert update_screen.update_screen(Screen(keys), workspace) is not None
     assert components.load(workspace)["robot_marty"] is True
 
 
 def test_exit_button_leaves_without_saving(workspace):
-    keys = [*TO_MARTY, SPACE, DOWN, DOWN, DOWN, DOWN, DOWN, ENTER]
+    keys = [*TO_MARTY, SPACE, *MARTY_TO_UPDATE, DOWN, ENTER]
     assert update_screen.update_screen(Screen(keys), workspace) is None
     assert not (workspace / ".env").exists()
 
@@ -263,7 +266,7 @@ def test_the_focused_repo_lists_its_branches_on_separate_lines(workspace):
     _repo_with_branches(workspace / "src" / "lucy_ros_packages", "feature")
     screen = Screen([*TO_CORE_REPO, ESC])
     update_screen.update_screen(screen, workspace)
-    assert "dev" in screen.lines[11] and "feature" in screen.lines[12]
+    assert "dev" in screen.lines[CORE_REPO_LINE] and "feature" in screen.lines[CORE_REPO_LINE + 1]
 
 
 def test_other_rows_only_show_their_own_branch(workspace):
