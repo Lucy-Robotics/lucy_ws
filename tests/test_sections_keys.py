@@ -1,6 +1,8 @@
+from types import SimpleNamespace
+
 import pytest
 
-from launcher import tui
+from launcher import clipboard, tui
 from sections_support import (
     KEY_DOWN,
     KEY_LEFT,
@@ -166,6 +168,15 @@ def test_the_loop_ticks_while_a_warning_is_showing(state, clock):
     assert screen.timeouts[start + 1] == tui.REDRAW_INTERVAL_MS
 
 
-def test_a_mouse_copy_says_copied_on_the_message_line(state, clock):
+@pytest.mark.parametrize(
+    "copied, message",
+    [("héllo", "Copied 5 chars to clipboard"), ("x", "Copied 1 char to clipboard")],
+)
+def test_a_mouse_copy_says_how_many_chars_on_the_message_line(
+    state, clock, monkeypatch, copied, message
+):
+    monkeypatch.setattr(
+        clipboard.subprocess, "run", lambda *_a, **_k: SimpleNamespace(stdout=copied)
+    )
     screen, _ = run(state, [tui.TMUX_COPIED_KEY] + quit(), clock=clock)
-    assert screen.seen[1] == "Copied"
+    assert screen.seen[1] == message

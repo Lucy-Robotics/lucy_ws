@@ -10,6 +10,7 @@ except ImportError:
 from .apply import apply_changes, default_robot_selection, restore_selection
 from .autostart import autostart
 from .choices import settle_selection
+from .clipboard import copied_message
 from .config import get_dev_mode, load_config, save_selection
 from .constants import (
     MIN_TERM_WIDTH,
@@ -442,7 +443,7 @@ def _event_loop(stdscr, state, poller, status_msg=None, status_msg_until=0.0):
                 status_msg_until = time.time() + 2.0
                 poller.request_refresh()
             elif key == TMUX_COPIED_KEY:
-                status_msg = "Copied"
+                status_msg = copied_message()
                 status_msg_until = time.time() + 2.0
             elif key in [ord("x"), ord("X"), ord("q"), ord("Q"), 27]:
                 confirm_exit = True
