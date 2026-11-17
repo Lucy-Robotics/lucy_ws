@@ -243,3 +243,4 @@ Vite proxies `/rosbridge` to `ws://127.0.0.1:9090`. Launcher sets `LUCY_LCP_*` v
 | [`src/inmoov_i2_urdf/docs/DEVELOPER.md`](../src/inmoov_i2_urdf/docs/DEVELOPER.md) | InMoov i2 model (fork of `inmoov_urdf`) |
 | [`src/so_arm101_urdf/docs/DEVELOPER.md`](../src/so_arm101_urdf/docs/DEVELOPER.md) | SO-ARM101 follower arm |
 | [`src/unitree_g1_urdf/docs/DEVELOPER.md`](../src/unitree_g1_urdf/docs/DEVELOPER.md) | Unitree G1 humanoid |
+| [`src/unitree_r1_urdf/docs/DEVELOPER.md`](../src/unitree_r1_urdf/docs/DEVELOPER.md) | Unitree R1 humanoid |

@@ -59,7 +59,7 @@ def test_the_cursor_is_clamped_after_the_screen_shrinks(state):
     assert (row, 0, "> ") in [(y, x, t) for y, x, t, _ in screen.writes]
 
 
-@pytest.mark.parametrize("height", [21, 26, 29])
+@pytest.mark.parametrize("height", [21, 27, 30])
 @pytest.mark.parametrize("key", [ord(" "), KEY_RIGHT])
 def test_opening_a_section_with_no_room_warns_and_leaves_it_folded(
     state, clock, height, key
@@ -133,7 +133,7 @@ def test_a_taller_terminal_does_not_reopen_sections_folded_for_lack_of_room(
 def test_shrinking_folds_bottom_up_and_growing_back_keeps_them_folded(state, clock):
     keys = [KEY_RESIZE, KEY_RESIZE] + quit()
     screen, _ = run(
-        state, keys, size=(40, 120), shrink=[(29, 120), (40, 120)], clock=clock
+        state, keys, size=(40, 120), shrink=[(30, 120), (40, 120)], clock=clock
     )
     assert sorted(folded_titles(screen)) == ["Options", "Tools"]
 
