@@ -167,16 +167,16 @@ jobs:
         shell: bash
         run: bash scripts/diag_mesh_replay.sh
 
+      - name: Install the E2E browser
+        shell: bash
+        run: for i in 1 2 3; do pixi run python -m playwright install ${{ runner.os == 'Linux' && '--with-deps' || '' }} chromium && exit 0; sleep 30; done; exit 1
+
       - name: "Linux/macOS: DIAG panel E2E in a browser without the TUI (throwaway)"
         if: runner.os != 'Windows'
         timeout-minutes: 15
         continue-on-error: true
         shell: bash
         run: pixi run panel-e2e-test inmoov_urdf
-
-      - name: Install the E2E browser
-        shell: bash
-        run: for i in 1 2 3; do pixi run python -m playwright install ${{ runner.os == 'Linux' && '--with-deps' || '' }} chromium && exit 0; sleep 30; done; exit 1
 
       - name: "Windows: control panel E2E through the launcher commands (SO101, mock hardware)"
         id: e2e_so101
