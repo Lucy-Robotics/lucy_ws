@@ -139,9 +139,10 @@ def test_shrinking_folds_bottom_up_and_growing_back_keeps_them_folded(state, clo
 
 
 def _toggle_warning_keys(state):
-    state.toggle("core")
+    robot = next(p for p in state.packages if p.requires_pkg)
+    state.toggle(robot.id)
     _, display = draw(state)
-    return [KEY_DOWN] * display.index(state.get_by_id("simulator")) + [ord(" ")]
+    return [KEY_DOWN] * display.index(robot) + [ord(" ")]
 
 
 def test_a_toggle_warning_survives_redraw_ticks_and_expires_after_three_seconds(
@@ -152,9 +153,9 @@ def test_a_toggle_warning_survives_redraw_ticks_and_expires_after_three_seconds(
     keys += [("advance", 1), ("advance", 1), ("advance", 1.5), ("advance", 0)]
     screen, _ = run(state, keys + quit(), clock=clock)
     assert all(
-        "One launch mode required" in s for s in screen.seen[start + 1 : start + 4]
+        "One robot package required" in s for s in screen.seen[start + 1 : start + 4]
     )
-    assert "One launch mode" not in screen.seen[start + 5]
+    assert "One robot package" not in screen.seen[start + 5]
 
 
 def test_the_loop_ticks_while_a_warning_is_showing(state, clock):
