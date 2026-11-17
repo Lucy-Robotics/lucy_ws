@@ -61,12 +61,21 @@ def test_dev_mode_starts_the_saved_launch(monkeypatch, launched):
     assert launched == {"applied": 1, "saved": {"core", "teleop"}}
 
 
-def test_dev_mode_without_saved_launch_starts_nothing(monkeypatch, launched):
+def test_dev_mode_without_saved_launch_starts_core_robot_and_panel(monkeypatch, launched):
     state = _state(monkeypatch, True)
     monkeypatch.setattr(autostart_module, "load_selection", lambda: None)
 
-    assert autostart_module.autostart(state, True) is None
-    assert launched == {"applied": 0, "saved": None}
+    assert autostart_module.autostart(state, True) == "Starting default services..."
+    assert launched == {"applied": 1, "saved": {"core", "robot_a", "control_panel"}}
+
+
+def test_dev_mode_keeps_a_saved_launch_without_the_panel(monkeypatch, launched):
+    state = _state(monkeypatch, True)
+    monkeypatch.setattr(autostart_module, "load_selection", lambda: {"core"})
+    state.get_by_id("core").selected = True
+
+    autostart_module.autostart(state, True)
+    assert launched["saved"] == {"core"}
 
 
 def test_production_starts_core_robot_and_panel(monkeypatch, launched):
