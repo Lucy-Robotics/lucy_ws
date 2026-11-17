@@ -100,3 +100,16 @@ def test_install_builds_the_panel_outside_developer_mode(monkeypatch, developer,
                             lambda _m: None, developer=developer)
 
     assert any(cmd[-1] == "panel-build" for cmd in commands) == builds_panel
+
+
+@pytest.mark.parametrize("saved", [set(), {"panel_host_network"}, {"removed_robot"}])
+def test_dev_mode_starts_the_defaults_when_the_saved_launch_has_no_package(monkeypatch, launched, saved):
+    monkeypatch.setitem(CONFIG, "packages", CONFIG["packages"] + [
+        {"id": "panel_host_network", "name": "Every network", "type": "option", "parent": "control_panel",
+         "conflicts": [], "command": "--host 0.0.0.0"},
+    ])
+    state = _state(monkeypatch, True)
+    monkeypatch.setattr(autostart_module, "load_selection", lambda: saved)
+
+    assert autostart_module.autostart(state, True) == "Starting default services..."
+    assert {"core", "robot_a", "control_panel"} <= launched["saved"]
