@@ -243,3 +243,5 @@ Vite proxies `/rosbridge` to `ws://127.0.0.1:9090`. Launcher sets `LUCY_LCP_*` v
 | [`src/so_arm101_urdf/docs/DEVELOPER.md`](../src/so_arm101_urdf/docs/DEVELOPER.md) | SO-ARM101 follower arm |
 | [`src/marty_urdf/docs/DEVELOPER.md`](../src/marty_urdf/docs/DEVELOPER.md) | Robotical Marty v2 (mock and Gazebo) |
 | [`src/reachy_mini_so101_humanoid_urdf/docs/DEVELOPER.md`](../src/reachy_mini_so101_humanoid_urdf/docs/DEVELOPER.md) | Reachy Mini SO101 humanoid (mock and Gazebo) |
+| [`src/unitree_g1_urdf/docs/DEVELOPER.md`](../src/unitree_g1_urdf/docs/DEVELOPER.md) | Unitree G1 humanoid (mock and Gazebo) |
+| [`src/unitree_r1_urdf/docs/DEVELOPER.md`](../src/unitree_r1_urdf/docs/DEVELOPER.md) | Unitree R1 humanoid (mock and Gazebo) |
