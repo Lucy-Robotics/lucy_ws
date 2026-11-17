@@ -4,6 +4,7 @@ import sys
 
 import pytest
 
+from launcher.apply import default_robot_selection
 from launcher.state import LauncherState
 
 
@@ -100,3 +101,21 @@ def test_save_selection_replaces_unwritable_file(monkeypatch, tmp_path):
     config.save_selection({"core", "robot_b"}, 0)
 
     assert config.load_selection() == {"core", "robot_b"}
+
+
+def test_without_inmoov_the_first_robot_is_picked(monkeypatch):
+    state = _state(monkeypatch)
+    state.get_by_id("core").selected = True
+    default_robot_selection(state)
+    assert [p.id for p in state.packages if p.requires_pkg and p.selected] == ["robot_a"]
+
+
+def test_inmoov_stays_the_default_when_installed(monkeypatch):
+    monkeypatch.setitem(CONFIG, "packages", CONFIG["packages"] + [
+        {"id": "robot_inmoov", "name": "InMoov", "type": "modifier", "dependencies": ["core"],
+         "conflicts": [], "command": "robot_package:=inmoov_urdf", "requires_pkg": "inmoov_urdf"},
+    ])
+    state = _state(monkeypatch)
+    state.get_by_id("core").selected = True
+    default_robot_selection(state)
+    assert [p.id for p in state.packages if p.requires_pkg and p.selected] == ["robot_inmoov"]
