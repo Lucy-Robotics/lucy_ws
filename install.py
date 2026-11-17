@@ -18,6 +18,10 @@ Optional config/repos.json.local overrides config/repos.json.
 Pixi must be >= LUCY_PIXI_MIN_VERSION (default 0.78.0); when it is missing or too
 old install.py offers to run the official installer. LUCY_PIXI_AUTO_UPGRADE=1
 skips the prompt, LUCY_SKIP_PIXI_UPGRADE=1 fails instead.
+
+On Linux/macOS a missing tmux (needed by launch_lucy.sh) is installed with
+`pixi global install tmux`; an existing tmux is never replaced.
+LUCY_TMUX_AUTO_INSTALL=1 skips the prompt, LUCY_SKIP_TMUX_INSTALL=1 only warns.
 """
 
 from __future__ import annotations
@@ -47,6 +51,7 @@ REQUIREMENT_DOCS = {
     "python": ("Python 3", "https://www.python.org/downloads/"),
     "git": ("Git", "https://git-scm.com/downloads"),
     "pixi": ("Pixi", "https://pixi.prefix.dev/latest/installation/"),
+    "tmux": ("tmux", "https://github.com/tmux/tmux/wiki/Installing"),
     "msvc": ("Visual Studio Build Tools (Desktop development with C++)",
              "https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022"),
     "workspace-path": ("Workspace path without spaces", ""),
@@ -538,6 +543,64 @@ def ensure_pixi(run_command: Callable = default_run_command, log: Log = print) -
         fail("pixi", f"pixi {current} still below {minimum} after install.")
 
 
+TMUX_INSTALL_COMMAND = ["pixi", "global", "install", "tmux"]
+
+
+def tmux_manual_hint() -> str:
+    if sys.platform == "darwin":
+        return "pixi global install tmux   (or: brew install tmux)"
+    return ("pixi global install tmux   "
+            "(or: sudo apt install tmux / sudo dnf install tmux / sudo pacman -S tmux)")
+
+
+def ensure_tmux(run_command: Callable = default_run_command, log: Log = print) -> Optional[str]:
+    """Install tmux with `pixi global` when it is missing. Linux/macOS only.
+
+    Any tmux already on PATH (system, Homebrew, an earlier pixi global install) is
+    kept as is: a second copy in ~/.pixi/bin would shadow it, since launch_lucy.sh
+    and Lucy.py put that directory first, and a tmux client cannot talk to a
+    server started by another version. pixi global needs neither sudo nor a
+    system package manager, and pixi is already there by now (ensure_pixi).
+
+    tmux is only needed to launch, so a declined or failed install does not stop
+    the build: the warning is returned, to be repeated at the end of the install.
+    """
+    if sys.platform == "win32":
+        return None
+    prepend_pixi_to_path()
+    if shutil.which("tmux"):
+        return None
+
+    def warn(reason: str) -> str:
+        message = (f"{reason} './launch_lucy.sh' (Launch in Lucy.py) needs tmux on Linux/macOS. "
+                   f"Install it with: {tmux_manual_hint()}")
+        log(f"WARNING: {message}")
+        return message
+
+    if env_flag("LUCY_SKIP_TMUX_INSTALL"):
+        return warn("tmux not found and LUCY_SKIP_TMUX_INSTALL is set.")
+
+    log("install: tmux not found - installing it with 'pixi global install tmux' (no sudo) ...")
+    log("install: (LUCY_SKIP_TMUX_INSTALL=1 to skip; LUCY_TMUX_AUTO_INSTALL=1 to skip prompt)")
+    try:
+        if not confirm_install("tmux", "Install tmux via pixi global?", "LUCY_TMUX_AUTO_INSTALL",
+                               default=True):
+            return warn("tmux install declined.")
+        run_command(TMUX_INSTALL_COMMAND)
+    except PrerequisiteError as exc:
+        return warn(f"tmux not installed: {exc.issues[0]['detail']}")
+    except subprocess.CalledProcessError as exc:
+        return warn(f"'pixi global install tmux' failed (exit code {exc.returncode}).")
+
+    prepend_pixi_to_path()
+    tmux_path = shutil.which("tmux")
+    if not tmux_path:
+        return warn("'pixi global install tmux' finished but tmux is not on PATH "
+                    "(is PIXI_HOME set to somewhere other than ~/.pixi?).")
+    log(f"install: tmux ready ({tmux_path}).")
+    return None
+
+
 MSVC_WINGET_ID = "Microsoft.VisualStudio.2022.BuildTools"
 MSVC_WINGET_OVERRIDE = f"--quiet --wait --norestart --add {VC_TOOLS_COMPONENT}"
 
@@ -935,6 +998,9 @@ def run_flow(
         if not is_nix_ld_enabled():
             raise NixLdError("Please enable `programs.nix-ld.enable = true;` in your NixOS configuration and rebuild your system before continuing. See README.md for details.")
 
+    # After the nix-ld check: pixi global binaries need it on NixOS.
+    warnings = [w for w in [ensure_tmux(run_command, log)] if w]
+
     if not skip_build:
         ensure_msvc(run_command, log)
     require_prerequisites(
@@ -961,7 +1027,8 @@ def run_flow(
     else:
         build_workspace(root, run_command, log, developer=developer)
 
-    return {"mode": mode, "developer": developer, "fetch_method": effective, "skip_build": skip_build}
+    return {"mode": mode, "developer": developer, "fetch_method": effective,
+            "skip_build": skip_build, "warnings": warnings}
 
 
 def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
@@ -996,7 +1063,7 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
 def main(argv: Optional[list[str]] = None) -> int:
     args = parse_args(argv)
     try:
-        run_flow(
+        summary = run_flow(
             ROOT, args.mode,
             developer=True if args.developer else None,
             repos_branch=args.repos_branch,
@@ -1019,6 +1086,9 @@ def main(argv: Optional[list[str]] = None) -> int:
         print("Install complete. Run 'pixi run core', then 'pixi run control-panel'.")
     else:
         print("Install complete. Run 'python3 Lucy.py'")
+    # Repeated here: the first mention scrolled away behind the clone and build.
+    for warning in summary.get("warnings", []):
+        print(f"\nWARNING: {warning}", file=sys.stderr)
     return 0
 
 
