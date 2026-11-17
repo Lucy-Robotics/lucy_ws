@@ -152,7 +152,7 @@ class LauncherState:
                 if len(selected_robots) <= 1:
                     return "One robot package required"
             if is_last_choice(self, pkg) and is_choice_default(self, pkg):
-                return f"One {pkg.choice} required"
+                return None
             self._disable_with_dependents(pkg)
         settle_selection(self)
         return None

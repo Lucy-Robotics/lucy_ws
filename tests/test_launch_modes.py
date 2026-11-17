@@ -41,16 +41,16 @@ def test_ticking_usb_servos_switches_hardware_type(state):
     assert "real_mcu_bridge" not in _on(state)
 
 
-def test_unticking_default_simulator_is_refused(state):
+def test_unticking_default_simulator_keeps_it_ticked_without_a_warning(state):
     state.toggle("core")
-    assert state.toggle("simulator") == "One launch mode required"
+    assert state.toggle("simulator") is None
     assert state.get_by_id("simulator").selected
 
 
-def test_unticking_default_micro_controllers_is_refused(state):
+def test_unticking_default_micro_controllers_keeps_it_ticked_without_a_warning(state):
     state.toggle("core")
     state.toggle("hardware")
-    assert state.toggle("real_mcu_bridge") == "One hardware type required"
+    assert state.toggle("real_mcu_bridge") is None
     assert state.get_by_id("real_mcu_bridge").selected
 
 
