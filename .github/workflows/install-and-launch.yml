@@ -130,12 +130,17 @@ jobs:
         shell: bash
         run: pixi run panel-install
 
-      - name: "DIAG: panel mesh progress log (throwaway)"
+      - name: "DIAG: panel mesh progress log and throttled joint-state subscriptions (throwaway)"
         shell: bash
         run: |
           f=src/lucy_control_panel/src/hooks/useRobotModel.ts
           sed -i.bak 's/^\( *\)completed++;$/\1completed++; console.warn(`MESHDIAG ${completed}\/${total} t=${Math.round(performance.now())}`);/' "$f"
-          grep -n "MESH_FETCH_CONCURRENCY_DAE =\|MESHDIAG" "$f"
+          grep -n "MESHDIAG" "$f"
+          js=src/lucy_control_panel/src/Services/ros/handlers/JointState.handler.ts
+          dj=src/lucy_control_panel/src/Services/ros/handlers/DynamicJointState.handler.ts
+          sed -i.bak "s#name: '/joint_states',#name: '/joint_states', throttle_rate: 33, queue_length: 1,#" "$js"
+          sed -i.bak "s#name: '/dynamic_joint_states',#name: '/dynamic_joint_states', throttle_rate: 100, queue_length: 1,#" "$dj"
+          grep -n "throttle_rate" "$js" "$dj"
 
       - name: Run colcon tests
         shell: bash

@@ -53,4 +53,5 @@ ws.on('open', async () => {
   ws.close();
   process.exit(0);
 });
+setTimeout(() => { console.log(`RESULT DEADLINE ok=${ok} fail=${fail} timeouts=${timeouts}`); process.exit(3); }, 120000);
 ws.on('error', (e) => { console.log('WSERR', e.message); process.exit(2); });
