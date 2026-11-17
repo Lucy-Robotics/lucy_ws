@@ -118,6 +118,7 @@ Lucy selects the robot package with `robot_package:=…` or `LUCY_ROBOT_PACKAGE`
 | InMoov i2 | `inmoov_i2_urdf` | Package docs under `src/inmoov_i2_urdf/` |
 | Thais | `thais_urdf` | Package docs under `src/thais_urdf/` |
 | Marty v2 | `marty_urdf` | Mock and Gazebo - [developer guide](src/marty_urdf/docs/DEVELOPER.md) |
+| Unitree G1 | `unitree_g1_urdf` | Mock and Gazebo - [developer guide](src/unitree_g1_urdf/docs/DEVELOPER.md) |
 
 Example (SO-ARM101 after calibration):
 
