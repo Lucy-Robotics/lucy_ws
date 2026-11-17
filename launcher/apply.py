@@ -277,9 +277,4 @@ def default_robot_selection(state):
         return
     if any(p.selected for p in robots):
         return
-    if len(robots) == 1:
-        robots[0].selected = True
-        return
-    inmoov = state.get_by_id("robot_inmoov")
-    if inmoov:
-        inmoov.selected = True
+    (state.get_by_id("robot_inmoov") or robots[0]).selected = True
