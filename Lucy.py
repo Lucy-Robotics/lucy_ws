@@ -21,7 +21,7 @@ except ImportError:  # Windows: handled by windows_main
 
 ESCAPE_DELAY_MS = 50
 
-MIN_TERM_HEIGHT = 16
+MIN_TERM_HEIGHT = 18
 MIN_TERM_WIDTH = 40
 INSTALL_ENV = {"LUCY_PIXI_AUTO_UPGRADE": "1"}
 
