@@ -19,10 +19,26 @@ WEBGL_RENDERER = """() => {
 VIEWER_ERRORS = re.compile(r"No URDF received|Could not load any meshes|WebGL is not supported|Failed to load robot model")
 
 
+HEARTBEAT = """() => {
+    window.__hb = { last: performance.now(), max: 0, n: 0 };
+    setInterval(() => {
+        const now = performance.now();
+        window.__hb.max = Math.max(window.__hb.max, now - window.__hb.last);
+        window.__hb.last = now;
+        window.__hb.n++;
+    }, 100);
+}"""
+
+
 def watch_model(page) -> dict:
-    model: dict = {"replies": 0}
+    model: dict = {"replies": 0, "sent": 0, "diag": 0}
+    page.add_init_script("(" + HEARTBEAT + ")()")
 
     def on_console(msg) -> None:
+        if "MESHDIAG" in msg.text:
+            model["diag"] += 1
+            if model["diag"] % 20 == 0:
+                log("DIAG browser: " + msg.text[:100])
         m = re.search(r"\[useRobotModel\] Done .* (\d+)/(\d+) meshes", msg.text)
         if m:
             model["meshes"] = (int(m.group(1)), int(m.group(2)))
@@ -34,7 +50,11 @@ def watch_model(page) -> dict:
             model["replies"] += 1
 
     page.on("console", on_console)
-    page.on("websocket", lambda ws: ws.on("framereceived", on_frame))
+    def on_sent(payload) -> None:
+        if isinstance(payload, str) and '"call_service"' in payload[:120] and '"/mesh/get"' in payload[:200]:
+            model["sent"] += 1
+
+    page.on("websocket", lambda ws: (ws.on("framereceived", on_frame), ws.on("framesent", on_sent)))
     return model
 
 
@@ -44,6 +64,12 @@ def check_viewer(page, model: dict, opened_at: float) -> None:
     while "meshes" not in model and time.time() < deadline and time.time() - progressed_at < MODEL_STALL_S:
         if model["replies"] != seen:
             seen, progressed_at = model["replies"], time.time()
+        if int(time.time() - opened_at) % 10 == 0:
+            try:
+                hb = page.evaluate("() => ({ ...window.__hb, now: performance.now() })", )
+            except Exception as e:
+                hb = f"evaluate failed: {e}"[:120]
+            log(f"DIAG t={time.time() - opened_at:.0f}s sent={model['sent']} replies={model['replies']} hb={hb}")
         page.wait_for_timeout(1000)
     if "meshes" not in model:
         raise CheckFailed(

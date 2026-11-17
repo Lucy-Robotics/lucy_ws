@@ -130,11 +130,10 @@ jobs:
         shell: bash
         run: pixi run panel-install
 
-      - name: "DIAG: panel mesh concurrency 2 and a progress log (throwaway)"
+      - name: "DIAG: panel mesh progress log (throwaway)"
         shell: bash
         run: |
           f=src/lucy_control_panel/src/hooks/useRobotModel.ts
-          sed -i.bak 's/MESH_FETCH_CONCURRENCY_DAE = 8;/MESH_FETCH_CONCURRENCY_DAE = 2;/' "$f"
           sed -i.bak 's/^\( *\)completed++;$/\1completed++; console.warn(`MESHDIAG ${completed}\/${total} t=${Math.round(performance.now())}`);/' "$f"
           grep -n "MESH_FETCH_CONCURRENCY_DAE =\|MESHDIAG" "$f"
 
