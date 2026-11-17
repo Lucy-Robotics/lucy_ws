@@ -43,6 +43,8 @@ from .state import (
     get_pkg_status,
 )
 
+TMUX_COPIED_KEY = curses.KEY_F12 if curses else None
+
 
 def _fit(text, room):
     """Shorten a trailing "..."-suffixed stage readout to `room` columns.
@@ -439,6 +441,9 @@ def _event_loop(stdscr, state, poller, status_msg=None, status_msg_until=0.0):
                 status_msg = "Configuration Applied!"
                 status_msg_until = time.time() + 2.0
                 poller.request_refresh()
+            elif key == TMUX_COPIED_KEY:
+                status_msg = "Copied"
+                status_msg_until = time.time() + 2.0
             elif key in [ord("x"), ord("X"), ord("q"), ord("Q"), 27]:
                 confirm_exit = True
 

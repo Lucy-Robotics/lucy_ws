@@ -164,3 +164,8 @@ def test_the_loop_ticks_while_a_warning_is_showing(state, clock):
     screen, _ = run(state, keys + [("advance", 0)] + quit(), clock=clock)
     assert screen.timeouts[start] == -1
     assert screen.timeouts[start + 1] == tui.REDRAW_INTERVAL_MS
+
+
+def test_a_mouse_copy_says_copied_on_the_message_line(state, clock):
+    screen, _ = run(state, [tui.TMUX_COPIED_KEY] + quit(), clock=clock)
+    assert screen.seen[1] == "Copied"
