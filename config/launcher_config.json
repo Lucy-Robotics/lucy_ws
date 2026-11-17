@@ -52,7 +52,7 @@
       "description": "(robot_package:=inmoov_urdf)",
       "type": "modifier",
       "dependencies": ["core"],
-      "conflicts": ["robot_thais", "robot_so_arm101", "robot_inmoov_i2", "robot_marty", "robot_unitree_g1", "robot_unitree_r1"],
+      "conflicts": ["robot_thais", "robot_so_arm101", "robot_inmoov_i2", "robot_marty", "robot_reachy_humanoid", "robot_unitree_g1", "robot_unitree_r1"],
       "command": "robot_package:=inmoov_urdf",
       "requires_pkg": "inmoov_urdf",
       "default_on": true
@@ -64,7 +64,7 @@
       "description": "(robot_package:=so_arm101_urdf)",
       "type": "modifier",
       "dependencies": ["core"],
-      "conflicts": ["robot_inmoov", "robot_thais", "robot_inmoov_i2", "robot_marty", "robot_unitree_g1", "robot_unitree_r1"],
+      "conflicts": ["robot_inmoov", "robot_thais", "robot_inmoov_i2", "robot_marty", "robot_reachy_humanoid", "robot_unitree_g1", "robot_unitree_r1"],
       "command": "robot_package:=so_arm101_urdf",
       "requires_pkg": "so_arm101_urdf",
       "default_on": false
@@ -76,7 +76,7 @@
       "description": "(robot_package:=inmoov_i2_urdf)",
       "type": "modifier",
       "dependencies": ["core"],
-      "conflicts": ["robot_inmoov", "robot_thais", "robot_so_arm101", "robot_marty", "robot_unitree_g1", "robot_unitree_r1"],
+      "conflicts": ["robot_inmoov", "robot_thais", "robot_so_arm101", "robot_marty", "robot_reachy_humanoid", "robot_unitree_g1", "robot_unitree_r1"],
       "command": "robot_package:=inmoov_i2_urdf",
       "requires_pkg": "inmoov_i2_urdf",
       "default_on": false
@@ -88,9 +88,21 @@
       "description": "(robot_package:=marty_urdf)",
       "type": "modifier",
       "dependencies": ["core"],
-      "conflicts": ["robot_inmoov", "robot_thais", "robot_so_arm101", "robot_inmoov_i2", "robot_unitree_g1", "robot_unitree_r1"],
+      "conflicts": ["robot_inmoov", "robot_thais", "robot_so_arm101", "robot_inmoov_i2", "robot_reachy_humanoid", "robot_unitree_g1", "robot_unitree_r1"],
       "command": "robot_package:=marty_urdf",
       "requires_pkg": "marty_urdf",
+      "default_on": false
+    },
+    {
+      "id": "robot_reachy_humanoid",
+      "requires_component": "robot_reachy_humanoid",
+      "name": "Reachy Humanoid",
+      "description": "(robot_package:=reachy_mini_so101_humanoid_urdf)",
+      "type": "modifier",
+      "dependencies": ["core"],
+      "conflicts": ["robot_inmoov", "robot_thais", "robot_so_arm101", "robot_inmoov_i2", "robot_marty", "robot_unitree_g1", "robot_unitree_r1"],
+      "command": "robot_package:=reachy_mini_so101_humanoid_urdf",
+      "requires_pkg": "reachy_mini_so101_humanoid_urdf",
       "default_on": false
     },
     {
@@ -100,7 +112,7 @@
       "description": "(robot_package:=unitree_g1_urdf)",
       "type": "modifier",
       "dependencies": ["core"],
-      "conflicts": ["robot_inmoov", "robot_thais", "robot_so_arm101", "robot_inmoov_i2", "robot_marty", "robot_unitree_r1"],
+      "conflicts": ["robot_inmoov", "robot_thais", "robot_so_arm101", "robot_inmoov_i2", "robot_marty", "robot_reachy_humanoid", "robot_unitree_r1"],
       "command": "robot_package:=unitree_g1_urdf",
       "requires_pkg": "unitree_g1_urdf",
       "default_on": false
@@ -112,7 +124,7 @@
       "description": "(robot_package:=unitree_r1_urdf)",
       "type": "modifier",
       "dependencies": ["core"],
-      "conflicts": ["robot_inmoov", "robot_thais", "robot_so_arm101", "robot_inmoov_i2", "robot_marty", "robot_unitree_g1"],
+      "conflicts": ["robot_inmoov", "robot_thais", "robot_so_arm101", "robot_inmoov_i2", "robot_marty", "robot_reachy_humanoid", "robot_unitree_g1"],
       "command": "robot_package:=unitree_r1_urdf",
       "requires_pkg": "unitree_r1_urdf",
       "default_on": false

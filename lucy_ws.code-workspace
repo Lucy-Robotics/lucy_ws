@@ -29,6 +29,10 @@
       "path": "src/marty_urdf"
     },
     {
+      "name": "reachy_mini_so101_humanoid_urdf",
+      "path": "src/reachy_mini_so101_humanoid_urdf"
+    },
+    {
       "name": "inmoov_i2_urdf",
       "path": "src/inmoov_i2_urdf"
     },

@@ -5,8 +5,8 @@ def _choice(**changes):
     return {**components.DEFAULTS, **changes}
 
 
-def test_defaults_install_everything_but_simulation_and_marty(tmp_path):
-    assert components.load(tmp_path) == _choice(simulation=False, robot_marty=False)
+def test_defaults_install_everything_but_simulation_and_the_demo_robots(tmp_path):
+    assert components.load(tmp_path) == _choice(simulation=False, robot_marty=False, robot_reachy_humanoid=False)
     assert all(on for name, on in components.load(tmp_path).items() if name not in components.OFF_BY_DEFAULT)
     assert components.pixi_env(components.load(tmp_path)) == "default"
 
