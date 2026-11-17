@@ -95,6 +95,12 @@ colcon-ros = ">=0.5.0,<0.6"
 colcon-ros-domain-id-coordinator = ">=0.2.1,<0.3"
 colcon-test-result = ">=0.3.8,<0.4"
 
+[feature.ros.target.linux-64.dependencies]
+ros-jazzy-depthai-ros-driver = ">=2.12.2,<3"
+
+[feature.ros.target.linux-aarch64.dependencies]
+ros-jazzy-depthai-ros-driver = ">=2.12.2,<3"
+
 
 # --- colcon build tasks (RoboStack Getting Started pattern) ---
 [feature.build.target.unix.tasks]
