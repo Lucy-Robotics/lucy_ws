@@ -262,7 +262,7 @@ def draw_tui(
             )
         row += len(items)
 
-    row = 2
+    row = 1
     offset = 0
     for section, items in titled:
         row += 1
