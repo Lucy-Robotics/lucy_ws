@@ -16,11 +16,11 @@ from update_branches import WORKSPACE
 
 UP, DOWN, RIGHT, LEFT, ENTER, SPACE, ESC = (
     curses.KEY_UP, curses.KEY_DOWN, curses.KEY_RIGHT, curses.KEY_LEFT, ord("\n"), ord(" "), 27)
-TO_MARTY = [UP, UP, UP]
+TO_MARTY = [UP] * 4
 TO_CORE_REPO = [UP, UP]
 TO_WORKSPACE = [UP]
-TO_FIRST_ROBOT = [UP] * 6
-TO_SIMULATION = [UP] * 10
+TO_FIRST_ROBOT = [UP] * 7
+TO_SIMULATION = [UP] * 11
 
 
 class Screen:
@@ -55,13 +55,13 @@ def workspace(tmp_path, monkeypatch):
 
 
 def test_update_button_saves_the_choice_and_asks_for_the_update(workspace):
-    keys = [*TO_MARTY, SPACE, DOWN, DOWN, DOWN, ENTER]
+    keys = [*TO_MARTY, SPACE, DOWN, DOWN, DOWN, DOWN, ENTER]
     assert update_screen.update_screen(Screen(keys), workspace) is not None
     assert components.load(workspace)["robot_marty"] is True
 
 
 def test_exit_button_leaves_without_saving(workspace):
-    keys = [*TO_MARTY, SPACE, DOWN, DOWN, DOWN, DOWN, ENTER]
+    keys = [*TO_MARTY, SPACE, DOWN, DOWN, DOWN, DOWN, DOWN, ENTER]
     assert update_screen.update_screen(Screen(keys), workspace) is None
     assert not (workspace / ".env").exists()
 
@@ -263,7 +263,7 @@ def test_the_focused_repo_lists_its_branches_on_separate_lines(workspace):
     _repo_with_branches(workspace / "src" / "lucy_ros_packages", "feature")
     screen = Screen([*TO_CORE_REPO, ESC])
     update_screen.update_screen(screen, workspace)
-    assert "dev" in screen.lines[10] and "feature" in screen.lines[11]
+    assert "dev" in screen.lines[11] and "feature" in screen.lines[12]
 
 
 def test_other_rows_only_show_their_own_branch(workspace):
