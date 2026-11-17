@@ -1,7 +1,10 @@
 """Workspace-root unit tests (launcher helpers, install config)."""
 
+import atexit
 import os
+import shutil
 import sys
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -10,6 +13,10 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 os.chdir(ROOT)
+
+TEST_STATE_HOME = tempfile.mkdtemp(prefix="lucy-test-state-")
+os.environ["XDG_STATE_HOME"] = TEST_STATE_HOME
+atexit.register(shutil.rmtree, TEST_STATE_HOME, ignore_errors=True)
 
 
 @pytest.fixture
