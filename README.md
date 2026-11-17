@@ -110,6 +110,7 @@ Lucy selects the robot package with `robot_package:=…` or `LUCY_ROBOT_PACKAGE`
 | Thais | `thais_urdf` | Package docs under `src/thais_urdf/` |
 | Unitree G1 | `unitree_g1_urdf` | Mock and simulation only; package docs under `src/unitree_g1_urdf/` |
 | Unitree R1 | `unitree_r1_urdf` | Mock and simulation only; package docs under `src/unitree_r1_urdf/` |
+| Zeroth BRIDGE | `zeroth_bridge_urdf` | Mock only; package docs under `src/zeroth_bridge_urdf/` |
 
 Example (SO-ARM101 after calibration):
 
