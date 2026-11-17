@@ -2,13 +2,13 @@
   "repos": [
     {
       "name": "lucy_ros_packages",
-      "branch": "master",
+      "branch": "aes/marty-poster",
       "url_https": "https://github.com/Lucy-Robotics/lucy_ros_packages.git",
       "url_ssh": "git@github.com:Lucy-Robotics/lucy_ros_packages.git"
     },
     {
       "name": "lucy_control_panel",
-      "branch": "master",
+      "branch": "aes/marty-poster",
       "url_https": "https://github.com/Lucy-Robotics/lucy_control_panel.git",
       "url_ssh": "git@github.com:Lucy-Robotics/lucy_control_panel.git"
     },
@@ -38,27 +38,31 @@
     },
     {
       "name": "marty_urdf",
-      "branch": "aes/latest",
+      "branch": "aes/fix-marty-twist-housing",
       "url_https": "https://github.com/Lucy-Robotics/marty_urdf.git",
-      "url_ssh": "git@github.com:Lucy-Robotics/marty_urdf.git"
+      "url_ssh": "git@github.com:Lucy-Robotics/marty_urdf.git",
+      "enabled": true
     },
     {
       "name": "reachy_mini_so101_humanoid_urdf",
       "branch": "master",
       "url_https": "https://github.com/Lucy-Robotics/reachy_mini_so101_humanoid_urdf.git",
-      "url_ssh": "git@github.com:Lucy-Robotics/reachy_mini_so101_humanoid_urdf.git"
+      "url_ssh": "git@github.com:Lucy-Robotics/reachy_mini_so101_humanoid_urdf.git",
+      "enabled": true
     },
     {
       "name": "unitree_g1_urdf",
       "branch": "master",
       "url_https": "https://github.com/Lucy-Robotics/unitree_g1_urdf.git",
-      "url_ssh": "git@github.com:Lucy-Robotics/unitree_g1_urdf.git"
+      "url_ssh": "git@github.com:Lucy-Robotics/unitree_g1_urdf.git",
+      "enabled": true
     },
     {
       "name": "unitree_r1_urdf",
       "branch": "master",
       "url_https": "https://github.com/Lucy-Robotics/unitree_r1_urdf.git",
-      "url_ssh": "git@github.com:Lucy-Robotics/unitree_r1_urdf.git"
+      "url_ssh": "git@github.com:Lucy-Robotics/unitree_r1_urdf.git",
+      "enabled": true
     }
   ]
 }
