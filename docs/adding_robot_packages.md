@@ -191,7 +191,7 @@ Add a modifier (usually in `config/launcher_config.json.local` while iterating):
   "description": "(robot_package:=my_robot_urdf)",
   "type": "modifier",
   "dependencies": ["core"],
-  "conflicts": ["robot_inmoov", "robot_thais", "robot_so_arm101", "robot_inmoov_i2"],
+  "conflicts": ["robot_inmoov", "robot_thais", "robot_so_arm101", "robot_inmoov_i2", "robot_unitree_g1", "robot_unitree_r1"],
   "command": "robot_package:=my_robot_urdf",
   "requires_pkg": "my_robot_urdf",
   "default_on": false
@@ -240,6 +240,8 @@ If your robot has encoders (e.g. STS3215 magnetic encoders):
 | `inmoov_i2_urdf` | Full humanoid (i2) | Fork of `inmoov_urdf` with the InMoov i2 model and expression joints |
 | `thais_urdf` | Humanoid fork | Same contract as InMoov with renamed package |
 | `so_arm101_urdf` | 6-DOF arm | STL meshes, single board/controller, encoder placeholders |
+| `unitree_g1_urdf` | 29-DoF humanoid | Unitree URDF, STL meshes, one `linux_` board per limb, no real hardware |
+| `unitree_r1_urdf` | 26-DoF humanoid | Same layout as `unitree_g1_urdf`, plus a head board |
 
 ---
 

@@ -35,6 +35,18 @@
       "branch": "master",
       "url_https": "https://github.com/Lucy-Robotics/inmoov_i2_urdf.git",
       "url_ssh": "git@github.com:Lucy-Robotics/inmoov_i2_urdf.git"
+    },
+    {
+      "name": "unitree_g1_urdf",
+      "branch": "master",
+      "url_https": "https://github.com/Lucy-Robotics/unitree_g1_urdf.git",
+      "url_ssh": "git@github.com:Lucy-Robotics/unitree_g1_urdf.git"
+    },
+    {
+      "name": "unitree_r1_urdf",
+      "branch": "master",
+      "url_https": "https://github.com/Lucy-Robotics/unitree_r1_urdf.git",
+      "url_ssh": "git@github.com:Lucy-Robotics/unitree_r1_urdf.git"
     }
   ]
 }
