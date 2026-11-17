@@ -191,7 +191,7 @@ Add a modifier (usually in `config/launcher_config.json.local` while iterating):
   "description": "(robot_package:=my_robot_urdf)",
   "type": "modifier",
   "dependencies": ["core"],
-  "conflicts": ["robot_inmoov", "robot_thais", "robot_so_arm101", "robot_inmoov_i2", "robot_marty", "robot_unitree_g1"],
+  "conflicts": ["robot_inmoov", "robot_thais", "robot_so_arm101", "robot_inmoov_i2", "robot_marty", "robot_unitree_g1", "robot_unitree_r1"],
   "command": "robot_package:=my_robot_urdf",
   "requires_pkg": "my_robot_urdf",
   "default_on": false
@@ -242,6 +242,7 @@ If your robot has encoders (e.g. STS3215 magnetic encoders):
 | `so_arm101_urdf` | 6-DOF arm | STL meshes, single board/controller, encoder placeholders |
 | `marty_urdf` | Small biped | STL meshes, many mimic joints, disabled placeholder board |
 | `unitree_g1_urdf` | Full-size humanoid | Unitree G1 model from unitree_ros, three disabled placeholder boards |
+| `unitree_r1_urdf` | Full-size humanoid | Unitree R1 model from unitree_ros, three disabled placeholder boards |
 
 ---
 
