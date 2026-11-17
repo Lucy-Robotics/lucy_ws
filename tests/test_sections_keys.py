@@ -59,7 +59,7 @@ def test_the_cursor_is_clamped_after_the_screen_shrinks(state):
     assert (row, 0, "> ") in [(y, x, t) for y, x, t, _ in screen.writes]
 
 
-@pytest.mark.parametrize("height", [21, 25, 28])
+@pytest.mark.parametrize("height", [20, 24, 27])
 @pytest.mark.parametrize("key", [ord(" "), KEY_RIGHT])
 def test_opening_a_section_with_no_room_warns_and_leaves_it_folded(
     state, clock, height, key
@@ -90,7 +90,7 @@ SPACE = ord(" ")
 
 def _squeezed(state, clock, steps):
     keys = [k for step in steps for k in step] + quit()
-    return run(state, keys, size=(22, 120), clock=clock)[0]
+    return run(state, keys, size=(21, 120), clock=clock)[0]
 
 
 def _until_open_stack_is_refused():
@@ -102,7 +102,7 @@ def _until_open_stack_is_refused():
     ]
 
 
-def test_at_height_22_opening_stack_is_refused_while_tools_and_options_are_open(
+def test_at_height_21_opening_stack_is_refused_while_tools_and_options_are_open(
     state, clock
 ):
     screen = _squeezed(state, clock, _until_open_stack_is_refused())
@@ -120,7 +120,7 @@ def test_a_taller_terminal_does_not_reopen_sections_folded_for_lack_of_room(
     state, clock
 ):
     screen, _ = run(
-        state, [KEY_RESIZE] + quit(), size=(22, 120), shrink=(40, 120), clock=clock
+        state, [KEY_RESIZE] + quit(), size=(21, 120), shrink=(40, 120), clock=clock
     )
     assert sorted(folded_titles(screen)) == [
         "Control Interfaces",
@@ -133,7 +133,7 @@ def test_a_taller_terminal_does_not_reopen_sections_folded_for_lack_of_room(
 def test_shrinking_folds_bottom_up_and_growing_back_keeps_them_folded(state, clock):
     keys = [KEY_RESIZE, KEY_RESIZE] + quit()
     screen, _ = run(
-        state, keys, size=(40, 120), shrink=[(28, 120), (40, 120)], clock=clock
+        state, keys, size=(40, 120), shrink=[(27, 120), (40, 120)], clock=clock
     )
     assert sorted(folded_titles(screen)) == ["Options", "Tools"]
 

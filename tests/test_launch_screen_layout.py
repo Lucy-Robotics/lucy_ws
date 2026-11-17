@@ -50,7 +50,7 @@ def _row(screen, needle):
 
 
 def _min_height(state):
-    return 2 * 5 + 4
+    return 2 * 5 + 3
 
 
 def test_visualizer_is_listed_under_tools(state):
@@ -160,12 +160,12 @@ def test_subitem_checkboxes_are_in_column_fourteen(state, name):
     assert _col(screen, name) == 14
 
 
-def test_stack_header_follows_two_blank_rows_under_the_title(state):
+def test_stack_header_follows_one_blank_row_under_the_title(state):
     screen, _ = _draw(state)
     assert _row(screen, "Lucy Launch Screen") == 0
-    assert _row(screen, "Stack") == 3
-    assert _row(screen, "Core") == 4
-    assert not any(y in (1, 2) for y, _, _ in screen.rows)
+    assert _row(screen, "Stack") == 2
+    assert _row(screen, "Core") == 3
+    assert not any(y == 1 for y, _, _ in screen.rows)
 
 
 def test_footer_text(state):
@@ -190,5 +190,5 @@ def test_minimum_height_draws_without_error(state):
     assert display is not None
 
 
-def test_minimum_height_of_the_shipped_config_is_fourteen(state):
-    assert _min_height(state) == 14
+def test_minimum_height_of_the_shipped_config_is_thirteen(state):
+    assert _min_height(state) == 13
