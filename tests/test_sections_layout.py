@@ -36,7 +36,7 @@ def test_the_stack_header_is_on_row_three_with_no_blank_row_before_it(state):
 def test_one_blank_row_separates_two_sections(state):
     screen, _ = draw(state)
     gap = header_row(screen, "Control Interfaces") - header_row(screen, "Robot")
-    assert gap == 1 + 4 + 1
+    assert gap == 1 + 5 + 1
 
 
 def test_the_folded_stack_summary_lists_the_ticked_names(state):
@@ -101,10 +101,10 @@ def test_an_open_section_shows_no_summary(state):
 @pytest.mark.parametrize(
     "height, folded",
     [
-        (32, []),
-        (31, ["Options"]),
-        (28, ["Tools", "Options"]),
-        (25, ["Control Interfaces", "Tools", "Options"]),
+        (33, []),
+        (32, ["Options"]),
+        (29, ["Tools", "Options"]),
+        (26, ["Control Interfaces", "Tools", "Options"]),
         (21, ["Robot", "Control Interfaces", "Tools", "Options"]),
         (14, TITLES),
     ],
