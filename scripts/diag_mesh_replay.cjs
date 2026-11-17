@@ -12,9 +12,11 @@ const pending = new Map();
 let n = 0, ok = 0, fail = 0, timeouts = 0, bytes = 0;
 const lat = [];
 const t0 = Date.now();
+const SLOW = Number(process.env.SLOWMS || 0);
 ws.on('message', (m) => {
   const s = m.toString();
   const j = JSON.parse(s);
+  if (SLOW && j.op === 'publish') { const e = Date.now() + SLOW; while (Date.now() < e); }
   if (j.op !== 'service_response') return;
   const p = pending.get(j.id);
   if (!p) return;

@@ -39,6 +39,8 @@ run_variant() {
   echo "variant=$name"
   replay direct ws://127.0.0.1:9090 8
   SUBS=/joint_states,/dynamic_joint_states replay direct+subs ws://127.0.0.1:9090 8
+  SLOWMS=20 SUBS=/joint_states,/dynamic_joint_states replay direct+subs+slow20ms ws://127.0.0.1:9090 8
+  SLOWMS=50 SUBS=/joint_states,/dynamic_joint_states replay direct+subs+slow50ms ws://127.0.0.1:9090 8
   replay proxy ws://127.0.0.1:4004/rosbridge 2
   replay proxy ws://127.0.0.1:4004/rosbridge 8
   replay proxy ws://127.0.0.1:4004/rosbridge 8

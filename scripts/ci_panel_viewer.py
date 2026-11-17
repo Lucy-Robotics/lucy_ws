@@ -31,7 +31,7 @@ HEARTBEAT = """() => {
 
 
 def watch_model(page) -> dict:
-    model: dict = {"replies": 0, "sent": 0, "diag": 0}
+    model: dict = {"replies": 0, "sent": 0, "diag": 0, "topics": {}}
     page.add_init_script("(" + HEARTBEAT + ")()")
 
     def on_console(msg) -> None:
@@ -45,12 +45,20 @@ def watch_model(page) -> dict:
             model["done_at"] = time.time()
 
     def on_frame(payload) -> None:
+        if isinstance(payload, str) and '"op"' in payload[:20] and '"publish"' in payload[:30]:
+            m = re.search(r'"topic": ?"([^"]+)"', payload[:300])
+            if m:
+                t = model["topics"].setdefault(m.group(1), [0, 0])
+                t[0] += 1
+                t[1] += len(payload)
         head = payload[:120] if isinstance(payload, str) else ""
         if '"service_response"' in head and '"/mesh/get"' in head:
             model["replies"] += 1
 
     page.on("console", on_console)
     def on_sent(payload) -> None:
+        if isinstance(payload, str) and '"subscribe"' in payload[:60]:
+            log("DIAG subscribe " + payload[:200])
         if isinstance(payload, str) and '"call_service"' in payload[:120] and '"/mesh/get"' in payload[:200]:
             model["sent"] += 1
 
@@ -70,6 +78,8 @@ def check_viewer(page, model: dict, opened_at: float) -> None:
             except Exception as e:
                 hb = f"evaluate failed: {e}"[:120]
             log(f"DIAG t={time.time() - opened_at:.0f}s sent={model['sent']} replies={model['replies']} hb={hb}")
+            top = sorted(model["topics"].items(), key=lambda kv: -kv[1][1])[:6]
+            log("DIAG topics(frames,KB) " + " ".join(f"{k}={v[0]}/{v[1] // 1024}" for k, v in top))
         page.wait_for_timeout(1000)
     if "meshes" not in model:
         raise CheckFailed(
