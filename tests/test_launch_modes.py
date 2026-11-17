@@ -34,9 +34,9 @@ def test_ticking_hardware_replaces_the_simulator(state):
 
 
 
-def test_unticking_default_simulator_is_refused(state):
+def test_unticking_default_simulator_keeps_it_ticked_without_a_warning(state):
     state.toggle("core")
-    assert state.toggle("simulator") == "One launch mode required"
+    assert state.toggle("simulator") is None
     assert state.get_by_id("simulator").selected
 
 
