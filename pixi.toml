@@ -70,9 +70,11 @@ ros-jazzy-rmw-cyclonedds-cpp = "*"
 
 [feature.ros.target.osx-arm64.activation]
 env = { RMW_IMPLEMENTATION = "rmw_cyclonedds_cpp" }
+scripts = ["scripts/macos_sdk_env.sh"]
 
 [feature.ros.target.osx-64.activation]
 env = { RMW_IMPLEMENTATION = "rmw_cyclonedds_cpp" }
+scripts = ["scripts/macos_sdk_env.sh"]
 
 [feature.ros.target.win-64.dependencies]
 # controller_manager crashes on win-64, so nothing publishes /joint_states.
