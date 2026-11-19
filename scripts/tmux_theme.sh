@@ -10,6 +10,10 @@
 # session covers the windows the launcher opens later.
 set -euo pipefail
 
+# Lucy's tmux server: launch_lucy.sh exports its socket (<state root>/tmux.sock).
+SOCKET="${LUCY_TMUX_SOCKET:?LUCY_TMUX_SOCKET is not set (run through launch_lucy.sh)}"
+tmux() { command tmux -S "$SOCKET" "$@"; }
+
 BG="#141414"
 SECONDARY="#2b3e50"
 HIGHLIGHT="#00ff41"
@@ -49,7 +53,7 @@ tmux set-option -t "$t" status-style "fg=${TEXT},bg=${BG}" \; \
   set-option -t "$t" message-command-style "fg=${HIGHLIGHT},bg=${SECONDARY}"
 
 tmux set-hook -t "$t" after-new-window \
-  "run-shell -b \"bash '${self}' --window '#{window_id}'\""
+  "run-shell -b \"LUCY_TMUX_SOCKET=$(printf '%q' "$SOCKET") bash '${self}' --window '#{window_id}'\""
 
 tmux list-windows -t "$t" -F '#{window_id}' | while read -r w; do
   theme_window "$w"

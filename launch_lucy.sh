@@ -107,13 +107,21 @@ fi
 # shifted by <n> and the next free ROS domain (picked by the launcher, see
 # launcher/instance.py). A detached instance is re-attached. LUCY_TMUX_SESSION
 # pins the session.
+#
+# Lucy runs on its own tmux server, on <state root>/tmux.sock (same root as
+# launcher/constants.py state_root()): a plain "tmux ls" never shows Lucy, other
+# users / checkouts / CI runs do not collide with it, and each LUCY_STATE_DIR gets
+# its own server. Every instance (lucy_ws_<n>) lives on the server of its root.
+STATE_ROOT="${LUCY_STATE_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/lucy}"
+TMUX_SOCKET="${STATE_ROOT}/tmux.sock"
+
 pick_tmux_session() {
   local n=0 s
   while (( n <= 100 )); do
     s="lucy_ws_${n}"
     # "=" asks tmux for this exact name: a bare lucy_ws_1 also matches lucy_ws_10.
-    if ! tmux list-windows -t "=${s}" -F '#{window_name}' 2>/dev/null | grep -qx Lucy \
-      || [[ "$(tmux display-message -p -t "=${s}:" '#{session_attached}' 2>/dev/null)" == 0 ]]; then
+    if ! tmux -S "$TMUX_SOCKET" list-windows -t "=${s}" -F '#{window_name}' 2>/dev/null | grep -qx Lucy \
+      || [[ "$(tmux -S "$TMUX_SOCKET" display-message -p -t "=${s}:" '#{session_attached}' 2>/dev/null)" == 0 ]]; then
       echo "${s}"
       return
     fi
@@ -130,6 +138,12 @@ case "${1:-}" in
     if command -v tmux >/dev/null 2>&1; then
       TMUX_SESSION="${LUCY_TMUX_SESSION:-$(pick_tmux_session)}"
       [[ "${TMUX_SESSION}" =~ ^lucy_ws_([0-9]+)$ ]] && INSTANCE="${BASH_REMATCH[1]}"
+      mkdir -p -m 700 "${STATE_ROOT}"
+      export LUCY_TMUX_SOCKET="$TMUX_SOCKET"
+      # A unix socket path is limited to ~104 bytes (sun_path).
+      if (( ${#TMUX_SOCKET} > 100 )); then
+        echo "Warning: tmux socket path is ${#TMUX_SOCKET} chars (limit ~104); tmux may fail. Set a shorter LUCY_STATE_DIR." >&2
+      fi
     fi
     ;;
 esac
@@ -180,21 +194,28 @@ case "$(uname -s)" in
       INSTANCE_ENV="LUCY_TMUX_SESSION=${TMUX_SESSION} PORT_ROSBRIDGE=${PORT_ROSBRIDGE}"
       INSTANCE_ENV+=" LUCY_LCP_PUBLISHED_HOST_PORT=${LUCY_LCP_PUBLISHED_HOST_PORT}"
       INSTANCE_ENV+=" LUCY_LCP_CONTAINER_PORT=${LUCY_LCP_CONTAINER_PORT} LUCY_LCP_SCHEME=${LUCY_LCP_SCHEME}"
-      LAUNCH_CMD="cd \"${SCRIPT_DIR}\" && env ${INSTANCE_ENV} pixi run -- python -m launcher"
+      INSTANCE_ENV+=" LUCY_TMUX_SOCKET=$(printf '%q' "$TMUX_SOCKET")"
+      [[ -n "${LUCY_STATE_DIR:-}" ]] && INSTANCE_ENV+=" LUCY_STATE_DIR=$(printf '%q' "$LUCY_STATE_DIR")"
+      LAUNCH_CMD="cd $(printf '%q' "$SCRIPT_DIR") && env ${INSTANCE_ENV} pixi run -- python -m launcher"
       # Package windows keep the session alive after the Control Center exits, so
-      # "session exists" does not imply "Lucy window exists".
-      exec bash -c "
+      # "session exists" does not imply "Lucy window exists". The socket, session
+      # and command reach the inner shell through its environment (paths may
+      # contain spaces). TMUX is cleared on attach so this also works from inside
+      # the user's own tmux.
+      export LAUNCH_CMD SCRIPT_DIR
+      exec bash -c '
         set -e
-        tmux start-server
-        if ! tmux has-session -t '=${TMUX_SESSION}' 2>/dev/null; then
-          tmux new-session -d -s ${TMUX_SESSION} -n Lucy \"${LAUNCH_CMD}\"
-        elif ! tmux list-windows -t '=${TMUX_SESSION}' -F '#{window_name}' | grep -qx Lucy; then
-          tmux new-window -t '=${TMUX_SESSION}:' -n Lucy \"${LAUNCH_CMD}\"
+        T=(tmux -S "$LUCY_TMUX_SOCKET")
+        "${T[@]}" start-server
+        if ! "${T[@]}" has-session -t "=${LUCY_TMUX_SESSION}" 2>/dev/null; then
+          "${T[@]}" new-session -d -s "${LUCY_TMUX_SESSION}" -n Lucy "${LAUNCH_CMD}"
+        elif ! "${T[@]}" list-windows -t "=${LUCY_TMUX_SESSION}" -F "#{window_name}" | grep -qx Lucy; then
+          "${T[@]}" new-window -t "=${LUCY_TMUX_SESSION}:" -n Lucy "${LAUNCH_CMD}"
         fi
-        bash \"${SCRIPT_DIR}/scripts/tmux_theme.sh\" '${TMUX_SESSION}' || true
-        tmux select-window -t '=${TMUX_SESSION}:Lucy' 2>/dev/null || true
-        tmux attach-session -t '=${TMUX_SESSION}'
-      "
+        bash "${SCRIPT_DIR}/scripts/tmux_theme.sh" "${LUCY_TMUX_SESSION}" || true
+        "${T[@]}" select-window -t "=${LUCY_TMUX_SESSION}:Lucy" 2>/dev/null || true
+        TMUX= "${T[@]}" attach-session -t "=${LUCY_TMUX_SESSION}"
+      '
     fi
     echo "tmux not found — install tmux for the multi-window launcher (see README)." >&2
     exit 1

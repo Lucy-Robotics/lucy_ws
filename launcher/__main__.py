@@ -10,7 +10,7 @@ except ImportError:
 
 from .config import load_config, load_workspace_env
 from .instance import export_instance_env
-from .constants import STATE_FILE, TMUX_SESSION, WORKSPACE_ROOT
+from .constants import STATE_FILE, TMUX, TMUX_SESSION, WORKSPACE_ROOT
 from .apply import stop_all_packages
 from .process import prune_ros_logs
 from .shell import run_shell_command
@@ -85,7 +85,7 @@ def run():
             print(f"Pruned {pruned} ros2 log entries older than a week.")
         if needs_tmux_session():
             print("Terminating tmux session...")
-            run_shell_command(f"tmux kill-session -t {TMUX_SESSION} 2>/dev/null")
+            run_shell_command(f"{TMUX} kill-session -t {TMUX_SESSION} 2>/dev/null")
 
 
 if __name__ == "__main__":

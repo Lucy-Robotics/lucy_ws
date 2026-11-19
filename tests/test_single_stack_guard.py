@@ -140,7 +140,7 @@ def test_a_second_control_center_is_refused():
     proceed, stopped, out = _guard(launcher_pid=4321, processes=PROCS)
     assert proceed is False
     assert "4321" in out
-    assert "tmux attach" in out, "point the user at the one already running"
+    assert "attach -t" in out and "tmux -S" in out, "point the user at the one already running"
 
 
 def test_a_live_control_center_is_never_killed():
@@ -195,5 +195,5 @@ def test_launch_script_recreates_a_missing_control_center_window():
     from pathlib import Path
 
     script = (Path(__file__).resolve().parents[1] / "launch_lucy.sh").read_text()
-    assert "tmux new-window" in script and "-n Lucy" in script
+    assert 'new-window -t "=${LUCY_TMUX_SESSION}:" -n Lucy' in script
     assert "send-keys -t ${TMUX_SESSION}:Lucy" not in script

@@ -12,6 +12,20 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+
+
+def tmux_socket() -> str:
+    """Lucy's tmux socket: <state root>/tmux.sock (mirrors launcher/constants.py
+    state_root() and launch_lucy.sh)."""
+    root = os.environ.get("LUCY_STATE_DIR") or os.path.join(
+        os.environ.get("XDG_STATE_HOME") or os.path.expanduser("~/.local/state"), "lucy"
+    )
+    return os.path.join(root, "tmux.sock")
+
+
+def lucy_tmux(*args: str) -> list[str]:
+    """tmux command line (subprocess list) aimed at Lucy's server."""
+    return ["tmux", "-S", tmux_socket(), *args]
 ROSBRIDGE_PORT = int(os.environ.get("PORT_ROSBRIDGE", "9090"))
 PANEL_PORT = int(os.environ.get("VITE_PORT", "4004"))
 MOVE_TIMEOUT_S = 20.0

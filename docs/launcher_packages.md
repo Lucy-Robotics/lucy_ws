@@ -48,7 +48,7 @@ Every package entry in `config/launcher_config.json` uses the following fields t
 When you run `./launch_lucy.sh`:
 
 1. It ensures the workspace is built (`install/setup.bash` exists).
-2. On Linux/macOS with **host tmux**, it starts or attaches to a **tmux** session named `lucy_ws_0`.
+2. On Linux/macOS with **host tmux**, it starts or attaches to a **tmux** session named `lucy_ws_0`, on Lucy's own tmux server (socket `~/.local/state/lucy/tmux.sock`, see below): a plain `tmux ls` does not list it.
 3. The main window runs `pixi run -- python -m launcher` (Control Center TUI).
 
 Package commands in other tmux windows are wrapped in `pixi run` so each pane gets RoboStack and the colcon overlay. Display and OpenGL-related variables from your shell and `.env` are forwarded into those panes.
@@ -76,7 +76,7 @@ Running `./launch_lucy.sh` while a Control Center is already shown in a terminal
 | rosbridge port | 9090 | 9091 | 9092 |
 | control panel port | 4004 | 4005 | 4006 |
 
-The TUI title shows the instance's session, e.g. *Lucy Launch Screen (lucy_ws_0)*, *Lucy Launch Screen (lucy_ws_1)*; `tmux attach -t lucy_ws_1` gets back to it. Each instance (ws) has its own state in `~/.local/state/lucy/<ws>/` (selection, modifiers), ready markers and `GZ_PARTITION`, and its processes carry `LUCY_TMUX_SESSION=<session>`: readiness checks (`scripts/instance_pgrep.sh`), core teardown and orphan cleanup only look at their own instance, so quitting one leaves the others running. `python3 Lucy.py -ws 2` (or `LUCY_TMUX_SESSION=lucy_ws_2 ./launch_lucy.sh`) pins the instance instead of taking the next free one. Pidfiles are shared by all instances on the host (`~/.local/state/lucy/launcher.<ws>.pid`): each one reads the others' ROS domains from them.
+The TUI title shows the instance's session, e.g. *Lucy Launch Screen (lucy_ws_0)*, *Lucy Launch Screen (lucy_ws_1)*; `tmux -S ~/.local/state/lucy/tmux.sock attach -t lucy_ws_1` gets back to it. The state root is `~/.local/state/lucy` (`$XDG_STATE_HOME/lucy`), or `$LUCY_STATE_DIR` when set; it holds the tmux socket `tmux.sock` (one tmux server per state root, so another user, checkout or CI run with its own `LUCY_STATE_DIR` never collides with yours; keep the path short, a unix socket path is limited to ~104 characters). Each instance (ws) has its own state in `<state root>/<ws>/` (selection, modifiers), ready markers and `GZ_PARTITION`, and its processes carry `LUCY_TMUX_SESSION=<session>`: readiness checks (`scripts/instance_pgrep.sh`), core teardown and orphan cleanup only look at their own instance, so quitting one leaves the others running. `python3 Lucy.py -ws 2` (or `LUCY_TMUX_SESSION=lucy_ws_2 ./launch_lucy.sh`) pins the instance instead of taking the next free one. Pidfiles are shared by all instances on the host (`<state root>/launcher.<ws>.pid`): each one reads the others' ROS domains from them.
 
 Processes started by hand (`pixi run core`) belong to the first instance. Local `launcher_config.json.local` files should use `bash scripts/instance_pgrep.sh` instead of `pgrep` in their readiness checks.
 

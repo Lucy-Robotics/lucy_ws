@@ -137,7 +137,7 @@ def test_apply_restarts_core_and_ros_windows_in_the_new_domain(monkeypatch):
 
     assert "stop core" in calls and "stop lucy_cli" in calls
     assert "stop control_panel" not in calls  # talks to rosbridge, not DDS
-    starts = [c for c in calls if c.startswith("tmux new-window")]
+    starts = [c for c in calls if " new-window " in c and c.startswith("tmux -S ")]
     assert any("-n core" in c and "domain_id:=3" in c for c in starts)
     assert any("-n lucy_cli" in c and "ROS_DOMAIN_ID=3" in c for c in starts)
     assert saved[-1] == {"modifiers": [], "domain_id": 3}

@@ -9,14 +9,15 @@ import subprocess
 import time
 import urllib.request
 
-from ci_stack import PANEL_PORT, ROOT, CheckFailed, log
+from ci_stack import PANEL_PORT, ROOT, CheckFailed, log, lucy_tmux
 
 OUTER_SOCKET = "lucy_ci_outer"
 SESSION = os.environ.get("LUCY_TMUX_SESSION", "lucy_ws_0")
 
 
 def tmux(*args: str, outer: bool = False) -> str:
-    cmd = ["tmux", *(["-L", OUTER_SOCKET] if outer else []), *args]
+    # "outer" is the throwaway server hosting Lucy.py; the rest is Lucy's own server.
+    cmd = ["tmux", "-L", OUTER_SOCKET, *args] if outer else lucy_tmux(*args)
     return subprocess.run(cmd, capture_output=True, text=True).stdout
 
 

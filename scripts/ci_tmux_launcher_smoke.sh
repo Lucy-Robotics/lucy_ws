@@ -22,6 +22,12 @@ export LUCY_WS_ROOT="$ROOT"
 TMUX_SESSION="${LUCY_TMUX_SESSION:-lucy_ws_0}"
 export LUCY_TMUX_SESSION="$TMUX_SESSION"
 
+# Lucy's own tmux server: <state root>/tmux.sock (same root as launch_lucy.sh and
+# launcher/constants.py). The python below reaches it through the launcher.
+STATE_ROOT="${LUCY_STATE_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/lucy}"
+mkdir -p -m 700 "$STATE_ROOT"
+tmux() { command tmux -S "$STATE_ROOT/tmux.sock" "$@"; }
+
 tmux start-server
 tmux kill-session -t "$TMUX_SESSION" 2>/dev/null || true
 tmux new-session -d -s "$TMUX_SESSION" -n Lucy 'sleep 300'

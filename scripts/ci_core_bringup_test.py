@@ -18,6 +18,8 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 
+from ci_stack import lucy_tmux
+
 ROOT = Path(__file__).resolve().parent.parent
 TMUX_SESSION = os.environ.get("LUCY_TMUX_SESSION", "lucy_ws_0")
 
@@ -48,11 +50,11 @@ def start_core() -> None:
     from launcher import _tmux_new_pixi_window, load_workspace_env, run_shell_command
 
     load_workspace_env()
-    subprocess.run(["tmux", "start-server"], check=False)
-    subprocess.run(["tmux", "kill-session", "-t", TMUX_SESSION], check=False,
+    subprocess.run(lucy_tmux("start-server"), check=False)
+    subprocess.run(lucy_tmux("kill-session", "-t", TMUX_SESSION), check=False,
                    capture_output=True)
     subprocess.run(
-        ["tmux", "new-session", "-d", "-s", TMUX_SESSION, "-n", "Lucy", "sleep 900"],
+        lucy_tmux("new-session", "-d", "-s", TMUX_SESSION, "-n", "Lucy", "sleep 900"),
         check=True,
     )
     run_shell_command(_tmux_new_pixi_window("core", CORE_CMD, remain_on_exit=True))
@@ -68,7 +70,7 @@ def stop_core() -> None:
         stop_all_packages(LauncherState(load_config()))
     except Exception as exc:  # teardown must never mask the real failure
         log(f"warning: launcher teardown raised {exc!r}")
-    subprocess.run(["tmux", "kill-session", "-t", TMUX_SESSION], check=False,
+    subprocess.run(lucy_tmux("kill-session", "-t", TMUX_SESSION), check=False,
                    capture_output=True)
 
 
@@ -76,8 +78,8 @@ def dump_diagnostics() -> None:
     """Capture the session before teardown removes it."""
     log("--- diagnostics ---")
     for label, cmd in (
-        ("tmux windows", ["tmux", "list-windows", "-t", TMUX_SESSION]),
-        ("core pane", ["tmux", "capture-pane", "-p", "-t", f"{TMUX_SESSION}:core", "-S", "-80"]),
+        ("tmux windows", lucy_tmux("list-windows", "-t", TMUX_SESSION)),
+        ("core pane", lucy_tmux("capture-pane", "-p", "-t", f"{TMUX_SESSION}:core", "-S", "-80")),
     ):
         out = subprocess.run(cmd, capture_output=True, text=True)
         print(f"[{label}]\n{out.stdout or out.stderr}", flush=True)

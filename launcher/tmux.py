@@ -4,7 +4,7 @@ import os
 import shlex
 import sys
 
-from .constants import INSTANCE_PGREP, TMUX_SESSION
+from .constants import INSTANCE_PGREP, TMUX, TMUX_SESSION
 
 
 def is_in_tmux():
@@ -20,12 +20,12 @@ def _window_teardown_shell(window: str) -> str:
     """Gracefully stop a tmux window: SIGINT, poll for the pane to go, kill-window."""
     target = f"{TMUX_SESSION}:{window}"
     return (
-        f"tmux send-keys -t {target} C-c 2>/dev/null; "
+        f"{TMUX} send-keys -t {target} C-c 2>/dev/null; "
         "for _ in $(seq 1 8); do "
-        f"tmux list-panes -t {target} -F '#{{pane_dead}}' 2>/dev/null "
+        f"{TMUX} list-panes -t {target} -F '#{{pane_dead}}' 2>/dev/null "
         "| grep -qx 0 || break; "
         "sleep 0.25; done; "
-        f"tmux kill-window -t {target} 2>/dev/null"
+        f"{TMUX} kill-window -t {target} 2>/dev/null"
     )
 
 
@@ -43,15 +43,15 @@ def _core_teardown_shell() -> str:
         # state to persist, so killing it outright costs nothing and is the only way
         # to stop the dialog without patching rviz2 itself.
         f"for p in $({pgrep} -x rviz2); do kill -9 $p 2>/dev/null; done; "
-        f"tmux send-keys -t {TMUX_SESSION}:core C-c 2>/dev/null; "
+        f"{TMUX} send-keys -t {TMUX_SESSION}:core C-c 2>/dev/null; "
         # Wait for ros2 launch itself too: kill-window SIGHUPs it mid-shutdown, which
         # orphans its children before the firmware can release torque.
         "for _ in $(seq 1 40); do "
         f"{pgrep} -f '[g]z sim' >/dev/null 2>&1 || {pgrep} -x rviz2 >/dev/null 2>&1 || "
-        f"tmux list-panes -t {TMUX_SESSION}:core -F '#{{pane_dead}}' 2>/dev/null "
+        f"{TMUX} list-panes -t {TMUX_SESSION}:core -F '#{{pane_dead}}' 2>/dev/null "
         "| grep -qx 0 || break; "
         "sleep 0.25; done; "
-        f"tmux kill-window -t {TMUX_SESSION}:core 2>/dev/null"
+        f"{TMUX} kill-window -t {TMUX_SESSION}:core 2>/dev/null"
     )
 
 

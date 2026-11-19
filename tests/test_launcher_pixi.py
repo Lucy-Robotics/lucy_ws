@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 import launcher
-from launcher.constants import LAUNCHER_PIDFILE, state_root
+from launcher.constants import LAUNCHER_PIDFILE, TMUX, TMUX_SOCKET, state_root, tmux_argv
 from launcher import (
     STATE_FILE,
     WORKSPACE_ROOT,
@@ -58,6 +58,42 @@ def test_state_root_follows_xdg_state_home(tmp_path):
     assert state_root({}) == Path.home() / ".local" / "state" / "lucy"
 
 
+def test_state_root_lucy_state_dir_wins_over_xdg(tmp_path):
+    env = {"LUCY_STATE_DIR": str(tmp_path / "mine"), "XDG_STATE_HOME": str(tmp_path / "xdg")}
+    assert state_root(env) == tmp_path / "mine"
+    assert state_root({"LUCY_STATE_DIR": "", "XDG_STATE_HOME": str(tmp_path)}) == tmp_path / "lucy"
+
+
+def test_tmux_socket_lives_in_the_state_root():
+    assert TMUX_SOCKET == state_root() / "tmux.sock"
+    assert tmux_argv("ls") == ["tmux", "-S", str(TMUX_SOCKET), "ls"]
+    assert TMUX.startswith("tmux -S ")
+    assert str(TMUX_SOCKET) in TMUX.replace("'", "")
+
+
+def test_launch_script_resolves_the_same_socket_as_python(tmp_path):
+    """launch_lucy.sh mirrors state_root() in bash: keep both in step."""
+    import re
+    import subprocess
+
+    script = (WORKSPACE_ROOT / "launch_lucy.sh").read_text()
+    lines = [
+        ln for ln in script.splitlines() if re.match(r'^(STATE_ROOT|TMUX_SOCKET)=', ln)
+    ]
+    assert len(lines) == 2, lines
+    for env, expected in (
+        ({"LUCY_STATE_DIR": str(tmp_path / "a")}, tmp_path / "a" / "tmux.sock"),
+        ({"XDG_STATE_HOME": str(tmp_path / "x")}, tmp_path / "x" / "lucy" / "tmux.sock"),
+    ):
+        out = subprocess.run(
+            ["bash", "-c", "\n".join(lines) + '\nprintf %s "$TMUX_SOCKET"'],
+            env={"PATH": os.environ["PATH"], "HOME": str(tmp_path), **env},
+            capture_output=True, text=True, check=True,
+        ).stdout
+        assert out == str(expected)
+        assert state_root(env) / "tmux.sock" == expected
+
+
 def test_pixi_workspace_script_wraps_ros2():
     body = _pixi_workspace_script("ros2 doctor --report")
     assert f"cd {WORKSPACE_ROOT}" in body
@@ -97,7 +133,7 @@ def test_gui_env_exports_forwards_display():
 
 def test_tmux_new_pixi_window_wraps_in_bash_lc():
     cmd = _tmux_new_pixi_window("core", "ros2 launch pkg launch.py", remain_on_exit=True)
-    assert "tmux new-window" in cmd
+    assert f"{TMUX} new-window" in cmd
     assert "-n core" in cmd
     assert "bash -lc" in cmd
     assert "remain-on-exit on" in cmd
@@ -119,6 +155,7 @@ def test_needs_tmux_session_false_on_windows():
 
 def test_window_teardown_sends_sigint_before_kill():
     cmd = _window_teardown_shell("control_panel")
+    assert f"{TMUX} send-keys" in cmd
     assert "send-keys" in cmd
     assert "C-c" in cmd
     assert "kill-window" in cmd

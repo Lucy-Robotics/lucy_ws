@@ -10,6 +10,7 @@ from .constants import (
     GUI_ENV_KEYS,
     INSTANCE_ENV_KEYS,
     NIX_GL_ENV_SCRIPT,
+    TMUX,
     TMUX_SESSION,
     WORKSPACE_ROOT,
 )
@@ -86,9 +87,9 @@ def _tmux_new_pixi_window(
 ) -> str:
     """Open a tmux window that runs user_cmd inside pixi run (tmux panes don't inherit pixi)."""
     inner = f"bash -lc {shlex.quote(_pixi_workspace_script(user_cmd))}"
-    cmd = f"tmux new-window -d -t {TMUX_SESSION} -n {window} {inner}"
+    cmd = f"{TMUX} new-window -d -t {TMUX_SESSION} -n {window} {inner}"
     if remain_on_exit:
-        cmd += f"; tmux set-window-option -t {TMUX_SESSION}:{window} remain-on-exit on"
+        cmd += f"; {TMUX} set-window-option -t {TMUX_SESSION}:{window} remain-on-exit on"
     return cmd
 
 
@@ -147,7 +148,7 @@ def tmux_window_snapshot():
     and a grep each.
     """
     out = subprocess.run(
-        f"tmux list-panes -s -t {TMUX_SESSION} "
+        f"{TMUX} list-panes -s -t {TMUX_SESSION} "
         "-F '#{window_name}:#{pane_dead}:#{pane_dead_status}' 2>/dev/null",
         shell=True,
         capture_output=True,
@@ -174,7 +175,7 @@ def _pane_exit_status(pkg_id):
     remain-on-exit keeps the dead pane (and its output) so we can read the code:
     0 is a clean exit (STOPPED), anything else (incl. signal death) a crash (CRASHED)."""
     out = subprocess.run(
-        f"tmux list-panes -t {TMUX_SESSION}:{pkg_id} -F '#{{pane_dead}}:#{{pane_dead_status}}' 2>/dev/null",
+        f"{TMUX} list-panes -t {TMUX_SESSION}:{pkg_id} -F '#{{pane_dead}}:#{{pane_dead_status}}' 2>/dev/null",
         shell=True,
         capture_output=True,
         text=True,

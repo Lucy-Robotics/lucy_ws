@@ -1,6 +1,7 @@
 """Workspace paths, timeouts, and markers for the Lucy launcher."""
 
 import os
+import shlex
 from pathlib import Path
 
 WORKSPACE_ROOT = Path(__file__).resolve().parent.parent
@@ -16,11 +17,16 @@ TMUX_SESSION = os.environ.get("LUCY_TMUX_SESSION", DEFAULT_TMUX_SESSION)
 
 
 def state_root(environ=os.environ) -> Path:
-    """Lucy's state, outside the repo: $XDG_STATE_HOME/lucy (~/.local/state/lucy).
+    """Lucy's state, outside the repo: $LUCY_STATE_DIR when set, else
+    $XDG_STATE_HOME/lucy (~/.local/state/lucy).
 
-    Holds one directory per ws (tmux session) for its selection and modifiers,
-    and every Control Center's pidfile: sessions, ports and ROS domains are
-    host-wide, so each launcher must see the others' claims."""
+    Holds the Lucy tmux server's socket, one directory per ws (tmux session)
+    for its selection and modifiers, and every Control Center's pidfile:
+    sessions, ports and ROS domains are host-wide, so each launcher must see
+    the others' claims. launch_lucy.sh mirrors this resolution in bash."""
+    override = environ.get("LUCY_STATE_DIR")
+    if override:
+        return Path(override)
     base = environ.get("XDG_STATE_HOME") or str(Path.home() / ".local" / "state")
     return Path(base) / "lucy"
 
@@ -33,6 +39,19 @@ STATE_ROOT = state_root()
 STATE_DIR = STATE_ROOT / TMUX_SESSION
 STATE_FILE = STATE_DIR / "modifiers.json"
 SELECTION_FILE = STATE_DIR / "selection.json"
+# One tmux server per state root, holding every instance's lucy_ws_<n> session:
+# a plain `tmux` never sees Lucy, Lucy never touches the user's own tmux, and
+# another LUCY_STATE_DIR (another user, CI) gets another server. launch_lucy.sh
+# creates it on this same path.
+TMUX_SOCKET = STATE_ROOT / "tmux.sock"
+TMUX = f"tmux -S {shlex.quote(str(TMUX_SOCKET))}"  # prefix for shell strings
+
+
+def tmux_argv(*args: str) -> list[str]:
+    """tmux command line (subprocess list) aimed at Lucy's server."""
+    return ["tmux", "-S", str(TMUX_SOCKET), *args]
+
+
 LAUNCHER_PIDFILE = pidfile_for(TMUX_SESSION, STATE_ROOT)
 # pgrep restricted to this instance's processes (readiness checks, teardown).
 INSTANCE_PGREP = WORKSPACE_ROOT / "scripts" / "instance_pgrep.sh"
@@ -84,6 +103,7 @@ GUI_ENV_KEYS = (
 # instance's, so a second instance must pass its own values explicitly.
 INSTANCE_ENV_KEYS = (
     "LUCY_TMUX_SESSION",
+    "LUCY_STATE_DIR",
     "ROS_DOMAIN_ID",
     "PORT_ROSBRIDGE",
     "LUCY_LCP_PUBLISHED_HOST_PORT",

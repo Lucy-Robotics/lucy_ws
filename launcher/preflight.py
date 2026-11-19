@@ -19,7 +19,7 @@ import subprocess
 import sys
 import time
 
-from .constants import LAUNCHER_PIDFILE, TMUX_SESSION
+from .constants import LAUNCHER_PIDFILE, TMUX, TMUX_SESSION, tmux_argv
 from .instance import _pid_alive, claim_domains, read_pidfile
 from .process import (
     _iter_processes,
@@ -120,7 +120,7 @@ def running_stack_windows():
     except Exception:
         return []
     out = subprocess.run(
-        ["tmux", "list-windows", "-t", TMUX_SESSION, "-F", "#{window_name}"],
+        tmux_argv("list-windows", "-t", TMUX_SESSION, "-F", "#{window_name}"),
         capture_output=True,
         text=True,
         check=False,
@@ -148,7 +148,7 @@ def stop_running_stack(windows=None) -> bool:
     """
     for window in windows or []:
         subprocess.run(
-            ["tmux", "kill-window", "-t", f"{TMUX_SESSION}:{window}"],
+            tmux_argv("kill-window", "-t", f"{TMUX_SESSION}:{window}"),
             capture_output=True,
             check=False,
         )
@@ -191,7 +191,7 @@ def guard_single_stack(
         # Never killed: that would orphan the stack it owns.
         print(
             f"A Lucy Launch Screen is already running here (pid {other}).\n"
-            f"Attach to it with:  tmux attach -t {TMUX_SESSION}\n"
+            f"Attach to it with:  {TMUX} attach -t {TMUX_SESSION}\n"
             f"Set {ALLOW_MULTIPLE_ENV}=1 only if you really want a second one.",
             file=out,
         )
