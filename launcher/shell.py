@@ -2,6 +2,7 @@
 
 import os
 import shlex
+import shutil
 import subprocess
 import threading
 
@@ -85,7 +86,9 @@ def _tmux_new_pixi_window(
     window: str, user_cmd: str, remain_on_exit: bool = False
 ) -> str:
     """Open a tmux window that runs user_cmd inside pixi run (tmux panes don't inherit pixi)."""
-    inner = f"bash -lc {shlex.quote(_pixi_workspace_script(user_cmd))}"
+    pixi_bin = os.path.dirname(shutil.which("pixi") or os.path.expanduser("~/.pixi/bin/pixi"))
+    script = f'export PATH={shlex.quote(pixi_bin)}:"$PATH"; {_pixi_workspace_script(user_cmd)}'
+    inner = f"bash -lc {shlex.quote(script)}"
     cmd = f"tmux new-window -d -t {TMUX_SESSION} -n {window} {inner}"
     if remain_on_exit:
         cmd += f"; tmux set-window-option -t {TMUX_SESSION}:{window} remain-on-exit on"
