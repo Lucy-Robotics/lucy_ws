@@ -79,8 +79,8 @@
       "default_on": false
     },
     {
-      "id": "simulator",
-      "name": "Simulator",
+      "id": "visualizer",
+      "name": "Visualizer",
       "description": "(mock hardware: mode:=mock)",
       "type": "modifier",
       "dependencies": ["core"],
