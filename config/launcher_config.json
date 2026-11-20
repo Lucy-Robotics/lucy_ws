@@ -220,6 +220,17 @@
       "default_on": true
     },
     {
+      "id": "panel_https",
+      "requires_component": "control_panel",
+      "name": "Use HTTPS",
+      "description": "Serve over https with a self-signed certificate (camera and mic need it off localhost)",
+      "type": "option",
+      "parent": "control_panel",
+      "conflicts": [],
+      "command": "--https",
+      "default_on": false
+    },
+    {
       "id": "lucy_cli",
       "name": "Lucy CLI",
       "description": "Command Line Interface",

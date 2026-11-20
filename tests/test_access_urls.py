@@ -45,3 +45,10 @@ def test_urls_cut_at_the_terminal_edge_end_with_dots():
 ])
 def test_loopback_and_container_bridges_are_not_reachable(ip, expected):
     assert reachable(ip) is expected
+
+
+def test_the_https_option_switches_the_links_to_https():
+    panel = SimpleNamespace(id="control_panel", parent=None, url="http://localhost:4004")
+    https = SimpleNamespace(id="panel_https", parent="control_panel", command="--https", is_running=True)
+    host = SimpleNamespace(id="host", parent="control_panel", command="--host 0.0.0.0", is_running=True)
+    assert access_urls(panel, SimpleNamespace(packages=[panel, https, host])) == [LOCAL, LAN]

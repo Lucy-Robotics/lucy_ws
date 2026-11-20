@@ -131,6 +131,11 @@ panel-build = { cmd = "VITE_LUCY_VERSION=$(cat ../../log/lucy_version) yarn buil
 ], outputs = ["src/lucy_control_panel/dist"] }
 panel-prod = { cmd = "yarn preview", cwd = "src/lucy_control_panel", depends-on = ["panel-build"] }
 
+# Unix: through scripts/panel_serve.sh, so the launcher's HTTPS option (--https) works.
+[feature.panel.target.unix.tasks]
+panel-dev = { cmd = "VITE_LUCY_VERSION=$(cat ../../log/lucy_version) bash ../../scripts/panel_serve.sh dev", cwd = "src/lucy_control_panel", depends-on = ["panel-version"] }
+panel-prod = { cmd = "bash ../../scripts/panel_serve.sh preview", cwd = "src/lucy_control_panel", depends-on = ["panel-build"] }
+
 [feature.dev.tasks]
 doctor = "python scripts/ros_doctor.py"
 setup-udev = "bash scripts/setup_udev.sh"

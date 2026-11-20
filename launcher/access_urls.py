@@ -41,6 +41,8 @@ def access_urls(pkg, state):
     url = _status_url(pkg)
     if not url:
         return []
+    if any(o.command == "--https" and o.is_running for o in options_of(state, pkg)):
+        url = url.replace("http://", "https://", 1)
     if not any("0.0.0.0" in o.command and o.is_running for o in options_of(state, pkg)):
         return [url]
     return [url, *(url.replace("localhost", ip) for ip in network_ips())]

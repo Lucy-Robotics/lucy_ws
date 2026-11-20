@@ -14,6 +14,8 @@ CONFIG = {
          "parent": "control_panel", "conflicts": ["panel_host_network"], "command": "--host 127.0.0.1"},
         {"id": "panel_host_network", "name": "Every network", "type": "option", "parent": "control_panel",
          "conflicts": ["panel_host_local"], "command": "--host 0.0.0.0", "default_on": True},
+        {"id": "panel_https", "name": "Use HTTPS", "type": "option", "parent": "control_panel",
+         "conflicts": [], "command": "--https"},
         {"id": "lucy_cli", "name": "Lucy CLI", "type": "interface", "dependencies": [],
          "conflicts": [], "command": "ros2 run lucy_cli tui"},
     ]
@@ -41,7 +43,7 @@ def _ids(state, focused):
 def test_options_show_only_while_the_panel_or_an_option_has_the_cursor(monkeypatch, tmp_path):
     state = _state(monkeypatch, tmp_path)
     assert _ids(state, "lucy_cli") == ["control_panel", "lucy_cli"]
-    expanded = ["control_panel", "panel_host_local", "panel_host_network", "lucy_cli"]
+    expanded = ["control_panel", "panel_host_local", "panel_host_network", "panel_https", "lucy_cli"]
     assert _ids(state, "control_panel") == expanded
     assert _ids(state, "panel_host_local") == expanded
 
@@ -71,3 +73,12 @@ def test_changing_the_address_restarts_the_panel_with_it(monkeypatch, tmp_path):
     assert stopped == ["control_panel"]
     assert commands == ["pixi run panel-prod --host 127.0.0.1"]
     assert options_module.launched_options() == {"panel_host_local"}
+
+
+def test_https_is_a_checkbox_next_to_the_address(monkeypatch, tmp_path):
+    state = _state(monkeypatch, tmp_path)
+    https = state.get_by_id("panel_https")
+    state.toggle("panel_https")
+    assert https.selected and state.get_by_id("panel_host_network").selected
+    state.toggle("panel_https")
+    assert not https.selected and state.get_by_id("panel_host_network").selected

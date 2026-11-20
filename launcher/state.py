@@ -147,7 +147,7 @@ class LauncherState:
         if not pkg.selected:
             self._enable_with_deps(pkg)
         else:
-            if pkg.parent:
+            if pkg.parent and pkg.conflicts:  # pick-one group; an option without conflicts is a checkbox
                 return "Pick another option instead"
             if pkg.requires_pkg:
                 selected_robots = [r for r in self._robot_packages() if r.selected]
