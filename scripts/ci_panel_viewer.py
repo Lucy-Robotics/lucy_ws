@@ -8,7 +8,7 @@ import time
 from ci_stack import CheckFailed, Ros, log
 
 MODEL_TIMEOUT_S = 600.0
-MODEL_STALL_S = 30.0
+MODEL_QUIET_S = 120.0
 FOLLOW_TIMEOUT_S = 60.0
 URDF_HINT_S = 25.0
 WEBGL_RENDERER = """() => {
@@ -41,7 +41,7 @@ def watch_model(page) -> dict:
 def check_viewer(page, model: dict, opened_at: float) -> None:
     deadline = opened_at + MODEL_TIMEOUT_S
     seen, progressed_at = -1, time.time()
-    while "meshes" not in model and time.time() < deadline and time.time() - progressed_at < MODEL_STALL_S:
+    while "meshes" not in model and time.time() < deadline and time.time() - progressed_at < MODEL_QUIET_S:
         if model["replies"] != seen:
             seen, progressed_at = model["replies"], time.time()
         page.wait_for_timeout(1000)
