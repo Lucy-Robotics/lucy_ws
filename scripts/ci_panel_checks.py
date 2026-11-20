@@ -5,12 +5,11 @@ from __future__ import annotations
 import os
 import re
 import time
+from pathlib import Path
 
+from ci_panel_mobile import check_mobile
 from ci_panel_viewer import WEBGL_RENDERER, check_viewer, check_viewer_follows, watch_model
-from ci_stack import PANEL_PORT, ROOT, Ros, diff, log
-
-MOVED_RAD = 0.05
-SAME_RAD = 0.02
+from ci_stack import MOVED_RAD, PANEL_PORT, ROOT, SAME_RAD, Ros, diff, log
 
 
 def drag_slider(page, index: int, fraction: float) -> None:
@@ -33,6 +32,13 @@ def save_pose(page, name: str) -> None:
     modal.get_by_label(f"Rename pose {name}").wait_for()
     modal.get_by_role("button", name="CLOSE", exact=True).click()
     log(f"saved pose {name}")
+
+
+def save_screenshot(page, shot: Path, full_page: bool = True) -> None:
+    shot.parent.mkdir(exist_ok=True)
+    page.mouse.move(0, 0)
+    page.screenshot(path=str(shot), full_page=full_page)
+    log(f"screenshot: {shot}")
 
 
 def drive_panel(page, ros: Ros) -> None:
@@ -93,16 +99,21 @@ def exercise_panel(ros: Ros, robot: str) -> None:
     from playwright.sync_api import sync_playwright
 
     shot = ROOT / "log" / f"panel_e2e_{robot}.png"
+    mobile_shot = ROOT / "log" / f"panel_e2e_{robot}_mobile.png"
     with sync_playwright() as pw:
         browser = pw.chromium.launch(executable_path=os.environ.get("LUCY_E2E_BROWSER") or None)
         page = browser.new_page(viewport={"width": 1600, "height": 1000})
         page.on("console", lambda m: m.type == "error" and log(f"browser: {m.text}"))
         try:
-            drive_panel(page, ros)
+            try:
+                drive_panel(page, ros)
+            finally:
+                save_screenshot(page, shot)
+            try:
+                check_mobile(page, ros)
+            finally:
+                page.evaluate("window.scrollTo(0, 0)")
+                save_screenshot(page, mobile_shot, full_page=False)
         finally:
-            shot.parent.mkdir(exist_ok=True)
-            page.mouse.move(0, 0)
-            page.screenshot(path=str(shot), full_page=True)
-            log(f"screenshot: {shot}")
             browser.close()
     log(f"panel drove {robot}")
