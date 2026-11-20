@@ -78,9 +78,8 @@ class Ros:
             log(f"control lease: {msg.data or 'released'}")
         self.active_client = msg.data
 
-    def reset(self) -> None:
+    def forget_joints(self) -> None:
         self.latest = {}
-        self.description = None
 
     def stack_nodes(self) -> set[str]:
         return set(self.node.get_node_names()) & STACK_NODES
