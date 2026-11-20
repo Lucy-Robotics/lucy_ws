@@ -86,9 +86,8 @@ class Ros:
         if self.backup_heartbeat and self.active_client:
             self.heartbeat.publish(self.string(data=self.active_client))
 
-    def reset(self) -> None:
+    def forget_joints(self) -> None:
         self.latest = {}
-        self.description = None
 
     def stack_nodes(self) -> set[str]:
         return set(self.node.get_node_names()) & STACK_NODES

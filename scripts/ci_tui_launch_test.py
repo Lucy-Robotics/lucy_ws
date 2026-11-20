@@ -62,7 +62,7 @@ def run_robot(ros: Ros, robot: str) -> None:
         wait_for("the previous core to stop after the robot change",
                  lambda: not (pids(CORE_PATTERN) & old_core), 60.0)
         log("previous core stopped")
-    ros.reset()
+    ros.forget_joints()
     check_feedback_matches(ros)
     check_robot_identity(ros, robot)
     exercise_panel(ros, robot)
