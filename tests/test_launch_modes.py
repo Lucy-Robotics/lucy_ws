@@ -20,9 +20,9 @@ def _launch_args(state):
     )
 
 
-def test_ticking_core_ticks_simulator(state):
+def test_ticking_core_ticks_emulator(state):
     state.toggle("core")
-    assert "simulator" in _on(state)
+    assert "emulator" in _on(state)
     assert not _on(state) & {"gazebo", "hardware", "real_linux", "real_mcu_bridge"}
 
 
@@ -30,7 +30,7 @@ def test_ticking_hardware_ticks_micro_controllers(state):
     state.toggle("core")
     state.toggle("hardware")
     assert {"hardware", "real_mcu_bridge"} <= _on(state)
-    assert "simulator" not in _on(state)
+    assert "emulator" not in _on(state)
 
 
 def test_ticking_usb_servos_switches_hardware_type(state):
@@ -41,10 +41,10 @@ def test_ticking_usb_servos_switches_hardware_type(state):
     assert "real_mcu_bridge" not in _on(state)
 
 
-def test_unticking_default_simulator_is_refused(state):
+def test_unticking_default_emulator_is_refused(state):
     state.toggle("core")
-    assert state.toggle("simulator") == "One launch mode required"
-    assert state.get_by_id("simulator").selected
+    assert state.toggle("emulator") == "One launch mode required"
+    assert state.get_by_id("emulator").selected
 
 
 def test_unticking_default_micro_controllers_is_refused(state):
@@ -54,20 +54,20 @@ def test_unticking_default_micro_controllers_is_refused(state):
     assert state.get_by_id("real_mcu_bridge").selected
 
 
-def test_unticking_physics_simulator_ticks_simulator_and_clears_headless(state):
+def test_unticking_physics_simulator_ticks_emulator_and_clears_headless(state):
     state.toggle("core")
     state.toggle("gazebo")
     state.toggle("headless")
     assert state.toggle("gazebo") is None
-    assert "simulator" in _on(state)
+    assert "emulator" in _on(state)
     assert not _on(state) & {"gazebo", "headless"}
 
 
-def test_unticking_hardware_ticks_simulator_and_clears_bridge(state):
+def test_unticking_hardware_ticks_emulator_and_clears_bridge(state):
     state.toggle("core")
     state.toggle("hardware")
     assert state.toggle("hardware") is None
-    assert "simulator" in _on(state)
+    assert "emulator" in _on(state)
     assert not _on(state) & {"hardware", "real_mcu_bridge"}
 
 
@@ -89,19 +89,19 @@ def test_switching_to_hardware_unticks_headless(state):
     assert not _on(state) & {"gazebo", "headless"}
 
 
-def test_ticking_hardware_type_in_simulator_selects_hardware(state):
+def test_ticking_hardware_type_in_emulator_selects_hardware(state):
     state.toggle("core")
     state.toggle("real_linux")
     assert {"hardware", "real_linux"} <= _on(state)
-    assert "simulator" not in _on(state)
+    assert "emulator" not in _on(state)
 
 
-def test_settle_drops_bridge_without_hardware_and_picks_simulator(state):
+def test_settle_drops_bridge_without_hardware_and_picks_emulator(state):
     for pkg_id in ("core", "real_linux"):
         state.get_by_id(pkg_id).selected = True
     settle_selection(state)
     assert "real_linux" not in _on(state)
-    assert "simulator" in _on(state)
+    assert "emulator" in _on(state)
 
 
 def _core_off_with_hardware(state):
@@ -139,7 +139,7 @@ def test_reticking_core_restores_the_previous_mode_and_bridge(state):
     _core_off_with_hardware(state)
     state.toggle("core")
     assert {"core", "hardware", "real_linux", "rviz"} <= _on(state)
-    assert not _on(state) & {"simulator", "real_mcu_bridge"}
+    assert not _on(state) & {"emulator", "real_mcu_bridge"}
 
 
 def test_settle_still_drops_headless_without_gazebo_while_core_is_off(state):
