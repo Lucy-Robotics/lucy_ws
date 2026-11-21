@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 
 import launcher
-from launcher import config, instance, process
+from launcher import config, constants, instance, process
 from launcher.state import LauncherState
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -60,6 +60,14 @@ def test_second_instance_gets_its_own_markers_and_gazebo_partition():
     assert env["GZ_PARTITION"] == "lucy_ws_1"
     assert env["LUCY_CONTROL_READY_FILE"].endswith(".lucy_ws_1")
     assert "lucy_ws_1" in env["LUCY_CLI_READY_FILE"]
+
+
+def test_second_instance_gets_its_own_panel_status_and_robot_switch_files():
+    env = {}
+    instance.export_instance_env("lucy_ws_1", env)
+    assert env["LUCY_STACK_STATUS_FILE"].endswith(".lucy_ws_1")
+    assert env["LUCY_SELECT_ROBOT_FILE"].endswith(".lucy_ws_1")
+    assert {"LUCY_STACK_STATUS_FILE", "LUCY_SELECT_ROBOT_FILE"} <= set(constants.INSTANCE_ENV_KEYS)
 
 
 def test_default_instance_keeps_stock_settings():
