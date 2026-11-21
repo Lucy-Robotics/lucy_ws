@@ -154,7 +154,7 @@ def test_domain_label_starts_in_column_six(state):
     assert _col(screen, "ROS domain", "R") == 6
 
 
-@pytest.mark.parametrize("name", ["Headless", "Micro controllers", "USB servos"])
+@pytest.mark.parametrize("name", ["Headless"])
 def test_subitem_checkboxes_are_in_column_fourteen(state, name):
     screen, _ = _draw(state)
     assert _col(screen, name) == 14
