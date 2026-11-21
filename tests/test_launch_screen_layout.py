@@ -137,7 +137,7 @@ def test_robot_and_interface_checkboxes_share_column_six(state, name):
     assert _col(screen, name) == 6
 
 
-@pytest.mark.parametrize("name", ["Simulator", "Hardware"])
+@pytest.mark.parametrize("name", ["Emulator", "Hardware"])
 def test_mode_checkboxes_are_indented_to_column_ten(state, name):
     screen, _ = _draw(state)
     assert _col(screen, name) == 10

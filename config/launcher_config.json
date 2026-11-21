@@ -79,8 +79,8 @@
       "default_on": false
     },
     {
-      "id": "simulator",
-      "name": "Simulator",
+      "id": "emulator",
+      "name": "Emulator",
       "description": "(mock hardware: mode:=mock)",
       "type": "modifier",
       "dependencies": ["core"],

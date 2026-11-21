@@ -103,6 +103,14 @@ def test_tmux_new_pixi_window_wraps_in_bash_lc():
     assert "remain-on-exit on" in cmd
 
 
+def test_tmux_window_restores_pixi_on_path(monkeypatch):
+    """/etc/profile on Debian overwrites PATH; the login shell must re-add pixi."""
+    monkeypatch.setattr("launcher.shell.shutil.which", lambda _: "/opt/px/bin/pixi")
+    cmd = _tmux_new_pixi_window("core", "ros2 launch pkg launch.py")
+    assert "export PATH=/opt/px/bin:" in cmd
+    assert cmd.index("export PATH=") < cmd.index("pixi run")
+
+
 def test_load_workspace_env_reads_dotenv(tmp_path, monkeypatch):
     env_file = tmp_path / ".env"
     env_file.write_text("PORT_CONTROL_PANEL=5555\n")
