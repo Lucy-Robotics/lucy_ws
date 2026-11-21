@@ -114,6 +114,7 @@ test-only = "python scripts/ci_colcon_test.py --merge-install"
 
 [feature.panel.tasks]
 panel-install = { cmd = "yarn install", cwd = "src/lucy_control_panel" }
+robot-glb = { cmd = "(git -C build/mesh_tools pull -q || git clone -q https://github.com/Lucy-Robotics/mesh_tools build/mesh_tools) && npm ci --prefix build/mesh_tools --no-audit --no-fund && node build/mesh_tools/src/cli.ts src/{{ robot }}", args = ["robot"], description = "Write the compressed GLB meshes beside each mesh of a robot repo in src/" }
 panel-version = "mkdir -p log && git describe --tags --always > log/lucy_version || cat version.txt > log/lucy_version"
 panel-dev = { cmd = "VITE_LUCY_VERSION=$(cat ../../log/lucy_version) yarn dev", cwd = "src/lucy_control_panel", depends-on = ["panel-version"] }
 panel-build = { cmd = "VITE_LUCY_VERSION=$(cat ../../log/lucy_version) yarn build", cwd = "src/lucy_control_panel", depends-on = ["panel-version"], inputs = [
