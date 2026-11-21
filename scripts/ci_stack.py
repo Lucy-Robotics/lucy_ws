@@ -57,6 +57,10 @@ class Ros:
         self.active_client: str | None = None
         self.node.create_subscription(String, "/robot_description", self._on_description, latched)
         self.node.create_subscription(String, "/lucy/active_client", self._on_active_client, latched)
+        self.backup_heartbeat = False
+        self.string = String
+        self.heartbeat = self.node.create_publisher(String, "/lucy/client_heartbeat", 10)
+        self.node.create_timer(1.0, self._beat)
         self.executor = SingleThreadedExecutor()
         self.executor.add_node(self.node)
         self.stopping = threading.Event()
@@ -78,9 +82,12 @@ class Ros:
             log(f"control lease: {msg.data or 'released'}")
         self.active_client = msg.data
 
-    def reset(self) -> None:
+    def _beat(self) -> None:
+        if self.backup_heartbeat and self.active_client:
+            self.heartbeat.publish(self.string(data=self.active_client))
+
+    def forget_joints(self) -> None:
         self.latest = {}
-        self.description = None
 
     def stack_nodes(self) -> set[str]:
         return set(self.node.get_node_names()) & STACK_NODES

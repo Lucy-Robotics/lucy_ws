@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import re
+import sys
 import time
 
 from ci_panel_viewer import WEBGL_RENDERER, check_viewer, check_viewer_follows, watch_model
@@ -98,8 +99,11 @@ def exercise_panel(ros: Ros, robot: str) -> None:
         page = browser.new_page(viewport={"width": 1600, "height": 1000})
         page.on("console", lambda m: m.type == "error" and log(f"browser: {m.text}"))
         try:
+            # software GL freezes the page's own heartbeat
+            ros.backup_heartbeat = sys.platform != "linux"
             drive_panel(page, ros)
         finally:
+            ros.backup_heartbeat = False
             shot.parent.mkdir(exist_ok=True)
             page.mouse.move(0, 0)
             page.screenshot(path=str(shot), full_page=True)

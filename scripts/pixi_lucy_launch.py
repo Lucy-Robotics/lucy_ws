@@ -278,6 +278,10 @@ def main() -> int:
     apply_dds_scope()
     apply_domain_id(sys.argv[1:])
     configure_windows_dll_search_path()
+    if os.name == "nt" and os.environ.get("CONDA_PREFIX"):
+        from windows_vc_runtime import place_env_vc_runtime
+
+        place_env_vc_runtime(Path(os.environ["CONDA_PREFIX"]))
     validate_windows_ros_runtime()
 
     # Without LUCY_ROBOT_PACKAGE, lucy.launch.py picks the installed robot package.

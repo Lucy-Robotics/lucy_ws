@@ -141,7 +141,7 @@ def test_shrinking_folds_bottom_up_and_growing_back_keeps_them_folded(state, clo
 def _toggle_warning_keys(state):
     state.toggle("core")
     _, display = draw(state)
-    return [KEY_DOWN] * display.index(state.get_by_id("simulator")) + [ord(" ")]
+    return [KEY_DOWN] * display.index(state.get_by_id("emulator")) + [ord(" ")]
 
 
 def test_a_toggle_warning_survives_redraw_ticks_and_expires_after_three_seconds(
