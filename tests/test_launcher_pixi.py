@@ -1,6 +1,7 @@
 """Tests for launcher Pixi/tmux command wrapping (no tmux or ROS required)."""
 
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -61,20 +62,20 @@ def test_state_root_follows_xdg_state_home(tmp_path):
 def test_pixi_workspace_script_wraps_ros2():
     body = _pixi_workspace_script("ros2 doctor --report")
     assert f"cd {WORKSPACE_ROOT}" in body
-    assert "pixi run -- bash -c" in body
+    assert re.search(r"pixi run -e \S+ -- bash -c", body)
     assert "nix_gl_env.sh" in body
     assert "ros2 doctor --report" in body
 
 
 def test_pixi_workspace_script_preserves_pixi_command():
     body = _pixi_workspace_script("pixi run panel-dev")
-    assert "pixi run panel-dev" in body
+    assert re.search(r"pixi run -e \S+ panel-dev", body)
     assert "pixi run -- pixi" not in body
 
 
 def test_pixi_workspace_script_complex_shell_uses_bash_c():
     body = _pixi_workspace_script("echo hi && ros2 doctor")
-    assert "pixi run -- bash -c" in body
+    assert re.search(r"pixi run -e \S+ -- bash -c", body)
 
 
 def test_pixi_workspace_script_inner_shell_is_not_a_login_shell():
@@ -225,6 +226,7 @@ def test_stop_all_packages_single_finish_teardown(monkeypatch):
             self.type = ptype
             self.is_running = running
             self.lifecycle_hooks = {}
+            self.parent = None
 
         def is_complex_command(self):
             return False
@@ -270,6 +272,7 @@ def test_stop_all_packages_stops_running_interfaces(monkeypatch):
             self.type = ptype
             self.is_running = running
             self.lifecycle_hooks = {}
+            self.parent = None
 
         def is_complex_command(self):
             return False
@@ -305,6 +308,7 @@ def test_stop_all_packages_runs_core_teardown_when_running(monkeypatch):
             self.type = ptype
             self.is_running = running
             self.lifecycle_hooks = {}
+            self.parent = None
 
         def is_complex_command(self):
             return False
@@ -380,6 +384,7 @@ def test_apply_changes_modifier_restart_calls_finish_teardown(monkeypatch):
             self.ready = running
             self.command = command
             self.lifecycle_hooks = {}
+            self.parent = None
             self.pane_dead = False
             self.pane_exit_status = None
             self.readiness_check = None
@@ -434,6 +439,7 @@ def test_apply_changes_modifier_restart_preserves_control_panel(monkeypatch):
             self.is_running = running
             self.command = command
             self.lifecycle_hooks = {}
+            self.parent = None
             self.pane_dead = False
             self.pane_exit_status = None
             self.readiness_check = readiness_check
@@ -491,6 +497,7 @@ def test_apply_changes_stopping_core_preserves_running_control_panel(monkeypatch
             self.is_running = running
             self.command = command
             self.lifecycle_hooks = {}
+            self.parent = None
             self.pane_dead = False
             self.pane_exit_status = None
             self.readiness_check = readiness_check
@@ -603,9 +610,9 @@ def test_modifier_with_exit_check_reports_crash_when_exit_code_present(tmp_path)
     pkg = Package(
         {
             "id": "real",
-            "name": "... with Real Hardware",
+            "name": "... with Hardware",
             "type": "modifier",
-            "command": "mode:=real bridge:=linux",
+            "command": "mode:=real",
             "readiness_check": "false",
             "exit_check": (
                 f'"{sys.executable}" -c "import pathlib, sys; '
@@ -644,9 +651,9 @@ def test_intended_running_package_crashes_immediately_when_not_running():
     pkg = Package(
         {
             "id": "real",
-            "name": "... with Real Hardware",
+            "name": "... with Hardware",
             "type": "modifier",
-            "command": "mode:=real bridge:=linux",
+            "command": "mode:=real",
         },
         running_modifiers=[],
     )
@@ -660,6 +667,34 @@ def test_intended_running_package_crashes_immediately_when_not_running():
         _pkg_start_times.pop("real", None)
 
 
+def test_real_hardware_crash_message_comes_from_the_error_file(tmp_path, monkeypatch):
+    from launcher.package import Package
+
+    error_file = tmp_path / "error"
+    error_file.write_text(
+        "Disconnect and reconnect SO-ARM. Then relaunch Lucy.\n"
+    )
+    monkeypatch.setattr(
+        "launcher.package.pane_crash_message",
+        lambda _window: (_ for _ in ()).throw(AssertionError("pane scrape unused")),
+    )
+    pkg = Package(
+        {
+            "id": "real",
+            "name": "... with Hardware",
+            "type": "modifier",
+            "command": "real:=true",
+            "readiness_check": "false",
+            "error_check": f'cat "{error_file}"',
+            "crash_log_window": "core",
+        },
+        running_modifiers=["real"],
+    )
+    assert pkg.crash_message == (
+        "Disconnect and reconnect SO-ARM. Then relaunch Lucy."
+    )
+
+
 def test_real_hardware_stays_loading_until_microcontroller_ready_file_exists(tmp_path):
     import time
     from launcher.package import Package
@@ -669,9 +704,9 @@ def test_real_hardware_stays_loading_until_microcontroller_ready_file_exists(tmp
     pkg = Package(
         {
             "id": "real",
-            "name": "... with Real Hardware",
+            "name": "... with Hardware",
             "type": "modifier",
-            "command": "mode:=real bridge:=linux",
+            "command": "mode:=real",
             "readiness_check": (
                 f'"{sys.executable}" -c "import pathlib, sys; '
                 f'sys.exit(0 if pathlib.Path(sys.argv[1]).is_file() else 1)" '

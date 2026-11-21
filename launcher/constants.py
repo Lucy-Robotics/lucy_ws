@@ -33,6 +33,7 @@ STATE_ROOT = state_root()
 STATE_DIR = STATE_ROOT / TMUX_SESSION
 STATE_FILE = STATE_DIR / "modifiers.json"
 SELECTION_FILE = STATE_DIR / "selection.json"
+OPTIONS_FILE = STATE_DIR / "options.json"
 LAUNCHER_PIDFILE = pidfile_for(TMUX_SESSION, STATE_ROOT)
 # pgrep restricted to this instance's processes (readiness checks, teardown).
 INSTANCE_PGREP = WORKSPACE_ROOT / "scripts" / "instance_pgrep.sh"

@@ -11,6 +11,8 @@ import sys
 import time
 
 from ci_panel_checks import exercise_panel
+from ci_panel_faults import exercise_faults
+from ci_ros_contract import check_ros_contract
 from ci_stack import (
     CLEANUP_TIMEOUT_S,
     PANEL_PORT,
@@ -103,7 +105,9 @@ def main() -> int:
         log(f"started pixi run core robot_package:={robot}, then pixi run control-panel")
         wait_for_stack(ros, procs)
         check_robot_identity(ros, robot)
+        check_ros_contract(ros)
         exercise_panel(ros, robot)
+        exercise_faults(ros)
     except Exception as exc:
         log(f"FAIL: {exc}")
         return 1

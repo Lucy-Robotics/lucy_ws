@@ -1,7 +1,10 @@
 """Workspace-root unit tests (launcher helpers, install config)."""
 
+import atexit
 import os
+import shutil
 import sys
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -11,11 +14,16 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 os.chdir(ROOT)
 
+TEST_STATE_HOME = tempfile.mkdtemp(prefix="lucy-test-state-")
+os.environ["XDG_STATE_HOME"] = TEST_STATE_HOME
+atexit.register(shutil.rmtree, TEST_STATE_HOME, ignore_errors=True)
+
 
 @pytest.fixture
 def isolated_state(monkeypatch):
     import json
 
+    import components
     from launcher import state as state_module
     from launcher.state import LauncherState
 
@@ -32,6 +40,11 @@ def isolated_state(monkeypatch):
         "launcher.state.get_dev_mode": lambda: False,
         "launcher.state.tmux_window_snapshot": lambda: (set(), {}),
         "launcher.package._ros_pkg_installed": lambda _name: True,
+        # The default install, plus simulation for the Gazebo rows.
+        "launcher.package.components.load": lambda _root: {
+            **components.DEFAULTS,
+            "simulation": True,
+        },
         "launcher.package._pane_exit_status": lambda _pkg_id: None,
         "launcher.package.run_shell_command": lambda *_a, **_k: False,
     }.items():

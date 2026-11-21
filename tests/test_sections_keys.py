@@ -1,6 +1,8 @@
+from types import SimpleNamespace
+
 import pytest
 
-from launcher import tui
+from launcher import clipboard, tui
 from sections_support import (
     KEY_DOWN,
     KEY_LEFT,
@@ -59,7 +61,7 @@ def test_the_cursor_is_clamped_after_the_screen_shrinks(state):
     assert (row, 0, "> ") in [(y, x, t) for y, x, t, _ in screen.writes]
 
 
-@pytest.mark.parametrize("height", [21, 25, 28])
+@pytest.mark.parametrize("height", [20, 26, 29])
 @pytest.mark.parametrize("key", [ord(" "), KEY_RIGHT])
 def test_opening_a_section_with_no_room_warns_and_leaves_it_folded(
     state, clock, height, key
@@ -90,7 +92,7 @@ SPACE = ord(" ")
 
 def _squeezed(state, clock, steps):
     keys = [k for step in steps for k in step] + quit()
-    return run(state, keys, size=(22, 120), clock=clock)[0]
+    return run(state, keys, size=(21, 120), clock=clock)[0]
 
 
 def _until_open_stack_is_refused():
@@ -102,7 +104,7 @@ def _until_open_stack_is_refused():
     ]
 
 
-def test_at_height_22_opening_stack_is_refused_while_tools_and_options_are_open(
+def test_at_height_21_opening_stack_is_refused_while_tools_and_options_are_open(
     state, clock
 ):
     screen = _squeezed(state, clock, _until_open_stack_is_refused())
@@ -120,7 +122,7 @@ def test_a_taller_terminal_does_not_reopen_sections_folded_for_lack_of_room(
     state, clock
 ):
     screen, _ = run(
-        state, [KEY_RESIZE] + quit(), size=(22, 120), shrink=(40, 120), clock=clock
+        state, [KEY_RESIZE] + quit(), size=(21, 120), shrink=(40, 120), clock=clock
     )
     assert sorted(folded_titles(screen)) == [
         "Control Interfaces",
@@ -133,15 +135,16 @@ def test_a_taller_terminal_does_not_reopen_sections_folded_for_lack_of_room(
 def test_shrinking_folds_bottom_up_and_growing_back_keeps_them_folded(state, clock):
     keys = [KEY_RESIZE, KEY_RESIZE] + quit()
     screen, _ = run(
-        state, keys, size=(40, 120), shrink=[(28, 120), (40, 120)], clock=clock
+        state, keys, size=(40, 120), shrink=[(29, 120), (40, 120)], clock=clock
     )
     assert sorted(folded_titles(screen)) == ["Options", "Tools"]
 
 
 def _toggle_warning_keys(state):
-    state.toggle("core")
+    robot = next(p for p in state.packages if p.requires_pkg)
+    state.toggle(robot.id)
     _, display = draw(state)
-    return [KEY_DOWN] * display.index(state.get_by_id("simulator")) + [ord(" ")]
+    return [KEY_DOWN] * display.index(robot) + [ord(" ")]
 
 
 def test_a_toggle_warning_survives_redraw_ticks_and_expires_after_three_seconds(
@@ -152,9 +155,9 @@ def test_a_toggle_warning_survives_redraw_ticks_and_expires_after_three_seconds(
     keys += [("advance", 1), ("advance", 1), ("advance", 1.5), ("advance", 0)]
     screen, _ = run(state, keys + quit(), clock=clock)
     assert all(
-        "One launch mode required" in s for s in screen.seen[start + 1 : start + 4]
+        "One robot package required" in s for s in screen.seen[start + 1 : start + 4]
     )
-    assert "One launch mode" not in screen.seen[start + 5]
+    assert "One robot package" not in screen.seen[start + 5]
 
 
 def test_the_loop_ticks_while_a_warning_is_showing(state, clock):
@@ -163,3 +166,17 @@ def test_the_loop_ticks_while_a_warning_is_showing(state, clock):
     screen, _ = run(state, keys + [("advance", 0)] + quit(), clock=clock)
     assert screen.timeouts[start] == -1
     assert screen.timeouts[start + 1] == tui.REDRAW_INTERVAL_MS
+
+
+@pytest.mark.parametrize(
+    "copied, message",
+    [("héllo", "Copied 5 chars to clipboard"), ("x", "Copied 1 char to clipboard")],
+)
+def test_a_mouse_copy_says_how_many_chars_on_the_message_line(
+    state, clock, monkeypatch, copied, message
+):
+    monkeypatch.setattr(
+        clipboard.subprocess, "run", lambda *_a, **_k: SimpleNamespace(stdout=copied)
+    )
+    screen, _ = run(state, [tui.TMUX_COPIED_KEY] + quit(), clock=clock)
+    assert screen.seen[1] == message

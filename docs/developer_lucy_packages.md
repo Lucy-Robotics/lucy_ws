@@ -50,7 +50,7 @@ Standard path: `python3 install.py` then `python3 Lucy.py`.
 
 **Jetson (Orin / AGX / Nano / Thor):** Pixi ships conda Mesa/GLVND ahead of the Tegra driver, which breaks Gazebo ogre2 (missing plugin, EGL segfaults). [`scripts/nix_gl_env.sh`](../scripts/nix_gl_env.sh) auto-detects Jetson and prepends `/usr/lib/aarch64-linux-gnu/nvidia` + `tegra`, sets the NVIDIA EGL vendor; [`scripts/gz_rendering_env.sh`](../scripts/gz_rendering_env.sh) discovers ogre2 plugin/resource paths on Linux. Use **`sim-headless`** or Control Center **Simulator → … headless** for camera sim without a display; GUI **`sim`** needs X11/Wayland and keeps your session `XDG_RUNTIME_DIR`. Do not set `LUCY_NIX_GL=0` on Jetson. Override: `LUCY_GPU_MODE=jetson`.
 
-**NixOS:** Pixi/RoboStack needs host GL libraries prepended **and** Mesa EGL - both are applied by [`scripts/nix_gl_env.sh`](../scripts/nix_gl_env.sh) (launcher and `pixi run sim*`). Install **`nixGLIntel`** (or another nixGL wrapper) on PATH, or rely on the `/run/opengl-driver/lib` fallback. **Do not set `LUCY_NIX_GL=0`** - EGL/`GZ_IP` alone is not enough; sim will hang on "requesting world names". Optional overrides: `LUCY_NIX_GL_WRAPPER`, `__EGL_VENDOR_LIBRARY_FILENAMES`, `GZ_IP` - see `.env.example`.
+**NixOS:** see the foldable **NixOS** note under [Quickstart](../README.md#quickstart) in the workspace README (nix-ld, udev, dialout, GL).
 
 ### macOS
 
@@ -193,12 +193,11 @@ ros2 launch lucy_bringup lucy.launch.py mode:=sim
 | Mock hardware (default) | `pixi run core` | *(nothing)* or `mode:=mock` |
 | Mock + RViz | `pixi run rviz` | `rviz:=true` |
 | Gazebo headless | `pixi run sim-headless` | `mode:=sim headless:=true` |
-| Real robot, USB-serial servos driven from the host (SO-ARM101) | `pixi run real-linux` | `mode:=real bridge:=linux` |
-| Real robot, microcontroller boards (Mega / rp2040) | `pixi run real-mcu-bridge` | `mode:=real bridge:=mcu_bridge` |
+| Real robot, through the bridge its robot package names | `pixi run real` | `mode:=real` |
 | Another robot on the same network | `pixi run core -- domain_id:=3` | `domain_id:=3` |
 
-- `bridge:=` is required with `mode:=real` and rejected otherwise; `headless:=true` needs `mode:=sim`. Invalid combinations stop the launch with the command to use.
-- In `mode:=real`, `lucy_control_supervisor` starts the host firmware of the chosen bridge (`lucy_embedded_firmware_<bridge>` colcon package, resolved like `ros2 run`) and restarts it with the stack: `linux` once per ros2_control node, `mcu_bridge` once per Mega board of the active hardware YAML.
+- `mode:=real` needs the robot package to name its bridge with `bridge:` in `config/control.launch.yaml` (`linux` for USB-serial servos driven from the host, like SO-ARM101; `mcu_bridge` for microcontroller boards). Fork the package to drive a robot another way. `headless:=true` needs `mode:=sim`. Invalid combinations stop the launch with the command to use.
+- In `mode:=real`, `lucy_control_supervisor` starts the host firmware of that bridge (`lucy_embedded_firmware_<bridge>` colcon package, resolved like `ros2 run`) and restarts it with the stack: `linux` once per ros2_control node, `mcu_bridge` once per Mega board of the active hardware YAML.
 - `domain_id:=` (default `$ROS_DOMAIN_ID`, else `0`) sets `ROS_DOMAIN_ID` for every process of the launch. Give each robot its own domain; tools started beside it (`ros2 topic`, rqt, lucy-cli) need `ROS_DOMAIN_ID=<n>` in their environment. In the launcher TUI, the **ROS domain ID** row does this for core, its windows and its readiness checks (see [launcher_packages.md](launcher_packages.md#ros-domain-id)).
 
 ### Control panel: SIMULATION ONLY + RELOAD
@@ -242,3 +241,6 @@ Vite proxies `/rosbridge` to `ws://127.0.0.1:9090`. Launcher sets `LUCY_LCP_*` v
 | [`src/inmoov_urdf/docs/DEVELOPER.md`](../src/inmoov_urdf/docs/DEVELOPER.md) | URDF, meshes, sim launches |
 | [`src/inmoov_i2_urdf/docs/DEVELOPER.md`](../src/inmoov_i2_urdf/docs/DEVELOPER.md) | InMoov i2 model (fork of `inmoov_urdf`) |
 | [`src/so_arm101_urdf/docs/DEVELOPER.md`](../src/so_arm101_urdf/docs/DEVELOPER.md) | SO-ARM101 follower arm |
+| [`src/marty_urdf/docs/DEVELOPER.md`](../src/marty_urdf/docs/DEVELOPER.md) | Robotical Marty v2 (mock and Gazebo) |
+| [`src/unitree_g1_urdf/docs/DEVELOPER.md`](../src/unitree_g1_urdf/docs/DEVELOPER.md) | Unitree G1 humanoid (mock and Gazebo) |
+| [`src/unitree_r1_urdf/docs/DEVELOPER.md`](../src/unitree_r1_urdf/docs/DEVELOPER.md) | Unitree R1 humanoid (mock and Gazebo) |

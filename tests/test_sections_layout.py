@@ -28,15 +28,15 @@ def test_the_stack_header_comes_first_with_core_under_it(state):
     assert display[1].type == "core"
 
 
-def test_the_stack_header_is_on_row_three_with_no_blank_row_before_it(state):
+def test_the_stack_header_is_on_row_two_under_one_blank_row(state):
     screen, _ = draw(state)
-    assert header_row(screen, "Stack") == 3
+    assert header_row(screen, "Stack") == 2
 
 
 def test_one_blank_row_separates_two_sections(state):
     screen, _ = draw(state)
     gap = header_row(screen, "Control Interfaces") - header_row(screen, "Robot")
-    assert gap == 1 + 4 + 1
+    assert gap == 1 + 6 + 1
 
 
 def test_the_folded_stack_summary_lists_the_ticked_names(state):
@@ -44,7 +44,7 @@ def test_the_folded_stack_summary_lists_the_ticked_names(state):
     state.toggle("hardware")
     screen, _ = draw(state, folded={"Stack"})
     text = row_text(screen, header_row(screen, "Stack"))
-    assert text.endswith("  Core, Hardware, Micro controllers")
+    assert text.endswith("  Core, Hardware")
 
 
 def test_an_open_section_shows_a_down_chevron_in_column_two(state):
@@ -101,12 +101,12 @@ def test_an_open_section_shows_no_summary(state):
 @pytest.mark.parametrize(
     "height, folded",
     [
-        (32, []),
-        (31, ["Options"]),
-        (28, ["Tools", "Options"]),
-        (25, ["Control Interfaces", "Tools", "Options"]),
-        (21, ["Robot", "Control Interfaces", "Tools", "Options"]),
-        (14, TITLES),
+        (31, []),
+        (30, ["Options"]),
+        (27, ["Tools", "Options"]),
+        (24, ["Control Interfaces", "Tools", "Options"]),
+        (18, ["Robot", "Control Interfaces", "Tools", "Options"]),
+        (13, TITLES),
     ],
 )
 def test_sections_fold_from_the_bottom_up_as_the_screen_shrinks(state, height, folded):
@@ -116,9 +116,9 @@ def test_sections_fold_from_the_bottom_up_as_the_screen_shrinks(state, height, f
 
 
 def test_one_row_below_every_section_folded_is_too_small(state):
-    screen, display = draw(state, height=13)
+    screen, display = draw(state, height=12)
     assert display is None
-    assert any(t == "(40x14 required)" for _, _, t, _ in screen.writes)
+    assert any(t == "(40x13 required)" for _, _, t, _ in screen.writes)
 
 
 def test_user_folded_sections_stay_folded_when_the_screen_is_tall(state):

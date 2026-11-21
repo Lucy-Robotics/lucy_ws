@@ -163,7 +163,7 @@ case "${1:-}" in
     if [ $# -eq 0 ]; then
       set -- ros2 doctor --report
     fi
-    exec pixi run -- "$@"
+    exec pixi run -e ${LUCY_PIXI_ENV:-default} -- "$@"
     ;;
   --shell)
     exec bash "${SCRIPT_DIR}/scripts/pixi_dev_shell.sh"
@@ -180,7 +180,7 @@ case "$(uname -s)" in
       INSTANCE_ENV="LUCY_TMUX_SESSION=${TMUX_SESSION} PORT_ROSBRIDGE=${PORT_ROSBRIDGE}"
       INSTANCE_ENV+=" LUCY_LCP_PUBLISHED_HOST_PORT=${LUCY_LCP_PUBLISHED_HOST_PORT}"
       INSTANCE_ENV+=" LUCY_LCP_CONTAINER_PORT=${LUCY_LCP_CONTAINER_PORT} LUCY_LCP_SCHEME=${LUCY_LCP_SCHEME}"
-      LAUNCH_CMD="cd \"${SCRIPT_DIR}\" && env ${INSTANCE_ENV} pixi run -- python -m launcher"
+      LAUNCH_CMD="cd \"${SCRIPT_DIR}\" && env ${INSTANCE_ENV} pixi run -e ${LUCY_PIXI_ENV:-default} -- python -m launcher"
       # Package windows keep the session alive after the Control Center exits, so
       # "session exists" does not imply "Lucy window exists".
       exec bash -c "
@@ -192,6 +192,7 @@ case "$(uname -s)" in
           tmux new-window -t '=${TMUX_SESSION}:' -n Lucy \"${LAUNCH_CMD}\"
         fi
         bash \"${SCRIPT_DIR}/scripts/tmux_theme.sh\" '${TMUX_SESSION}' || true
+        bash \"${SCRIPT_DIR}/scripts/tmux_copy.sh\" '${TMUX_SESSION}' || true
         tmux select-window -t '=${TMUX_SESSION}:Lucy' 2>/dev/null || true
         tmux attach-session -t '=${TMUX_SESSION}'
       "
@@ -202,4 +203,4 @@ case "$(uname -s)" in
 esac
 
 # Git Bash / MSYS on Windows: no tmux — run the Control Center launcher directly.
-exec pixi run -- python -m launcher
+exec pixi run -e ${LUCY_PIXI_ENV:-default} -- python -m launcher

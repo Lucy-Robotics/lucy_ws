@@ -19,7 +19,7 @@
       "description": "(robot_package:=inmoov_urdf)",
       "type": "modifier",
       "dependencies": ["core"],
-      "conflicts": ["robot_thais", "robot_so_arm101", "robot_inmoov_i2"],
+      "conflicts": ["robot_thais", "robot_so_arm101", "robot_inmoov_i2", "robot_marty"],
       "command": "robot_package:=inmoov_urdf",
       "requires_pkg": "inmoov_urdf",
       "default_on": true
@@ -30,7 +30,7 @@
       "description": "(robot_package:=thais_urdf)",
       "type": "modifier",
       "dependencies": ["core"],
-      "conflicts": ["robot_inmoov", "robot_so_arm101", "robot_inmoov_i2"],
+      "conflicts": ["robot_inmoov", "robot_so_arm101", "robot_inmoov_i2", "robot_marty"],
       "command": "robot_package:=thais_urdf",
       "requires_pkg": "thais_urdf",
       "default_on": false
@@ -41,7 +41,7 @@
       "description": "(robot_package:=so_arm101_urdf)",
       "type": "modifier",
       "dependencies": ["core"],
-      "conflicts": ["robot_inmoov", "robot_thais", "robot_inmoov_i2"],
+      "conflicts": ["robot_inmoov", "robot_thais", "robot_inmoov_i2", "robot_marty"],
       "command": "robot_package:=so_arm101_urdf",
       "requires_pkg": "so_arm101_urdf",
       "default_on": false
@@ -90,6 +90,7 @@
       "conflicts": [],
       "choice": "launch mode",
       "command": "mode:=real",
+      "crash_log_window": "core",
       "default_on": false
     },
     {
@@ -131,7 +132,7 @@
       "command": "pixi run panel-prod --port ${LUCY_LCP_PUBLISHED_HOST_PORT:-4004} --strictPort",
       "dev_command": "pixi run panel-dev --port ${LUCY_LCP_PUBLISHED_HOST_PORT:-4004} --strictPort",
       "command_win": "pixi run panel-prod --port 4004 --strictPort",
-      "readiness_check": "bash scripts/instance_pgrep.sh -f '[v]ite' >/dev/null 2>&1",
+      "readiness_check": "bash scripts/port_open.sh ${LUCY_LCP_PUBLISHED_HOST_PORT:-4004}",
       "readiness_timeout": 300,
       "default_on": false
     },
