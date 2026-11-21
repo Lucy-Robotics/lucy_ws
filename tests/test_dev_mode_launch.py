@@ -91,3 +91,16 @@ def test_install_builds_the_panel_outside_developer_mode(monkeypatch, developer,
                             lambda _m: None, developer=developer)
 
     assert any(cmd[-1] == "panel-build" for cmd in commands) == builds_panel
+
+
+@pytest.mark.parametrize("developer", [True, False])
+def test_install_converts_the_robot_meshes_after_the_panel_dependencies(monkeypatch, developer):
+    commands = []
+    monkeypatch.setattr(install, "build_local_realsense_optional", lambda *a, **k: None)
+    monkeypatch.setattr(install, "setup_firmware_toolchain", lambda *a, **k: None)
+
+    install.build_workspace("/ws", lambda cmd, **_k: commands.append(cmd) or 0,
+                            lambda _m: None, developer=developer)
+
+    tasks = [cmd[-1] for cmd in commands]
+    assert tasks.index("panel-meshes") == tasks.index("panel-install") + 1

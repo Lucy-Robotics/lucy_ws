@@ -884,6 +884,8 @@ def build_workspace(
     pixi_run(project_root, ["run", "build"], run_command)
     log("Installing control panel dependencies (yarn) ...")
     pixi_run(project_root, ["run", "panel-install"], run_command)
+    log("Converting robot meshes for the control panel ...")
+    pixi_run(project_root, ["run", "panel-meshes"], run_command)
     if not developer:
         log("Building the control panel for production ...")
         pixi_run(project_root, ["run", "panel-build"], run_command)
