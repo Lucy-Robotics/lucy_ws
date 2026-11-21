@@ -19,7 +19,7 @@ fi
 printf 'DEV=true\n' > .env
 
 export LUCY_WS_ROOT="$ROOT"
-TMUX_SESSION="${LUCY_TMUX_SESSION:-lucy_ws}"
+TMUX_SESSION="${LUCY_TMUX_SESSION:-lucy_ws_0}"
 export LUCY_TMUX_SESSION="$TMUX_SESSION"
 
 tmux start-server
@@ -40,7 +40,7 @@ load_workspace_env()
 
 core_cmd = (
     "ros2 launch lucy_bringup lucy.launch.py "
-    "robot_package:=inmoov_urdf gazebo:=true headless:=true"
+    "robot_package:=inmoov_urdf mode:=sim headless:=true"
 )
 run_shell_command(_tmux_new_pixi_window("core", core_cmd, remain_on_exit=True))
 run_shell_command(

@@ -5,8 +5,17 @@ import threading
 import time
 
 from .constants import LOADING_TIMEOUT, STOPPING_TIMEOUT
+from .choices import (
+    is_active,
+    is_choice_default,
+    is_last_choice,
+    keeps_when_core_off,
+    same_choice,
+    settle_selection,
+)
 from .config import get_dev_mode, load_state
-from .package import Package, _pkg_visible
+from .domain import env_domain_id, parse_domain_id, step_domain_id
+from .package import Package, _pkg_for_mode, _pkg_visible
 from .shell import tmux_window_snapshot
 
 
@@ -23,9 +32,14 @@ class LauncherState:
             p for p in config_data["packages"] if _pkg_visible(p, dev_mode)
         ]
         self.packages = [
-            Package(p, running_state["modifiers"]) for p in package_configs
+            Package(_pkg_for_mode(p, dev_mode), running_state["modifiers"]) for p in package_configs
         ]
         self.package_map = {p.id: p for p in self.packages}
+        # Domain core was started in (kept in the modifiers state file), and the
+        # one the counter shows; they differ until Enter restarts core.
+        running_domain = parse_domain_id(running_state.get("domain_id"))
+        self.running_domain_id = env_domain_id() if running_domain is None else running_domain
+        self.domain_id = self.running_domain_id
 
     def get_by_id(self, pkg_id):
         return self.package_map.get(pkg_id)
@@ -58,10 +72,10 @@ class LauncherState:
 
     def _enable(self, pkg):
         """Tick a package, clearing anything it conflicts with first."""
-        for conflict_id in pkg.conflicts:
-            conflict_pkg = self.get_by_id(conflict_id)
-            if conflict_pkg and conflict_pkg.selected:
-                conflict_pkg.selected = False
+        for other in self.packages:
+            clashes = other.id in pkg.conflicts or same_choice(pkg, other)
+            if other.selected and clashes:
+                self._disable_with_dependents(other)
         pkg.selected = True
 
     def _enable_with_deps(self, pkg):
@@ -75,9 +89,54 @@ class LauncherState:
     def _disable_with_dependents(self, pkg):
         """Untick a package and any (transitive) dependents."""
         for other_pkg in self.packages:
-            if pkg.id in other_pkg.dependencies and other_pkg.selected:
+            if pkg.id not in other_pkg.dependencies or not other_pkg.selected:
+                continue
+            if not keeps_when_core_off(other_pkg, pkg):
                 self._disable_with_dependents(other_pkg)
         pkg.selected = False
+
+    def step_domain(self, delta, taken=frozenset()):
+        """Move the domain counter past the `taken` ones; applied on Enter.
+
+        Stays put when every domain that way is taken."""
+        domain = self.domain_id
+        while True:
+            nxt = step_domain_id(domain, delta)
+            if nxt == domain:
+                return
+            domain = nxt
+            if domain not in taken:
+                self.domain_id = domain
+                return
+
+    def avoid_domains(self, taken):
+        """Move off a domain another Control Center uses, unless core runs in it.
+
+        A second instance starts on the next free one: lucy_ws_0 on 0, the next
+        on 1, and so on."""
+        if self.domain_id not in taken or self._core_running():
+            return
+        start = self.domain_id
+        self.step_domain(1, taken)
+        if self.domain_id == start:
+            self.step_domain(-1, taken)
+
+    def claimed_domains(self):
+        """Domains this instance uses: the counter's, and core's while it runs."""
+        if self._core_running():
+            return {self.domain_id, self.running_domain_id}
+        return {self.domain_id}
+
+    def domain_restart_pending(self):
+        """True when core runs in another domain than the counter shows."""
+        return self._core_running() and self.domain_id != self.running_domain_id
+
+    def _core_running(self):
+        core = self.get_by_id("core")
+        return bool(core and core.is_running)
+
+    def _robot_packages(self):
+        return [p for p in self.packages if p.requires_pkg]
 
     def toggle(self, pkg_id):
         pkg = self.get_by_id(pkg_id)
@@ -88,7 +147,14 @@ class LauncherState:
         if not pkg.selected:
             self._enable_with_deps(pkg)
         else:
+            if pkg.requires_pkg:
+                selected_robots = [r for r in self._robot_packages() if r.selected]
+                if len(selected_robots) <= 1:
+                    return "One robot package required"
+            if is_last_choice(self, pkg) and is_choice_default(self, pkg):
+                return f"One {pkg.choice} required"
             self._disable_with_dependents(pkg)
+        settle_selection(self)
         return None
 
 
@@ -177,25 +243,27 @@ def get_pkg_status(pkg):
         _pkg_start_times.pop(pkg.id, None)
         return "running"
     if pkg.id in _intended_running:
+        if not pkg.is_running:
+            _pkg_start_times.pop(pkg.id, None)
+            return "crashed"
         timeout = getattr(pkg, "readiness_timeout", LOADING_TIMEOUT)
         started = _pkg_start_times.get(pkg.id)
         if started is None:
-            if pkg.is_running:
-                _pkg_start_times[pkg.id] = time.time()
-                return "loading"
-            return "crashed"
+            _pkg_start_times[pkg.id] = time.time()
+            return "loading"
         if time.time() - started < timeout:
             return "loading"
-        _pkg_start_times.pop(pkg.id, None)
         return "crashed"
     return "stopped"
 
 
 def _has_unapplied_changes(state):
+    if state.domain_restart_pending():
+        return True
     for pkg in state.packages:
         if pkg.id in _pkg_start_times or pkg.id in _pkg_stop_times:
             continue
-        if pkg.selected != pkg.is_running:
+        if is_active(state, pkg) != pkg.is_running:
             return True
     return False
 

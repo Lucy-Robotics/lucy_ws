@@ -22,19 +22,17 @@ for opt in "$@"; do
 done
 
 dump_failure_logs() {
-  mapfile -t tested < <(colcon list --names-only --packages-skip "${skip[@]}")
-
   echo "::group::colcon test-result"
-  if [ "${#tested[@]}" -gt 0 ]; then
-    colcon test-result --verbose --packages-select "${tested[@]}" || true
-  else
-    colcon test-result --verbose || true
-  fi
+  colcon test-result --verbose || true
   echo "::endgroup::"
 
   echo "::group::Failed test logs"
+  latest_test_log=""
   if [ -d log ]; then
-    find log -type f \( -name 'stdout.log' -o -name 'stderr.log' \) -path '*/test_*/*' | while read -r f; do
+    latest_test_log="$(find log -maxdepth 1 -type d -name 'test_*' | sort | tail -1)"
+  fi
+  if [ -n "$latest_test_log" ]; then
+    find "$latest_test_log" -type f \( -name 'stdout.log' -o -name 'stderr.log' \) | while read -r f; do
       if grep -qE 'FAILED|ERROR|Failed|Traceback|NO TESTS RAN' "$f" 2>/dev/null; then
         echo "--- ${f} ---"
         tail -120 "$f"
