@@ -34,6 +34,8 @@ import zipfile
 from pathlib import Path
 from typing import Callable, Iterable, Optional
 
+from install_retry import with_retries
+
 ROOT = Path(__file__).resolve().parent
 
 MIN_PIXI_VERSION = "0.78.0"
@@ -628,9 +630,13 @@ def fetch_repo_git(
     mode: str, run_command: Callable, log: Log,
 ) -> None:
     if mode == "repair" or not os.path.isdir(os.path.join(dest, ".git")):
-        safe_rmtree(dest)
         log(f"Cloning {repo_name} (branch {branch}) ...")
-        run_command(["git", "clone", "-b", branch, url, dest])
+
+        def clone() -> None:
+            safe_rmtree(dest)
+            run_command(["git", "clone", "-b", branch, url, dest])
+
+        with_retries(f"Cloning {repo_name}", clone, log)
         return
 
     log(f"Updating {repo_name} (branch {branch}) ...")
@@ -639,7 +645,7 @@ def fetch_repo_git(
     if current_url and current_url != url:
         log(f"install: updating origin remote for {repo_name} -> {url}")
         run_command(git + ["remote", "set-url", "origin", url])
-    run_command(git + ["fetch", "origin"])
+    with_retries(f"Fetching {repo_name}", lambda: run_command(git + ["fetch", "origin"]), log)
     if run_command(git + ["checkout", branch], check=False) != 0:
         run_command(git + ["checkout", "-b", branch, f"origin/{branch}"])
     if run_command(git + ["pull", "--ff-only", "origin", branch], check=False) != 0:
