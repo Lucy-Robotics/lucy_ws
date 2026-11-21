@@ -50,7 +50,7 @@ def test_clone_does_not_force_progress():
     install.fetch_repo_git("foo", "git@example.com:foo.git", "dev", "/nonexistent/foo",
                            "install", record, lambda _msg: None)
 
-    assert commands == [["git", "clone", "-b", "dev",
+    assert commands == [["git", "clone", "--filter=blob:none", "-b", "dev",
                          "git@example.com:foo.git", "/nonexistent/foo"]]
 
 
