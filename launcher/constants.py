@@ -93,6 +93,8 @@ INSTANCE_ENV_KEYS = (
     "GZ_PARTITION",
     "LUCY_CONTROL_READY_FILE",
     "LUCY_CLI_READY_FILE",
+    "LUCY_STACK_STATUS_FILE",
+    "LUCY_SELECT_ROBOT_FILE",
 )
 
 # Back-compat aliases used by tests and internal modules.

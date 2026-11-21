@@ -123,6 +123,9 @@ def export_instance_env(session=TMUX_SESSION, environ=os.environ):
         "LUCY_CONTROL_READY_FILE", os.path.join(tmp, f"lucy_control_ready.{uid}.{session}")
     )
     environ.setdefault("LUCY_CLI_READY_FILE", os.path.join(tmp, f"lucy_cli.{session}.ready"))
+    # The panel's stack progress and robot switch requests (lucy_robot_select node).
+    environ.setdefault("LUCY_STACK_STATUS_FILE", os.path.join(tmp, f"lucy_stack_status.{uid}.{session}"))
+    environ.setdefault("LUCY_SELECT_ROBOT_FILE", os.path.join(tmp, f"lucy_select_robot.{uid}.{session}"))
 
 
 def process_session(environ):
