@@ -48,6 +48,7 @@ ros-jazzy-ros2-controllers = "*"
 ros-jazzy-gz-ros2-control = "*"
 ros-jazzy-simulation-interfaces = "*"
 ros-jazzy-backward-ros = "*"
+pinocchio = "*"
 
 # RealSense is not a Pixi dependency — build locally when needed:
 #   ./scripts/build_local_realsense.sh  (or LUCY_BUILD_REALSENSE=1 python3 install.py)
