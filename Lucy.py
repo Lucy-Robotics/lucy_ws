@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
+import argparse
 import os
+import re
 import subprocess
 import sys
 import shutil
@@ -13,7 +15,7 @@ except ImportError:  # Windows: handled by windows_main
 ESCAPE_DELAY_MS = 50
 
 MIN_TERM_HEIGHT = 15
-MIN_TERM_WIDTH = 65
+MIN_TERM_WIDTH = 40
 INSTALL_ENV = {"LUCY_PIXI_AUTO_UPGRADE": "1"}
 
 def is_installed():
@@ -51,6 +53,26 @@ PIXI_TASKS = (
     ("pixi run control-panel", "web UI on http://localhost:4004"),
     ("pixi run rviz", "optional viewer"),
 )
+
+
+def ws_session(value):
+    """`-ws 2` or `-ws lucy_ws_2` -> lucy_ws_2: the Control Center instance to use.
+
+    The number shifts the instance's ports (launch_lucy.sh), so it is required."""
+    match = re.fullmatch(r"(?:lucy_ws_)?(\d+)", value.strip())
+    if not match:
+        raise argparse.ArgumentTypeError(f"expected N or lucy_ws_N, got {value!r}")
+    return f"lucy_ws_{int(match.group(1))}"
+
+
+def parse_args(argv=None):
+    parser = argparse.ArgumentParser(description="Lucy workspace manager")
+    parser.add_argument(
+        "-ws", "--ws", type=ws_session, metavar="N",
+        help="Control Center instance to launch or join (lucy_ws_N, ports shifted by N); "
+        "default: lucy_ws_0, or the next free one",
+    )
+    return parser.parse_args(argv)
 
 
 def confirm(prompt):
@@ -151,7 +173,7 @@ def not_installed_screen(stdscr):
         checkbox = "[x]" if is_dev_mode else "[ ]"
         dev_line = f"{checkbox} Developer Mode"
         stdscr.addstr(start + len(lines), max(0, (w - len(dev_line)) // 2), dev_line)
-        hint_line = "(SSH clones during install; does not change Launch)"
+        hint_line = "(installs over SSH; Launch unchanged)"
         stdscr.addstr(start + len(lines) + 1, max(0, (w - len(hint_line)) // 2), hint_line, curses.A_DIM)
 
         footer = [
@@ -192,11 +214,12 @@ def main_tui(stdscr):
     is_dev_mode = get_dev_mode()
     current_idx = 0
     options = ["Launch", "---", "Update", "Rebuild", "Exit", "---", "Developer Mode"]
+    ws = os.environ.get("LUCY_TMUX_SESSION")
 
     while True:
         stdscr.clear()
         h, w = stdscr.getmaxyx()
-        title = "Lucy Workspace Manager"
+        title = f"Lucy Workspace Manager ({ws})" if ws else "Lucy Workspace Manager"
         stdscr.addstr(0, max(0, (w - len(title)) // 2), title, curses.A_BOLD)
 
         for i, option in enumerate(options):
@@ -212,7 +235,6 @@ def main_tui(stdscr):
             else:
                 stdscr.addstr(2 + i, 4, f"{prefix}{option}")
 
-        stdscr.addstr(h - 2, 2, "Or: pixi run build, ./launch_lucy.sh", curses.A_DIM)
         stdscr.refresh()
 
         key = stdscr.getch()
@@ -244,7 +266,8 @@ def main_tui(stdscr):
                 return {
                     "cmd": ["pixi", "run", "build"],
                     "name": "Rebuild",
-                    "followup": [["pixi", "run", "panel-install"]],
+                    "followup": [["pixi", "run", "panel-install"]]
+                    + ([] if is_dev_mode else [["pixi", "run", "panel-build"]]),
                 }
             elif selected_option == "Launch":
                 # Hands the terminal to the stack; the menu does not come back.
@@ -253,6 +276,11 @@ def main_tui(stdscr):
                 return None
 
 if __name__ == "__main__":
+    args = parse_args()
+    if args.ws:
+        # launch_lucy.sh pins this session instead of picking the next free one.
+        os.environ["LUCY_TMUX_SESSION"] = args.ws
+
     # This initial check is done before curses.wrapper to provide a clean error message
     # without the screen flicker of initializing and de-initializing curses.
     # Windows first: the size check below needs curses, which does not exist there.

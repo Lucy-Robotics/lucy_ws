@@ -10,7 +10,7 @@ on:
 
 jobs:
   create-release:
-    uses: Sentience-Robotics/.github/.github/workflows/release.yaml@master
+    uses: Lucy-Robotics/.github/.github/workflows/release.yaml@master
     with:
       version: ${{ inputs.version }}
 

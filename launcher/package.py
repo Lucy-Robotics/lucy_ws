@@ -1,6 +1,7 @@
 """Package model and visibility helpers."""
 
 import os
+import subprocess
 
 from .constants import LOADING_TIMEOUT, WORKSPACE_ROOT
 from .config import save_state
@@ -48,6 +49,13 @@ def _pkg_visible(pkg_config, dev_mode):
     return _env_enabled(pkg_config.get("requires_env"))
 
 
+def _pkg_for_mode(pkg_config, dev_mode):
+    """The package as launched in this mode: dev_command replaces command in developer mode."""
+    if dev_mode and "dev_command" in pkg_config:
+        return {**pkg_config, "command": pkg_config["dev_command"]}
+    return pkg_config
+
+
 class Package:
     def __init__(self, data, running_modifiers):
         self.id = data["id"]
@@ -61,7 +69,10 @@ class Package:
         self.selected = data.get("default_on", False)
         self.requires_pkg = data.get("requires_pkg")
         self.subitem = data.get("subitem", False)
+        self.choice = data.get("choice")
+        self.section = data.get("section")
         self.readiness_check = data.get("readiness_check")
+        self.exit_check = data.get("exit_check")
         self.readiness_stages = _readiness_stages(data.get("readiness_stages"))
         self.readiness_timeout = data.get("readiness_timeout", LOADING_TIMEOUT)
         self.runs_on_vnc = data.get("runs_on_vnc", False)
@@ -121,6 +132,15 @@ class Package:
 
         if not is_running:
             exit_status = None
+        elif self.exit_check:
+            res = subprocess.run(
+                self.exit_check, shell=True, capture_output=True, text=True
+            ).stdout.strip()
+            exit_status = (
+                int(res)
+                if (res.isdigit() or (res.startswith("-") and res[1:].isdigit()))
+                else None
+            )
         elif tmux_dead is not None:
             exit_status = tmux_dead.get(self.id)
         else:

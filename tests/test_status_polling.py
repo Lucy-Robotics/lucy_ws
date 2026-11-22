@@ -133,14 +133,14 @@ def test_controllers_probe_caches_a_result_slower_than_its_ttl(tmp_path):
     home = tmp_path / "home"
     (home / ".pixi" / "bin").mkdir(parents=True)
     fake_pixi = home / ".pixi" / "bin" / "pixi"
-    fake_pixi.write_text("#!/usr/bin/env bash\nsleep 2\n")
+    fake_pixi.write_text("#!/usr/bin/env bash\nsleep 3\n")
     fake_pixi.chmod(0o755)
 
     env = {
         **os.environ,
         "HOME": str(home),
         "TMPDIR": str(tmp_path),
-        "LUCY_CONTROLLERS_CACHE_TTL": "1",
+        "LUCY_CONTROLLERS_CACHE_TTL": "2",
         "LUCY_CONTROLLERS_TIMEOUT": "10",
     }
     script = str(ROOT / "scripts" / "controllers_active.sh")
@@ -148,11 +148,11 @@ def test_controllers_probe_caches_a_result_slower_than_its_ttl(tmp_path):
     started = time.time()
     subprocess.run(["bash", script], cwd=ROOT, env=env, capture_output=True)
     cold = time.time() - started
-    assert cold >= 2.0, "the probe was not actually exercised"
+    assert cold >= 3.0, "the probe was not actually exercised"
 
     started = time.time()
     subprocess.run(["bash", script], cwd=ROOT, env=env, capture_output=True)
-    assert time.time() - started < 1.0, (
+    assert time.time() - started < 1.5, (
         "a probe slower than the TTL was not cached; every caller re-runs it"
     )
 

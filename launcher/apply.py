@@ -2,8 +2,10 @@
 
 import time
 
-from .config import load_selection
+from .choices import is_active
+from .config import load_selected_domain_id, load_selection
 from .constants import TMUX_SESSION
+from .domain import export_domain_id, parse_domain_id
 from .shell import run_teardown_async
 from .state import (
     _intended_running,
@@ -23,7 +25,7 @@ def _package_needs_vite_preserve(pkg) -> bool:
     else:
         cmd = ""
     cl = cmd.lower()
-    return "vite" in cl or "panel-dev" in cl
+    return "vite" in cl or "panel-dev" in cl or "panel-prod" in cl
 
 
 def _orphan_preserve_from_state(state):
@@ -68,14 +70,45 @@ def stop_all_packages(state):
     launcher._finish_teardown()
 
 
+def _ros_windows_to_restart(state):
+    """Running windows that talk to core over DDS, so must follow it to a new domain."""
+    return [
+        p
+        for p in state.packages
+        if p.type in ("interface", "tool")
+        and p.selected
+        and p.is_running
+        and "core" in p.dependencies
+        and not p.is_complex_command()
+    ]
+
+
+def _mark_stopped(pkg):
+    """Forget a package's run: it is restarted by the start loop of apply_changes."""
+    pkg.is_running = False
+    pkg.ready = False
+    _pkg_start_times.pop(pkg.id, None)
+    _intended_running.discard(pkg.id)
+
+
 def apply_changes(state):
     import launcher
 
+    domain = state.domain_id
+    domain_changed = state.domain_restart_pending()
+    export_domain_id(domain)
+
     preserve_windows, protect_vite = _orphan_preserve_from_state(state)
+    core_pkg = state.get_by_id("core")
+    restart_windows = (
+        _ros_windows_to_restart(state)
+        if domain_changed and core_pkg and core_pkg.selected
+        else []
+    )
+    preserve_windows -= {p.id for p in restart_windows}
     launcher.set_orphan_preserve_windows(preserve_windows, protect_vite=protect_vite)
 
     last_launched_window = None
-    core_pkg = state.get_by_id("core")
 
     modifiers_changed = False
     if core_pkg and core_pkg.selected:
@@ -88,26 +121,28 @@ def apply_changes(state):
         if selected_modifier_ids != running_modifier_ids:
             modifiers_changed = True
 
-    if modifiers_changed and core_pkg and core_pkg.selected:
+    # lucy-cli, rqt... joined core's old domain; stop them so the start loop
+    # below reopens them with the new ROS_DOMAIN_ID.
+    for pkg in restart_windows:
+        launcher._stop_tmux_window(pkg.id)
+        _mark_stopped(pkg)
+
+    if (modifiers_changed or domain_changed) and core_pkg and core_pkg.selected:
         launcher._stop_core_tmux()
         launcher._finish_teardown(
             preserve_package_windows=frozenset(preserve_windows),
             protect_vite=protect_vite,
         )
         launcher.save_state({"modifiers": []})
-        core_pkg.is_running = False
-        _pkg_start_times.pop("core", None)
-        _intended_running.discard("core")
+        _mark_stopped(core_pkg)
         for mod in state.packages:
             if mod.type == "modifier":
                 if mod.is_running and "stop" in mod.lifecycle_hooks:
                     launcher.run_shell_command(mod.lifecycle_hooks["stop"])
-                mod.is_running = False
-                _pkg_start_times.pop(mod.id, None)
-                _intended_running.discard(mod.id)
+                _mark_stopped(mod)
 
     for pkg in state.packages:
-        if not pkg.selected and pkg.is_running:
+        if not is_active(state, pkg) and pkg.is_running:
             stopping = True
             if pkg.is_complex_command():
                 launcher.run_shell_command_async(
@@ -138,7 +173,7 @@ def apply_changes(state):
     for pkg in state.packages:
         crashed = pkg.pane_dead and pkg.pane_exit_status != 0
         if (
-            pkg.selected
+            is_active(state, pkg)
             and pkg.id not in _pkg_stop_times
             and (not pkg.is_running or crashed)
         ):
@@ -163,13 +198,14 @@ def apply_changes(state):
                 ]
                 modifier_args = [p.command for p in selected_modifiers]
                 modifier_ids = [p.id for p in selected_modifiers]
-                full_cmd = f"{base_cmd} {' '.join(modifier_args)}"
+                full_cmd = f"{base_cmd} {' '.join(modifier_args)} domain_id:={domain}"
+                state.running_domain_id = domain
                 launcher.run_shell_command(
                     launcher._tmux_new_pixi_window(
                         "core", full_cmd, remain_on_exit=True
                     )
                 )
-                launcher.save_state({"modifiers": modifier_ids})
+                launcher.save_state({"modifiers": modifier_ids, "domain_id": domain})
                 _pkg_start_times[pkg.id] = time.time()
                 _intended_running.add(pkg.id)
                 for mod in selected_modifiers:
@@ -202,7 +238,7 @@ def apply_changes(state):
 
 
 def restore_selection(state):
-    """Pre-tick packages from the last applied selection (.lucy_launcher_state.json)."""
+    """Pre-tick packages from the last applied selection (SELECTION_FILE)."""
     saved = load_selection()
     if saved is None:
         return
@@ -215,6 +251,11 @@ def restore_selection(state):
     if chosen is not None:
         for pkg in robots:
             pkg.selected = pkg is chosen
+    # A running core keeps showing the domain it runs in.
+    core = state.get_by_id("core")
+    saved_domain = parse_domain_id(load_selected_domain_id())
+    if saved_domain is not None and not (core and core.is_running):
+        state.domain_id = saved_domain
 
 
 def default_robot_selection(state):

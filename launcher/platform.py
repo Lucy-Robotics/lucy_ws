@@ -67,6 +67,7 @@ def read_proc_environ_darwin(pid: int) -> dict[str, str]:
         "GZ_SIM_SYSTEM_PLUGIN_PATH",
         "PWD",
         "PIXI_PROJECT_NAME",
+        "LUCY_TMUX_SESSION",
     )
     env = {}
     for key in keys:

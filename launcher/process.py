@@ -11,8 +11,10 @@ from pathlib import Path
 from .constants import (
     CONTROL_PANEL_DIR,
     ORPHAN_CLEANUP_DEBOUNCE,
+    TMUX_SESSION,
     _norm_path,
 )
+from .instance import process_session
 from .platform import path_in_text
 
 _orphan_cleanup_timer = None
@@ -126,15 +128,27 @@ def _in_lucy_workspace(cmdline: str, pid: int) -> bool:
     return launcher._process_workspace_markers(pid)
 
 
+def _in_this_instance(pid: int) -> bool:
+    """True unless the process belongs to another Control Center's stack.
+
+    Processes carry LUCY_TMUX_SESSION from the window that started them; one
+    started by hand (no variable) belongs to the default instance."""
+    import launcher
+
+    if pid <= 0:
+        return True
+    return process_session(launcher._read_proc_environ(pid)) == TMUX_SESSION
+
+
 def is_lucy_orphan(pid: int, cmdline: str) -> bool:
     """True when this process should be reaped during Lucy shutdown."""
     if not _matches_orphan_signature(cmdline):
         return False
     if not _in_lucy_workspace(cmdline, pid):
         return False
-    if "vite" in cmdline.lower():
-        return _is_vite_orphan(cmdline, pid)
-    return True
+    if "vite" in cmdline.lower() and not _is_vite_orphan(cmdline, pid):
+        return False
+    return _in_this_instance(pid)
 
 
 def is_lucy_orphan_cmdline(cmdline: str) -> bool:

@@ -25,6 +25,8 @@ pytest = "*"
 pytest-cov = "*"
 pytest-mock = "*"
 ros-jazzy-rclpy = ">=7.1.11,<8"
+playwright-python = "1.61.*"
+playwright = "1.61.*"
 
 
 # --- ROS Jazzy stack (RoboStack channel) ---
@@ -89,7 +91,7 @@ colcon-test-result = ">=0.3.8,<0.4"
 
 # --- colcon build tasks (RoboStack Getting Started pattern) ---
 [feature.build.target.unix.tasks]
-build = { cmd = "rm -rf build/camera_ros && colcon build --symlink-install --cmake-args -GNinja -DCMAKE_BUILD_TYPE=Release -Wno-dev && bash scripts/macos_link_workspace_libs.sh", inputs = ["src"] }
+build = { cmd = "(colcon build --symlink-install --cmake-args -GNinja -DCMAKE_BUILD_TYPE=Release -Wno-dev || colcon build --symlink-install --cmake-args -GNinja -DCMAKE_BUILD_TYPE=Release -Wno-dev) && bash scripts/macos_link_workspace_libs.sh", inputs = ["src"] }
 build-release = "colcon build --cmake-args -GNinja -DCMAKE_BUILD_TYPE=Release -Wno-dev && bash scripts/macos_link_workspace_libs.sh"
 clean = "python scripts/clean.py"
 test = { cmd = "bash scripts/ci_colcon_test.sh", depends-on = ["build"] }
@@ -105,28 +107,45 @@ test-only = "python scripts/ci_colcon_test.py --merge-install"
 [feature.panel.tasks]
 panel-install = { cmd = "yarn install", cwd = "src/lucy_control_panel" }
 panel-dev = { cmd = "yarn dev", cwd = "src/lucy_control_panel" }
-panel-build = { cmd = "yarn build", cwd = "src/lucy_control_panel" }
+panel-build = { cmd = "yarn build", cwd = "src/lucy_control_panel", inputs = [
+  "src/lucy_control_panel/src",
+  "src/lucy_control_panel/public",
+  "src/lucy_control_panel/index.html",
+  "src/lucy_control_panel/package.json",
+  "src/lucy_control_panel/yarn.lock",
+  "src/lucy_control_panel/vite.config.ts",
+  "src/lucy_control_panel/tsconfig*.json",
+  "src/lucy_control_panel/.env*",
+], outputs = ["src/lucy_control_panel/dist"] }
+panel-prod = { cmd = "yarn preview", cwd = "src/lucy_control_panel", depends-on = ["panel-build"] }
 
 [feature.dev.tasks]
 doctor = "python scripts/ros_doctor.py"
+setup-udev = "bash scripts/setup_udev.sh"
 workspace-test = { cmd = "PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 pytest tests -q -p pytester -p python -p terminal" }
 core-bringup-test = "bash -c 'source scripts/dds_env.sh 2>/dev/null; python scripts/ci_core_bringup_test.py'"
+panel-e2e-test = "python scripts/ci_panel_e2e_test.py"
+tui-launch-test = "python scripts/ci_tui_launch_test.py"
 shell = "bash scripts/pixi_dev_shell.sh"
 
 [feature.launcher.target.unix.tasks]
-# lucy_bringup stacks (scripts/pixi_lucy_launch.sh — NixOS GL via scripts/nix_gl_env.sh)
+# lucy_bringup stacks (scripts/pixi_lucy_launch.sh — NixOS GL via scripts/nix_gl_env.sh).
+# lucy.launch.py mode:=mock|sim|real; extra args pass through, e.g. `pixi run core -- domain_id:=3`.
 core = { cmd = "bash scripts/pixi_lucy_launch.sh" }
-sim = { cmd = "bash scripts/pixi_lucy_launch.sh gazebo:=true" }
-sim-headless = { cmd = "bash scripts/pixi_lucy_launch.sh gazebo:=true headless:=true" }
-sim-rviz = { cmd = "bash scripts/pixi_lucy_launch.sh gazebo:=true headless:=true rviz:=true" }
 rviz = { cmd = "bash scripts/pixi_lucy_launch.sh rviz:=true" }
+sim = { cmd = "bash scripts/pixi_lucy_launch.sh mode:=sim" }
+sim-headless = { cmd = "bash scripts/pixi_lucy_launch.sh mode:=sim headless:=true" }
+sim-rviz = { cmd = "bash scripts/pixi_lucy_launch.sh mode:=sim headless:=true rviz:=true" }
+# Real robot: host drives USB-serial servos (SO-ARM101) / host relays to microcontroller boards.
+real-linux = { cmd = "bash scripts/pixi_lucy_launch.sh mode:=real bridge:=linux" }
+real-mcu-bridge = { cmd = "bash scripts/pixi_lucy_launch.sh mode:=real bridge:=mcu_bridge" }
 
 [feature.launcher.target.win-64.tasks]
 rcl = { cmd = "python -c 'import rclpy; print(rclpy.__file__)'" } # TMP task for testing
 core = { cmd = "python scripts/pixi_lucy_launch.py" }
-sim = { cmd = "python scripts/pixi_lucy_launch.py gazebo:=true" }
-sim-headless = { cmd = "python scripts/pixi_lucy_launch.py gazebo:=true headless:=true" }
-sim-rviz = { cmd = "python scripts/pixi_lucy_launch.py gazebo:=true headless:=true rviz:=true" }
+sim = { cmd = "python scripts/pixi_lucy_launch.py mode:=sim" }
+sim-headless = { cmd = "python scripts/pixi_lucy_launch.py mode:=sim headless:=true" }
+sim-rviz = { cmd = "python scripts/pixi_lucy_launch.py mode:=sim headless:=true rviz:=true" }
 rviz = { cmd = "python scripts/pixi_lucy_launch.py rviz:=true" }
 # core starts this automatically; here for running it standalone.
 joint-states = "ros2 run joint_state_publisher joint_state_publisher"
@@ -137,10 +156,40 @@ control-panel = { cmd = "yarn dev", cwd = "src/lucy_control_panel" }
 rqt = { cmd = "bash scripts/pixi_gui_launch.sh rqt" }
 lucy-cli = { cmd = "bash scripts/pixi_gui_launch.sh ros2 run lucy_cli tui" }
 
+# --- embedded firmware development (Rust + RP2040) ---
+[feature.firmware.dependencies]
+# rustup supplies the toolchain; conda-forge has no thumbv6m-none-eabi rust-std (checked 2026-09-09).
+python = ">=3.10"             # for setup/flash scripts
+pyserial = "*"                # serial port detection and communication
+requests = "*"                # for rustup automatic download (if needed)
+# No boost-cpp here (conflicts with RoboStack libboost).
+
+[feature.firmware.tasks]
+# Zero-touch: installs rustup+elf2uf2 into $CONDA_PREFIX/{cargo,rustup}.
+# firmware_cargo_env.py points cargo/rustc at that layout (multi-platform).
+firmware-setup = "python scripts/firmware_setup.py"
+# Host firmwares and rp2040 are colcon packages (src/lucy_embedded_firmware/firmwares/*), also built by
+# `pixi run build`. Run them with `ros2 run lucy_embedded_firmware_<linux|mcu_bridge> ...`.
+# Host Feetech SHM consumer (so101) and mcu_bridge need serialport → libudev on Linux.
+firmware-build-linux = { cmd = "colcon build --symlink-install --packages-select lucy_embedded_firmware_linux --cmake-args -GNinja -DCMAKE_BUILD_TYPE=Release -Wno-dev", depends-on = ["firmware-setup"] }
+firmware-build-mcu-bridge = { cmd = "colcon build --symlink-install --packages-select lucy_embedded_firmware_mcu_bridge --cmake-args -GNinja -DCMAKE_BUILD_TYPE=Release -Wno-dev", depends-on = ["firmware-setup"] }
+# The RP2040 talks to the host through mcu_bridge, so build both.
+# UF2 lands in install/lucy_embedded_firmware_rp2040/share/lucy_embedded_firmware_rp2040/firmware/.
+firmware-build-rp2040 = { cmd = "colcon build --symlink-install --packages-select lucy_embedded_firmware_rp2040 lucy_embedded_firmware_mcu_bridge --cmake-args -GNinja -DCMAKE_BUILD_TYPE=Release -Wno-dev", depends-on = ["firmware-setup"] }
+firmware-flash = { cmd = "python scripts/firmware_flash.py", depends-on = ["firmware-build-rp2040"] }
+# Arduino Mega boards: `pixi run firmware-flash-mega mega_right [--robot pkg] [--port dev] [--build-only]`.
+# Needs host avr-gcc + avrdude (not on conda-forge).
+firmware-flash-mega = { cmd = "python scripts/firmware_flash_mega.py", depends-on = ["firmware-setup"] }
+# No Cargo workspace: cargo test/clean walk each crate and firmware package.
+firmware-clean = "python scripts/firmware_cargo_each.py clean"
+firmware-test = { cmd = "python scripts/firmware_cargo_each.py test", depends-on = ["firmware-setup"] }
+
 # --- platform-specific host packages ---
 [target.linux.dependencies]
 libgl-devel = "*"
 gstreamer = "*"
+# serialport (firmwares/linux + mcu_bridge) links libudev via pkg-config.
+libudev = "*"
 
 # tmux is a host tool (see README). Not bundled in Pixi so `pixi run` does not shadow it.
 
@@ -156,7 +205,7 @@ env = { GZ_SIM_SYSTEM_PLUGIN_PATH = "$CONDA_PREFIX/lib" }
 
 [target.win.activation]
 scripts = ["install/setup.bat"]
-env = { GZ_SIM_SYSTEM_PLUGIN_PATH = "%CONDA_PREFIX%/Library/bin" }
+env = { GZ_SIM_SYSTEM_PLUGIN_PATH = "%CONDA_PREFIX%/Library/bin", RMW_IMPLEMENTATION = "rmw_cyclonedds_cpp", CYCLONEDDS_URI = '<CycloneDDS><Domain id="any"><General><Interfaces><NetworkInterface address="127.0.0.1" multicast="true"/></Interfaces><AllowMulticast>true</AllowMulticast></General></Domain></CycloneDDS>' }
 
 [environments]
-default = { features = ["ros", "build", "panel", "dev", "launcher"] }
+default = { features = ["ros", "build", "panel", "dev", "launcher", "firmware"] }

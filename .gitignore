@@ -27,13 +27,6 @@ __pycache__/
 .env
 .env.local
 
-# Launcher remembered tick selection (persisted across restarts)
-.lucy_launcher_state.json
-
-# Launcher runtime modifier state (which core modifiers were applied)
-.lucy_launcher_modifiers.json
-.lucy_launcher.pid
-
 # Local repo override (forks/branches; takes precedence over config/repos.json)
 config/repos.json.local
 

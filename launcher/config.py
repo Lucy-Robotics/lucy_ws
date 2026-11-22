@@ -5,6 +5,7 @@ import os
 
 from .constants import (
     DEFAULT_CONFIG_FILE,
+    INSTANCE_ENV_KEYS,
     LOCAL_CONFIG_FILE,
     SELECTION_FILE,
     STATE_FILE,
@@ -40,6 +41,10 @@ def load_workspace_env():
             if not key:
                 continue
             val = val.strip().strip('"').strip("'")
+            # launch_lucy.sh already derived these from .env, per instance
+            # (e.g. PORT_ROSBRIDGE + 1 for lucy_ws_1); keep what it passed.
+            if key in INSTANCE_ENV_KEYS and key in os.environ:
+                continue
             os.environ[key] = val
 
 
@@ -67,25 +72,42 @@ def load_state():
 
 
 def save_state(state_data):
+    STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
     with open(STATE_FILE, "w") as f:
         json.dump(state_data, f)
 
 
-def load_selection():
-    """Set of package ids the user last applied, or None if never saved."""
-    if not os.path.exists(SELECTION_FILE):
-        return None
+def _load_selection_file():
     try:
         with open(SELECTION_FILE) as f:
-            return set(json.load(f).get("selected", []))
+            data = json.load(f)
     except (json.JSONDecodeError, OSError):
         return None
+    return data if isinstance(data, dict) else None
 
 
-def save_selection(selected_ids):
-    """Persist the applied tick selection so it is restored on the next launch."""
+def load_selection():
+    """Set of package ids the user last applied, or None if never saved."""
+    data = _load_selection_file()
+    return None if data is None else set(data.get("selected", []))
+
+
+def load_selected_domain_id():
+    """ROS domain id the user last applied (raw), or None if never saved."""
+    data = _load_selection_file()
+    return None if data is None else data.get("domain_id")
+
+
+def save_selection(selected_ids, domain_id):
+    """Persist the applied ticks and ROS domain so they are restored on the next launch."""
+    data = {"selected": sorted(selected_ids), "domain_id": domain_id}
+    tmp = f"{SELECTION_FILE}.tmp"
     try:
-        with open(SELECTION_FILE, "w") as f:
-            json.dump({"selected": sorted(selected_ids)}, f)
+        SELECTION_FILE.parent.mkdir(parents=True, exist_ok=True)
+        with open(tmp, "w") as f:
+            json.dump(data, f)
+        # Replace, don't rewrite in place: a root-owned file left by the Docker setup
+        # can't be opened for writing, but the user-owned directory lets us swap it.
+        os.replace(tmp, SELECTION_FILE)
     except OSError:
         pass
