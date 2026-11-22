@@ -147,12 +147,14 @@ class LauncherState:
         if not pkg.selected:
             self._enable_with_deps(pkg)
         else:
+            if pkg.parent:
+                return "Pick another option instead"
             if pkg.requires_pkg:
                 selected_robots = [r for r in self._robot_packages() if r.selected]
                 if len(selected_robots) <= 1:
                     return "One robot package required"
             if is_last_choice(self, pkg) and is_choice_default(self, pkg):
-                return f"One {pkg.choice} required"
+                return None
             self._disable_with_dependents(pkg)
         settle_selection(self)
         return None
@@ -263,6 +265,9 @@ def _has_unapplied_changes(state):
     for pkg in state.packages:
         if pkg.id in _pkg_start_times or pkg.id in _pkg_stop_times:
             continue
+        parent = state.get_by_id(pkg.parent) if pkg.parent else None
+        if pkg.parent and not (parent and parent.is_running):
+            continue
         if is_active(state, pkg) != pkg.is_running:
             return True
     return False
@@ -273,6 +278,14 @@ def _nav_hint(pkg):
     if not pkg.nav_hint or not pkg.is_running:
         return ""
     return f"({pkg.nav_hint})"
+
+
+def _crash_hint(pkg, status):
+    """The failure next to CRASHED. Anything else is still in progress or done."""
+    if status != "crashed":
+        return ""
+    message = getattr(pkg, "crash_message", "") or ""
+    return " ".join(message.split())
 
 
 def _stage_hint(pkg, status):

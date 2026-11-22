@@ -7,16 +7,27 @@ import subprocess
 import sys
 import shutil
 
+import components
+import update_split
+from pathlib import Path
+from tui_toolbox import draw_title
+from update_branches import current_branch, version
+
 try:
     import curses
+    from update_screen import update_screen
 except ImportError:  # Windows: handled by windows_main
     curses = None
 
 ESCAPE_DELAY_MS = 50
 
-MIN_TERM_HEIGHT = 15
+MIN_TERM_HEIGHT = 18
 MIN_TERM_WIDTH = 40
 INSTALL_ENV = {"LUCY_PIXI_AUTO_UPGRADE": "1"}
+
+def lucy_title():
+    return f"Lucy {version(Path('.'))}"
+
 
 def is_installed():
     """True when the workspace has been built (mirrors launch_lucy.sh's check)."""
@@ -138,6 +149,28 @@ def run_command(command, extra_env=None):
         print(f"An error occurred: {e}")
         return -1
 
+def run_task(task):
+    rc = run_command(task["cmd"], extra_env=task.get("extra_env"))
+    for follow in task.get("followup", []):
+        if rc != 0:
+            break
+        rc = run_command(follow, extra_env=task.get("extra_env"))
+    return rc
+
+
+def update_task(workspace_branch):
+    install = [sys.executable, "install.py"]
+    task = {"cmd": install, "name": "Install", "extra_env": INSTALL_ENV}
+    if workspace_branch in ("", current_branch(Path("."))):
+        return task
+    return {**task, "cmd": ["git", "checkout", workspace_branch], "followup": [install], "restart": True}
+
+
+def restart_if_switched(task):
+    if task.get("restart"):
+        os.execv(sys.executable, [sys.executable, "Lucy.py"])
+
+
 def use_responsive_escape():
     """ESC starts every arrow and function key sequence, so ncurses delays
     reporting a lone ESC. Call after curses is initialised."""
@@ -155,12 +188,12 @@ def not_installed_screen(stdscr):
     use_responsive_escape()
 
     is_dev_mode = get_dev_mode()
+    title = lucy_title()
 
     while True:
         stdscr.clear()
         h, w = stdscr.getmaxyx()
-        title = "Lucy Workspace Manager"
-        stdscr.addstr(0, max(0, (w - len(title)) // 2), title, curses.A_BOLD)
+        draw_title(stdscr, title)
 
         lines = [
             ("Lucy is not installed on this machine.", curses.A_BOLD),
@@ -207,11 +240,9 @@ def main_tui(stdscr):
     stdscr.nodelay(0)
     stdscr.timeout(-1)
     use_responsive_escape()
-    curses.start_color()
-    curses.use_default_colors()
-    curses.init_pair(1, curses.COLOR_CYAN, -1)
 
     is_dev_mode = get_dev_mode()
+    title = lucy_title()
     current_idx = 0
     options = ["Launch", "---", "Update", "Rebuild", "Exit", "---", "Developer Mode"]
     ws = os.environ.get("LUCY_TMUX_SESSION")
@@ -219,8 +250,7 @@ def main_tui(stdscr):
     while True:
         stdscr.clear()
         h, w = stdscr.getmaxyx()
-        title = f"Lucy Workspace Manager ({ws})" if ws else "Lucy Workspace Manager"
-        stdscr.addstr(0, max(0, (w - len(title)) // 2), title, curses.A_BOLD)
+        draw_title(stdscr, f"{title} ({ws})" if ws else title)
 
         for i, option in enumerate(options):
             if option == "---":
@@ -257,17 +287,18 @@ def main_tui(stdscr):
                 is_dev_mode = not is_dev_mode
                 set_dev_mode(is_dev_mode)
             elif selected_option == "Update":
-                return {
-                    "cmd": [sys.executable, "install.py"],
-                    "name": "Install",
-                    "extra_env": INSTALL_ENV,
-                }
+                workspace_branch = update_screen(stdscr, ".")
+                if workspace_branch is not None:
+                    return update_task(workspace_branch)
             elif selected_option == "Rebuild":
+                panel = components.load(".")["control_panel"]
                 return {
-                    "cmd": ["pixi", "run", "build"],
+                    "cmd": components.pixi_command(".", ["run", "build"]),
                     "name": "Rebuild",
-                    "followup": [["pixi", "run", "panel-install"]]
-                    + ([] if is_dev_mode else [["pixi", "run", "panel-build"]]),
+                    "followup": [
+                        components.pixi_command(".", ["run", task])
+                        for task in ["panel-install"] + ([] if is_dev_mode else ["panel-build"])
+                    ] if panel else [],
                 }
             elif selected_option == "Launch":
                 # Hands the terminal to the stack; the menu does not come back.
@@ -309,9 +340,11 @@ if __name__ == "__main__":
             print(f"A terminal error occurred: {e}", file=sys.stderr)
             print("This might be due to resizing the window. Please restart.", file=sys.stderr)
             sys.exit(1)
-        if not wants_install:
+        workspace_branch = curses.wrapper(update_screen, ".") if wants_install else None
+        if workspace_branch is None:
             sys.exit(0)
-        rc = run_command([sys.executable, "install.py"], extra_env=INSTALL_ENV)
+        install_task = update_task(workspace_branch)
+        rc = run_task(install_task)
         if rc != 0:
             print(f"\n--- Install finished with exit code {rc} ---")
             print("Press Enter to exit.")
@@ -320,6 +353,7 @@ if __name__ == "__main__":
         print("\n--- Install finished successfully. ---")
         print("Press Enter to continue to the menu.")
         input()
+        restart_if_switched(install_task)
 
     if not check_prereqs():
         sys.exit(1)
@@ -346,11 +380,12 @@ if __name__ == "__main__":
             # User selected Exit
             break
 
-        rc = run_command(task["cmd"], extra_env=task.get("extra_env"))
-        for follow in task.get("followup", []):
-            if rc != 0:
-                break
-            rc = run_command(follow, extra_env=task.get("extra_env"))
+        if task["name"] == "Install" and update_split.available():
+            update_split.run(".", [task["cmd"], *task.get("followup", [])], task["extra_env"])
+            restart_if_switched(task)
+            continue
+
+        rc = run_task(task)
 
         if task.get("exits_menu", False):
             print(f"--- Session finished with exit code {rc} ---")
@@ -361,6 +396,7 @@ if __name__ == "__main__":
             print(f"\n--- Task '{task_name}' finished successfully. ---")
             print("Press Enter to return to the menu.")
             input()
+            restart_if_switched(task)
         else:
             print(f"\n--- Task '{task_name}' finished with exit code {rc} ---")
             print("Press Enter to exit.")

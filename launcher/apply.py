@@ -6,6 +6,7 @@ from .choices import is_active
 from .config import load_selected_domain_id, load_selection
 from .constants import TMUX_SESSION
 from .domain import export_domain_id, parse_domain_id
+from .options import default_options, options_changed, record_launch, with_options
 from .shell import run_teardown_async
 from .state import (
     _intended_running,
@@ -142,6 +143,13 @@ def apply_changes(state):
                 _mark_stopped(mod)
 
     for pkg in state.packages:
+        if pkg.selected and pkg.is_running and pkg.id not in _pkg_stop_times and options_changed(state, pkg):
+            launcher._stop_tmux_window(pkg.id)
+            pkg.is_running = False
+
+    for pkg in state.packages:
+        if pkg.type == "option":
+            continue
         if not is_active(state, pkg) and pkg.is_running:
             stopping = True
             if pkg.is_complex_command():
@@ -173,7 +181,8 @@ def apply_changes(state):
     for pkg in state.packages:
         crashed = pkg.pane_dead and pkg.pane_exit_status != 0
         if (
-            is_active(state, pkg)
+            pkg.type != "option"
+            and is_active(state, pkg)
             and pkg.id not in _pkg_stop_times
             and (not pkg.is_running or crashed)
         ):
@@ -215,9 +224,10 @@ def apply_changes(state):
                 if pkg.type == "interface":
                     launcher.run_shell_command(
                         launcher._tmux_new_pixi_window(
-                            pkg.id, pkg.command, remain_on_exit=True
+                            pkg.id, with_options(pkg, state), remain_on_exit=True
                         )
                     )
+                    record_launch(state, pkg)
                 else:
                     launcher.run_shell_command(
                         launcher._tmux_new_pixi_window(
@@ -251,6 +261,7 @@ def restore_selection(state):
     if chosen is not None:
         for pkg in robots:
             pkg.selected = pkg is chosen
+    default_options(state)
     # A running core keeps showing the domain it runs in.
     core = state.get_by_id("core")
     saved_domain = parse_domain_id(load_selected_domain_id())
@@ -266,9 +277,4 @@ def default_robot_selection(state):
         return
     if any(p.selected for p in robots):
         return
-    if len(robots) == 1:
-        robots[0].selected = True
-        return
-    inmoov = state.get_by_id("robot_inmoov")
-    if inmoov:
-        inmoov.selected = True
+    (state.get_by_id("robot_inmoov") or robots[0]).selected = True

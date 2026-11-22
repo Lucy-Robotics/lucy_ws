@@ -33,6 +33,7 @@ STATE_ROOT = state_root()
 STATE_DIR = STATE_ROOT / TMUX_SESSION
 STATE_FILE = STATE_DIR / "modifiers.json"
 SELECTION_FILE = STATE_DIR / "selection.json"
+OPTIONS_FILE = STATE_DIR / "options.json"
 LAUNCHER_PIDFILE = pidfile_for(TMUX_SESSION, STATE_ROOT)
 # pgrep restricted to this instance's processes (readiness checks, teardown).
 INSTANCE_PGREP = WORKSPACE_ROOT / "scripts" / "instance_pgrep.sh"
@@ -92,6 +93,8 @@ INSTANCE_ENV_KEYS = (
     "GZ_PARTITION",
     "LUCY_CONTROL_READY_FILE",
     "LUCY_CLI_READY_FILE",
+    "LUCY_STACK_STATUS_FILE",
+    "LUCY_SELECT_ROBOT_FILE",
 )
 
 # Back-compat aliases used by tests and internal modules.

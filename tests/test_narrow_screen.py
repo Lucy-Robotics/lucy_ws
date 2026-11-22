@@ -52,7 +52,7 @@ def _longest_stage(state):
 def _stress(state, monkeypatch):
     cycle = itertools.cycle(STATUSES)
     monkeypatch.setattr(tui, "get_pkg_status", lambda _p: next(cycle))
-    monkeypatch.setattr(tui, "_status_url", lambda _p: "http://localhost:5173/panel")
+    monkeypatch.setattr(tui, "access_urls", lambda _p, _s: ["http://localhost:5173/panel"])
     monkeypatch.setattr(tui, "_nav_hint", lambda _p: "(tmux ctrl-b 1)")
     stage = _longest_stage(state)
     for pkg in state.packages:
