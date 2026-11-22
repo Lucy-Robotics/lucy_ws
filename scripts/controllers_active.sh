@@ -40,14 +40,20 @@ verdict() {
 # scoped differently from the stack. The pid is checked for liveness so a marker
 # from a killed supervisor fails. No marker (Gazebo owns its own manager) falls
 # through to the graph below.
+# The marker only says the spawners succeeded once, so it is consumed on the first
+# pass: from then on the graph below sees controllers deactivated later.
 READY_FILE="${LUCY_CONTROL_READY_FILE:-${TMPDIR:-/tmp}/lucy_control_ready.$(id -u)}"
 if [[ -f "${READY_FILE}" ]]; then
   # `read` reports EOF without a trailing newline but still assigns.
   read -r ready_pid ready_active < "${READY_FILE}" 2>/dev/null
   if [[ "${ready_pid}" =~ ^[0-9]+$ ]] && [[ "${ready_active}" =~ ^[0-9]+$ ]] \
      && kill -0 "${ready_pid}" 2>/dev/null; then
-    verdict "${ready_active}"
-    exit $?
+    verdict "${ready_active}" || exit 1
+    if (( MIN_ACTIVE > 0 )); then
+      printf '%s %s\n' "$(date +%s)" "${ready_active}" > "${CACHE}" 2>/dev/null || true
+      rm -f "${READY_FILE}"
+    fi
+    exit 0
   fi
 fi
 
