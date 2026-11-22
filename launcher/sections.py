@@ -24,7 +24,7 @@ def rows_needed(titled, folded):
     shown = sum(
         0 if section.title in folded else len(items) for section, items in titled
     )
-    return 2 * len(titled) + shown + 4
+    return 2 * len(titled) + shown + 3
 
 
 def fold_to_fit(titled, folded, height):
