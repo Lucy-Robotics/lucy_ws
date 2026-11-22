@@ -29,13 +29,6 @@ if [ -f "$SCRIPT_DIR/.env" ]; then
   set +a
 fi
 
-check_cmd() {
-  if ! command -v "$1" &>/dev/null; then
-    echo "Missing required command: $1" >&2
-    exit 1
-  fi
-}
-
 # Delegates to scripts/port_open.sh so this and the launcher readiness probes
 # share one implementation. That also covers the case this used to miss:
 # Debian-family bash is sometimes built without net redirections, where the
@@ -94,7 +87,14 @@ vite_scheme_from_envfile() {
   fi
 }
 
-check_cmd pixi
+if ! command -v pixi &>/dev/null; then
+  {
+    echo "pixi not found (looked in ~/.pixi/bin and PATH)."
+    echo "Run:  python3 install.py   which installs pixi, or install it by hand:"
+    echo "      curl -fsSL https://pixi.sh/install.sh | bash"
+  } >&2
+  exit 1
+fi
 
 if [[ ! -f "$SCRIPT_DIR/install/setup.bash" && ! -f "$SCRIPT_DIR/install/setup.bat" ]]; then
   echo "Workspace not built. Run python3 install.py or Install in Lucy.py" >&2
@@ -170,7 +170,9 @@ case "${1:-}" in
     ;;
 esac
 
-# tmux is a host tool (not in Pixi). Session runs on the host; launcher runs in pixi run.
+# tmux runs on the host, outside the workspace env; the launcher runs in pixi run.
+# install.py provides it with `pixi global install tmux` (in ~/.pixi/bin, on PATH
+# above) when the system has none.
 case "$(uname -s)" in
   Linux|Darwin)
     if command -v tmux >/dev/null 2>&1; then
@@ -196,7 +198,12 @@ case "$(uname -s)" in
         tmux attach-session -t '=${TMUX_SESSION}'
       "
     fi
-    echo "tmux not found — install tmux for the multi-window launcher (see README)." >&2
+    {
+      echo "tmux not found: the Lucy launcher needs it on Linux/macOS."
+      echo "Install it with:  pixi global install tmux"
+      echo "            (or:  python3 install.py, which offers to install it)"
+      echo "Without tmux:     ./launch_lucy.sh --shell   or   --headless <cmd>"
+    } >&2
     exit 1
     ;;
 esac

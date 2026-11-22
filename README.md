@@ -15,8 +15,8 @@ Workspace bringup for the Lucy / InMoov humanoid. ROS 2 Jazzy, Gazebo, RViz, and
 |-------------|-------|-------|---------|
 | [Git](https://git-scm.com/downloads) | ✓ | ✓ | ✓ ([Git for Windows](https://git-scm.com/install/windows)) |
 | [Python 3](https://www.python.org/downloads/) (for `Lucy.py`) | ✓ | ✓ | ✓ |
-| [Pixi](https://pixi.prefix.dev/latest/installation/) **≥ 0.78** | ✓ | ✓ | ✓ |
-| **tmux** (multi-window launcher) | ✓ | ✓ (`brew install tmux`) | - (launcher runs directly) |
+| [Pixi](https://pixi.prefix.dev/latest/installation/) **≥ 0.78** (installed by `install.py` if missing) | ✓ | ✓ | ✓ |
+| **tmux** (multi-window launcher; installed by `install.py` with `pixi global install tmux` if missing) | ✓ | ✓ | - (launcher runs directly) |
 
 ROS packages are installed by Pixi into `.pixi/`.
 
