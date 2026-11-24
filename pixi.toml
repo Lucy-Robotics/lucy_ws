@@ -70,7 +70,7 @@ env = { RMW_IMPLEMENTATION = "rmw_cyclonedds_cpp" }
 env = { RMW_IMPLEMENTATION = "rmw_cyclonedds_cpp" }
 
 [feature.ros.target.win-64.dependencies]
-# lucy_ros2_control is not built on win-64, so nothing publishes /joint_states.
+# Stands in for joint_state_broadcaster when no controller publishes /joint_states.
 # joint_state_publisher supplies it from the URDF (viewer only, not driveable).
 ros-jazzy-joint-state-publisher = "*"
 # 0.17.x imports em.OVERRIDE_OPT and cannot load extensions against empy 4.
