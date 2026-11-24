@@ -697,7 +697,7 @@ def fetch_repo_git(
 
         def clone() -> None:
             safe_rmtree(dest)
-            run_command(["git", "clone", "-b", branch, url, dest])
+            run_command(["git", "clone", "--filter=blob:none", "-b", branch, url, dest])
 
         with_retries(f"Cloning {repo_name}", clone, log)
         return
