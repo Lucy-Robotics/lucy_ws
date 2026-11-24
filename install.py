@@ -40,6 +40,9 @@ from typing import Callable, Iterable, Optional
 
 from install_retry import with_retries
 
+sys.path.append(str(Path(__file__).resolve().parent / "scripts"))
+from macos import linker as macos_linker  # noqa: E402
+
 ROOT = Path(__file__).resolve().parent
 
 MIN_PIXI_VERSION = "0.78.0"
@@ -57,6 +60,7 @@ REQUIREMENT_DOCS = {
     "msvc": ("Visual Studio Build Tools (Desktop development with C++)",
              "https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022"),
     "workspace-path": ("Workspace path without spaces", ""),
+    "macos-sdk": ("macOS SDK the Pixi linker can read", ""),
     "nix-ld": (" REQUIREMENT, MANUAL ACTION REQUIRED:\nPlease enable `programs.nix-ld.enable = true;` in your NixOS configuration and rebuild your system before continuing. See README.md for details."),
 }
 
@@ -941,12 +945,34 @@ def build_local_realsense_optional(
     run_command(["bash", str(script)], cwd=str(project_root))
 
 
+def ensure_macos_linker(
+    project_root: Path | str, run_command: Callable = default_run_command, log: Log = print
+) -> None:
+    if sys.platform != "darwin" or macos_linker.pixi_links_c(project_root):
+        return
+    sdk = macos_linker.active_sdk()
+    log(f"The Pixi linker cannot read the macOS SDK {sdk}.")
+    if macos_linker.command_line_tools_installed() and confirm_install(
+        "macos-sdk",
+        f"Use the Command Line Tools SDK instead (sudo xcode-select -s "
+        f"{macos_linker.COMMAND_LINE_TOOLS_DIR})?",
+        "LUCY_XCODE_SELECT_AUTO",
+        default=True,
+    ):
+        run_command(["sudo", "xcode-select", "-s", macos_linker.COMMAND_LINE_TOOLS_DIR], check=False)
+        if macos_linker.pixi_links_c(project_root):
+            log("macOS linker OK with the Command Line Tools SDK.")
+            return
+    fail("macos-sdk", macos_linker.unreadable_sdk_help(sdk))
+
+
 def build_workspace(
     project_root: Path | str,
     run_command: Callable = default_run_command,
     log: Log = print,
     developer: bool = False,
 ) -> None:
+    ensure_macos_linker(project_root, run_command, log)
     # colcon builds the Rust firmwares too, so cargo must exist first.
     setup_firmware_toolchain(project_root, run_command, log)
     log("Building ROS workspace (colcon) ...")
@@ -957,6 +983,17 @@ def build_workspace(
         log("Building the control panel for production ...")
         pixi_run(project_root, ["run", "panel-build"], run_command)
     build_local_realsense_optional(project_root, run_command, log)
+    warm_up_macos_first_launch(project_root, run_command, log)
+
+
+def warm_up_macos_first_launch(
+    project_root: Path | str, run_command: Callable = default_run_command, log: Log = print
+) -> None:
+    if sys.platform != "darwin" or env_flag("LUCY_SKIP_WARM_UP"):
+        return
+    log("Warming up the first launch (macOS checks every new library once) ...")
+    run_command(["pixi", "run", "python", "scripts/macos/warm_up.py"],
+                check=False, cwd=str(project_root))
 
 
 def setup_firmware_toolchain(

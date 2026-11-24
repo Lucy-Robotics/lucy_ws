@@ -22,6 +22,8 @@ ALLOWED = {
     ("scripts/pixi_lucy_launch.py", "launch"),
     # Output is inherited, not piped, so nothing can block on a surviving child.
     ("scripts/ros_doctor.py", "doctor"),
+    # Own process group signalled as a whole, output to /dev/null: no orphan, no pipe.
+    ("scripts/macos/warm_up.py", "launch"),
 }
 
 
