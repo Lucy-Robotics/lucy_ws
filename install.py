@@ -983,6 +983,17 @@ def build_workspace(
         log("Building the control panel for production ...")
         pixi_run(project_root, ["run", "panel-build"], run_command)
     build_local_realsense_optional(project_root, run_command, log)
+    warm_up_macos_first_launch(project_root, run_command, log)
+
+
+def warm_up_macos_first_launch(
+    project_root: Path | str, run_command: Callable = default_run_command, log: Log = print
+) -> None:
+    if sys.platform != "darwin" or env_flag("LUCY_SKIP_WARM_UP"):
+        return
+    log("Warming up the first launch (macOS checks every new library once) ...")
+    run_command(["pixi", "run", "python", "scripts/macos/warm_up.py"],
+                check=False, cwd=str(project_root))
 
 
 def setup_firmware_toolchain(
