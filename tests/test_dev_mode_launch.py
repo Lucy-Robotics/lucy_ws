@@ -85,6 +85,7 @@ def test_production_panel_survives_restarts(monkeypatch):
 def test_install_builds_the_panel_outside_developer_mode(monkeypatch, developer, builds_panel):
     commands = []
     monkeypatch.setattr(install, "build_local_realsense_optional", lambda *a, **k: None)
+    monkeypatch.setattr(install, "ensure_macos_linker", lambda *a, **k: None)
     monkeypatch.setattr(install, "setup_firmware_toolchain", lambda *a, **k: None)
 
     install.build_workspace("/ws", lambda cmd, **_k: commands.append(cmd) or 0,
