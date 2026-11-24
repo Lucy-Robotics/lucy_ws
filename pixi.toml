@@ -7,6 +7,9 @@ channels = [
 ]
 platforms = ["linux-64", "linux-aarch64", "osx-arm64", "osx-64", "win-64"]
 
+[system-requirements]
+macos = "14.0"
+
 # --- shared build / tooling (default feature) ---
 [dependencies]
 python = "*"
@@ -39,7 +42,7 @@ channels = [
 [feature.ros.dependencies]
 # Pin distro mutex so all RoboStack packages come from the same rebuild cycle.
 # See: https://github.com/RoboStack/ros-jazzy/issues/125
-ros2-distro-mutex = ">=0.15,<0.16"
+ros2-distro-mutex = ">=0.21,<0.22"
 ros-jazzy-desktop = "*"
 ros-jazzy-ros-gz = "*"
 ros-jazzy-rosbridge-suite = "*"
@@ -67,7 +70,7 @@ env = { RMW_IMPLEMENTATION = "rmw_cyclonedds_cpp" }
 env = { RMW_IMPLEMENTATION = "rmw_cyclonedds_cpp" }
 
 [feature.ros.target.win-64.dependencies]
-# controller_manager crashes on win-64, so nothing publishes /joint_states.
+# lucy_ros2_control is not built on win-64, so nothing publishes /joint_states.
 # joint_state_publisher supplies it from the URDF (viewer only, not driveable).
 ros-jazzy-joint-state-publisher = "*"
 # 0.17.x imports em.OVERRIDE_OPT and cannot load extensions against empy 4.

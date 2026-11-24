@@ -84,7 +84,7 @@ jobs:
           repository: Lucy-Robotics/lucy_ws
           ref: ${{ inputs.branches != '' && needs.installer-branches.outputs.lucy_ws || (github.event.repository.name != 'lucy_ws' && (github.base_ref == 'master' && 'master' || 'dev') || '') }}
 
-      - uses: prefix-dev/setup-pixi@v0.10.0
+      - uses: prefix-dev/setup-pixi@v0.11.3
         with:
           pixi-version: latest
           cache: ${{ matrix.pixi_platform != 'win-64' }}
