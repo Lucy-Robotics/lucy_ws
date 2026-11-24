@@ -54,17 +54,19 @@ ros-jazzy-backward-ros = "*"
 
 [feature.ros.target.osx-arm64.dependencies]
 pygraphviz = "*"
+lld = "*"
 ros-jazzy-rmw-cyclonedds-cpp = "*"
 
 [feature.ros.target.osx-64.dependencies]
 pygraphviz = "*"
+lld = "*"
 ros-jazzy-rmw-cyclonedds-cpp = "*"
 
 [feature.ros.target.osx-arm64.activation]
-env = { RMW_IMPLEMENTATION = "rmw_cyclonedds_cpp" }
+env = { RMW_IMPLEMENTATION = "rmw_cyclonedds_cpp", LDFLAGS = "-fuse-ld=lld $LDFLAGS", CARGO_TARGET_AARCH64_APPLE_DARWIN_LINKER = "$PIXI_PROJECT_ROOT/scripts/macos_lld_cc.sh" }
 
 [feature.ros.target.osx-64.activation]
-env = { RMW_IMPLEMENTATION = "rmw_cyclonedds_cpp" }
+env = { RMW_IMPLEMENTATION = "rmw_cyclonedds_cpp", LDFLAGS = "-fuse-ld=lld $LDFLAGS", CARGO_TARGET_X86_64_APPLE_DARWIN_LINKER = "$PIXI_PROJECT_ROOT/scripts/macos_lld_cc.sh" }
 
 [feature.ros.target.win-64.dependencies]
 # controller_manager crashes on win-64, so nothing publishes /joint_states.

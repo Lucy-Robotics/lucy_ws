@@ -14,7 +14,7 @@ def pixi_links_c(project_root: Path | str) -> bool:
         source.write_text(PROBE_SOURCE)
         try:
             result = subprocess.run(
-                ["pixi", "run", "cc", str(source), "-o", str(Path(tmp) / "probe")],
+                ["pixi", "run", "sh", "-c", 'cc $LDFLAGS "$0" -o "$1"', str(source), str(Path(tmp) / "probe")],
                 cwd=str(project_root), capture_output=True, text=True, timeout=300, check=False,
             )
         except (OSError, subprocess.TimeoutExpired):
