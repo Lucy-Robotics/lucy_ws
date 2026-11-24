@@ -39,7 +39,9 @@ from pathlib import Path
 from typing import Callable, Iterable, Optional
 
 from install_retry import with_retries
-import macos_linker
+
+sys.path.append(str(Path(__file__).resolve().parent / "scripts"))
+from macos import linker as macos_linker  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent
 
