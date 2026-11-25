@@ -154,6 +154,7 @@ joint-states = "ros2 run joint_state_publisher joint_state_publisher"
 control-panel = { cmd = "yarn dev", cwd = "src/lucy_control_panel" }
 rqt = { cmd = "bash scripts/pixi_gui_launch.sh rqt" }
 lucy-cli = { cmd = "bash scripts/pixi_gui_launch.sh ros2 run lucy_cli tui" }
+loop-probe = "python scripts/control_loop_probe.py"
 
 # --- embedded firmware development (Rust + RP2040) ---
 [feature.firmware.dependencies]
