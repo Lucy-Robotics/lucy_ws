@@ -6,6 +6,7 @@ pixi run setup-udev
 
 Linux realtime control loop (optional, one-time setup, then log out and back in)
 pixi run setup-realtime
+Undo: sudo rm /etc/security/limits.d/99-lucy-realtime.conf, then log out and back in
 
 2. Build firmware (colcon package, also builds the host mcu_bridge; `pixi run build` builds every firmware)
 pixi run firmware-build-rp2040
