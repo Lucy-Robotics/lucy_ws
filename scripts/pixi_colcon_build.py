@@ -23,8 +23,6 @@ from install import msvc_available, msvc_environment  # noqa: E402
 COLCON_ARGS = [
     "build",
     "--merge-install",
-    "--packages-ignore",
-    "lucy_ros2_control",
     "--cmake-args",
     "-GNinja",
     "-DCMAKE_BUILD_TYPE=Release",

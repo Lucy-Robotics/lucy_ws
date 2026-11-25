@@ -133,10 +133,9 @@ def validate_windows_ros_runtime() -> None:
 def _joint_state_fallback_enabled() -> bool:
     """Whether to stand in for joint_state_broadcaster.
 
-    controller_manager crashes on startup on win-64, so no controller spawns and
-    nothing publishes /joint_states, leaving the control panel with no pose to
-    draw. Set LUCY_JOINT_STATE_FALLBACK=0 once ros2_control works on Windows,
-    otherwise this would publish alongside joint_state_broadcaster.
+    Without a running joint_state_broadcaster nothing publishes /joint_states,
+    leaving the control panel with no pose to draw. Set
+    LUCY_JOINT_STATE_FALLBACK=0 to turn it off.
     """
     if os.name != "nt":
         return False
